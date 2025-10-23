@@ -11,7 +11,7 @@ interface RequestItem {
   id: string
   name: string
   method: string
-  url: string // ← THÊM FIELD NÀY
+  url: string
   testData: TestData[]
 }
 
@@ -39,20 +39,20 @@ const collections = ref<Collection[]>([
         method: 'POST',
         url: 'https://api.sfin.vn/v1/auth/token', // ← THÊM URL
         testData: [
-          { 
-            id: 't1', 
-            name: 'data_1.json', 
+          {
+            id: 't1',
+            name: 'data_1.json',
             content: `{
   "username": "test_user_001",
   "password": "SecurePass123!",
   "grant_type": "password",
   "client_id": "sfin-invoice-app",
   "scope": "read write"
-}` 
+}`
           },
-          { 
-            id: 't2', 
-            name: 'data_2.json', 
+          {
+            id: 't2',
+            name: 'data_2.json',
             content: `{
   "username": "admin@sfin.vn",
   "password": "Admin@2024",
@@ -60,7 +60,7 @@ const collections = ref<Collection[]>([
   "client_id": "sfin-admin-portal",
   "client_secret": "xK9mP2nQ5rT8wV3yZ",
   "scope": "admin"
-}` 
+}`
           }
         ]
       },
@@ -70,19 +70,19 @@ const collections = ref<Collection[]>([
         method: 'GET',
         url: 'https://api.sfin.vn/v1/invoices',
         testData: [
-          { 
-            id: 't3', 
-            name: 'default.json', 
+          {
+            id: 't3',
+            name: 'default.json',
             content: `{
   "page": 1,
   "pageSize": 20,
   "sortBy": "createdDate",
   "sortOrder": "desc"
-}` 
+}`
           },
-          { 
-            id: 't4', 
-            name: 'filter.json', 
+          {
+            id: 't4',
+            name: 'filter.json',
             content: `{
   "page": 1,
   "pageSize": 50,
@@ -96,16 +96,16 @@ const collections = ref<Collection[]>([
   },
   "sortBy": "invoiceDate",
   "sortOrder": "desc"
-}` 
+}`
           },
-          { 
-            id: 't5', 
-            name: 'search_by_number.json', 
+          {
+            id: 't5',
+            name: 'search_by_number.json',
             content: `{
   "invoiceNumber": "INV-2024-001234",
   "includeDetails": true,
   "includePayments": true
-}` 
+}`
           }
         ]
       },
@@ -115,9 +115,9 @@ const collections = ref<Collection[]>([
         method: 'POST',
         url: 'https://api.sfin.vn/v1/invoices',
         testData: [
-          { 
-            id: 't6', 
-            name: 'create_invoice.json', 
+          {
+            id: 't6',
+            name: 'create_invoice.json',
             content: `{
   "customer": {
     "name": "Công ty TNHH Thương Mại XYZ",
@@ -150,7 +150,7 @@ const collections = ref<Collection[]>([
   ],
   "notes": "Giao hàng trong vòng 7 ngày",
   "paymentMethod": "BANK_TRANSFER"
-}` 
+}`
           }
         ]
       }
@@ -164,34 +164,29 @@ const collections = ref<Collection[]>([
         id: 'r4',
         name: 'Đăng nhập',
         method: 'POST',
-        url: 'https://api.example.com/v1/auth/login',
+        url: 'https://bhl.dev.tlsoft.com.vn/api/auth/login',
         testData: [
-          { 
-            id: 't7', 
-            name: 'login_success.json', 
+          {
+            id: 't7',
+            name: 'login_success.json',
             content: `{
-  "email": "admin@example.com",
-  "password": "Admin@123456",
-  "rememberMe": true,
-  "deviceInfo": {
-    "deviceId": "web-browser-chrome-001",
-    "platform": "Web",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-  }
-}` 
+                "email": "admin",
+                "password": "adminBhl12345!",
+                "rememberMe": true
+              }`
           },
-          { 
-            id: 't8', 
-            name: 'login_fail.json', 
+          {
+            id: 't8',
+            name: 'login_fail.json',
             content: `{
   "email": "wrong@example.com",
   "password": "WrongPassword",
   "rememberMe": false
-}` 
+}`
           },
-          { 
-            id: 't9', 
-            name: 'login_mobile.json', 
+          {
+            id: 't9',
+            name: 'login_mobile.json',
             content: `{
   "phoneNumber": "+84901234567",
   "otp": "123456",
@@ -200,7 +195,7 @@ const collections = ref<Collection[]>([
     "platform": "iOS",
     "appVersion": "1.2.3"
   }
-}` 
+}`
           }
         ]
       },
@@ -210,9 +205,9 @@ const collections = ref<Collection[]>([
         method: 'POST',
         url: 'https://api.example.com/v1/users/register',
         testData: [
-          { 
-            id: 't10', 
-            name: 'register_user.json', 
+          {
+            id: 't10',
+            name: 'register_user.json',
             content: `{
   "firstName": "Nguyễn Văn",
   "lastName": "An",
@@ -231,7 +226,7 @@ const collections = ref<Collection[]>([
   },
   "agreeToTerms": true,
   "newsletter": true
-}` 
+}`
           }
         ]
       },
@@ -241,9 +236,9 @@ const collections = ref<Collection[]>([
         method: 'PUT',
         url: 'https://api.example.com/v1/users/profile',
         testData: [
-          { 
-            id: 't11', 
-            name: 'update_profile.json', 
+          {
+            id: 't11',
+            name: 'update_profile.json',
             content: `{
   "userId": "user-12345",
   "firstName": "Trần Thị",
@@ -257,7 +252,7 @@ const collections = ref<Collection[]>([
     "emailNotifications": true,
     "smsNotifications": false
   }
-}` 
+}`
           }
         ]
       }
@@ -273,19 +268,19 @@ const collections = ref<Collection[]>([
         method: 'GET',
         url: 'https://api.shop.vn/v1/products',
         testData: [
-          { 
-            id: 't12', 
-            name: 'list_all.json', 
+          {
+            id: 't12',
+            name: 'list_all.json',
             content: `{
   "page": 1,
   "limit": 20,
   "categoryId": null,
   "inStock": true
-}` 
+}`
           },
-          { 
-            id: 't13', 
-            name: 'filter_by_category.json', 
+          {
+            id: 't13',
+            name: 'filter_by_category.json',
             content: `{
   "page": 1,
   "limit": 50,
@@ -298,7 +293,7 @@ const collections = ref<Collection[]>([
   "sortOrder": "asc",
   "inStock": true,
   "brands": ["Apple", "Samsung", "Dell"]
-}` 
+}`
           }
         ]
       },
@@ -308,9 +303,9 @@ const collections = ref<Collection[]>([
         method: 'POST',
         url: 'https://api.shop.vn/v1/products',
         testData: [
-          { 
-            id: 't14', 
-            name: 'create_product.json', 
+          {
+            id: 't14',
+            name: 'create_product.json',
             content: `{
   "name": "iPhone 15 Pro Max 256GB",
   "sku": "IPHONE-15-PM-256-BLK",
@@ -342,7 +337,7 @@ const collections = ref<Collection[]>([
   },
   "tags": ["flagship", "premium", "5g"],
   "status": "active"
-}` 
+}`
           }
         ]
       }
@@ -365,7 +360,7 @@ const toggleCollection = (id: string) => {
 const toggleRequest = (id: string, request: RequestItem) => {
   selectedRequest.value = selectedRequest.value === id ? null : id
   selectedTestData.value = null
-  
+
   // Emit request info khi click vào request
   if (selectedRequest.value === id) {
     console.log('📡 List: emitting selectRequest', request)
@@ -378,12 +373,10 @@ const toggleRequest = (id: string, request: RequestItem) => {
 }
 
 const selectTestData = (data: TestData) => {
-  console.log('🎯 List: selectTestData clicked!', data)
   selectedTestData.value = data.id
-  
+
   const payload = { content: data.content, name: data.name }
-  console.log('🚀 List: emitting selectTestData with:', payload)
-  
+
   emit('selectTestData', payload)
 }
 </script>
@@ -396,8 +389,7 @@ const selectTestData = (data: TestData) => {
         <div
           class="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-2 rounded-md border-l-2 transition-colors"
           :class="selectedCollection === col.id ? 'border-primary bg-primary/10' : 'border-transparent'"
-          @click="toggleCollection(col.id)"
-        >
+          @click="toggleCollection(col.id)">
           <div class="font-semibold text-gray-800 text-xs truncate flex-1 mr-2">
             📁 {{ col.name }}
           </div>
@@ -407,21 +399,13 @@ const selectTestData = (data: TestData) => {
         </div>
 
         <!-- CẤP 2: REQUEST -->
-        <div
-          v-if="selectedCollection === col.id"
-          class="pl-4 border-l border-gray-200 ml-2 mt-1 space-y-1"
-        >
+        <div v-if="selectedCollection === col.id" class="pl-4 border-l border-gray-200 ml-2 mt-1 space-y-1">
           <div v-for="req in col.requests" :key="req.id">
-            <div
-              class="cursor-pointer px-2 py-1.5 hover:bg-gray-50 rounded-md"
-              :class="selectedRequest === req.id ? 'bg-blue-50' : ''"
-              @click="toggleRequest(req.id, req)"
-            >
+            <div class="cursor-pointer px-2 py-1.5 hover:bg-gray-50 rounded-md"
+              :class="selectedRequest === req.id ? 'bg-blue-50' : ''" @click="toggleRequest(req.id, req)">
               <div class="flex items-center gap-1 mb-0.5">
-                <span
-                  class="text-xs font-bold px-1 rounded flex-shrink-0"
-                  :class="req.method === 'POST' ? 'text-green-600' : req.method === 'GET' ? 'text-blue-600' : req.method === 'PUT' ? 'text-orange-600' : 'text-red-600'"
-                >
+                <span class="text-xs font-bold px-1 rounded flex-shrink-0"
+                  :class="req.method === 'POST' ? 'text-green-600' : req.method === 'GET' ? 'text-blue-600' : req.method === 'PUT' ? 'text-orange-600' : 'text-red-600'">
                   {{ req.method }}
                 </span>
                 <span class="text-gray-800 text-xs truncate flex-1">{{ req.name }}</span>
@@ -433,14 +417,10 @@ const selectTestData = (data: TestData) => {
 
             <!-- CẤP 3: TEST DATA -->
             <div v-if="selectedRequest === req.id" class="pl-4 mt-1 space-y-0.5">
-              <div
-                v-for="data in req.testData"
-                :key="data.id"
+              <div v-for="data in req.testData" :key="data.id"
                 class="text-gray-600 hover:text-primary cursor-pointer py-1 px-2 rounded hover:bg-gray-50 text-xs truncate"
                 :class="selectedTestData === data.id ? 'font-semibold text-blue-600 bg-blue-50' : ''"
-                @click.stop="selectTestData(data)"
-                :title="data.name"
-              >
+                @click.stop="selectTestData(data)" :title="data.name">
                 📄 {{ data.name }}
               </div>
             </div>
