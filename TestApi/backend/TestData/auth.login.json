@@ -1,0 +1,17 @@
+{
+  "endpoint": "api/auth/login",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "dataBase": {
+    "email": "admin",
+    "password": "adminBhl12345!",
+    "rememberMe": true
+  },
+  "testCases": [
+    {
+      "saveToken": true
+    }
+  ]
+}
