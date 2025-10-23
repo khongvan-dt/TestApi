@@ -46,7 +46,7 @@ const links = [[{
       open.value = false
     }
   }]
-}],  ] satisfies NavigationMenuItem[][]
+}],] satisfies NavigationMenuItem[][]
 
 
 
@@ -59,9 +59,6 @@ const links = [[{
       <UDashboardGroup unit="rem" storage="local">
         <UDashboardSidebar id="default" v-model:open="open" collapsible resizable class="bg-elevated/25"
           :ui="{ footer: 'lg:border-t lg:border-default' }">
-          <template #header="{ collapsed }">
-            <TeamsMenu :collapsed="collapsed" />
-          </template>
 
           <template #default="{ collapsed }">
 

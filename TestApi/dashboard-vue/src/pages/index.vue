@@ -1,47 +1,32 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useFetch, useBreakpoints, breakpointsTailwind } from '@vueuse/core'
-import type { Mail } from '../types'
+import { ref, nextTick } from 'vue'
+import List from '../components/home/List.vue'
+import Card from '../components/home/Card.vue'
 
- 
-const selectedTab = ref('all')
+const selectedBody = ref('{}')
+const selectedUrl = ref('')
+const selectedMethod = ref('POST')
+const cardRef = ref<any>(null)
 
-const { data: mails } = useFetch('https://dashboard-template.nuxt.dev/api/mails', { initialData: [] }).json<Mail[]>()
+const onSelectTestData = (payload: { content: string; name: string }) => {
+  console.log('✅ Index: Received test data:', payload)
+  selectedBody.value = payload.content
+  
+  nextTick(() => {
+    cardRef.value?.setActiveTab?.('Body')
+    cardRef.value?.focusBody?.()
+  })
+}
 
-// Filter mails based on the selected tab
-const filteredMails = computed(() => {
-  if (selectedTab.value === 'unread') {
-    return mails.value?.filter(mail => !!mail.unread) ?? []
-  }
-
-  return mails.value ?? []
-})
-
-const selectedMail = ref<Mail | null>()
-
-const isMailPanelOpen = computed({
-  get() {
-    return !!selectedMail.value
-  },
-  set(value: boolean) {
-    if (!value) {
-      selectedMail.value = null
-    }
-  }
-})
-
-// Reset selected mail if it's not in the filtered mails
-watch(filteredMails, () => {
-  if (!filteredMails.value.find(mail => mail.id === selectedMail.value?.id)) {
-    selectedMail.value = null
-  }
-})
-
-const breakpoints = useBreakpoints(breakpointsTailwind)
-const isMobile = breakpoints.smaller('lg')
+const onSelectRequest = (payload: { url: string; method: string; name: string }) => {
+  console.log('🔗 Index: Received request:', payload)
+  selectedUrl.value = payload.url
+  selectedMethod.value = payload.method
+}
 </script>
 
 <template>
+  <!-- LEFT PANEL - List -->
   <UDashboardPanel
     id="inbox-1"
     :default-size="25"
@@ -49,26 +34,29 @@ const isMobile = breakpoints.smaller('lg')
     :max-size="30"
     resizable
   >
-    <UDashboardNavbar >
+    <UDashboardNavbar>
       <template #leading>
         <UDashboardSidebarCollapse />
       </template>
-    
-
-      
     </UDashboardNavbar>
 
-    <InboxList v-model="selectedMail" :mails="filteredMails" />
+    <List 
+      @selectTestData="onSelectTestData" 
+      @selectRequest="onSelectRequest"
+    />
   </UDashboardPanel>
 
-  <InboxMail v-if="selectedMail" :mail="selectedMail" @close="selectedMail = null" />
-  <div v-else class="hidden lg:flex flex-1 items-center justify-center">
-    <UIcon name="i-lucide-inbox" class="size-32 text-dimmed" />
-  </div>
-
-  <USlideover v-if="isMobile" v-model:open="isMailPanelOpen">
-    <template #content>
-      <InboxMail v-if="selectedMail" :mail="selectedMail" @close="selectedMail = null" />
-    </template>
-  </USlideover>
+  <!-- RIGHT PANEL - Card -->
+  <UDashboardPanel
+    id="inbox-2"
+    :min-size="70"
+    class="overflow-hidden"
+  >
+    <Card 
+      ref="cardRef" 
+      :defaultBody="selectedBody"
+      :defaultUrl="selectedUrl"
+      :defaultMethod="selectedMethod"
+    />
+  </UDashboardPanel>
 </template>
