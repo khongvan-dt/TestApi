@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "+RRBMTtVYPY=",
+  "dgSpecHash": "VbmzgBFY0ug=",
   "success": true,
-  "projectFilePath": "D:\\company\\Job\\TunTest\\backend\\AutoApiTester.Backend.csproj",
+  "projectFilePath": "D:\\company\\Job\\TunTest\\TestApi\\backend\\AutoApiTester.Backend.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\admin\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\7.0.0\\microsoft.bcl.asyncinterfaces.7.0.0.nupkg.sha512",
     "C:\\Users\\admin\\.nuget\\packages\\microsoft.extensions.apidescription.server\\6.0.5\\microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",

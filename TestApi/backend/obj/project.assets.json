@@ -1114,11 +1114,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\company\\Job\\TunTest\\backend\\AutoApiTester.Backend.csproj",
+      "projectUniqueName": "D:\\company\\Job\\TunTest\\TestApi\\backend\\AutoApiTester.Backend.csproj",
       "projectName": "AutoApiTester.Backend",
-      "projectPath": "D:\\company\\Job\\TunTest\\backend\\AutoApiTester.Backend.csproj",
+      "projectPath": "D:\\company\\Job\\TunTest\\TestApi\\backend\\AutoApiTester.Backend.csproj",
       "packagesPath": "C:\\Users\\admin\\.nuget\\packages\\",
-      "outputPath": "D:\\company\\Job\\TunTest\\backend\\obj\\",
+      "outputPath": "D:\\company\\Job\\TunTest\\TestApi\\backend\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
