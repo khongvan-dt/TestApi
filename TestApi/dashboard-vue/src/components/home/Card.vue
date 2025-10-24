@@ -43,6 +43,9 @@ const requestHeight = ref(400) // Default height
 const isResizing = ref(false)
 const containerRef = ref<HTMLDivElement>()
 
+// THÊM key để force re-render
+const bodyKey = ref(0)
+
 // Import composable
 const { sendRequest } = useApiClient()
 
@@ -62,7 +65,8 @@ watch(() => props.defaultMethod, (newMethod) => {
 watch(() => props.defaultBody, (newBody) => {
   console.log('📦 Card received new body:', newBody)
   body.value = newBody
-
+  bodyKey.value++ // Force re-render
+  
   nextTick(() => {
     if (bodyTabRef.value?.updateBody) {
       console.log('🔄 Updating BodyTab...')
@@ -81,14 +85,14 @@ const startResize = (e: MouseEvent) => {
 
 const handleResize = (e: MouseEvent) => {
   if (!isResizing.value || !containerRef.value) return
-
+  
   const containerRect = containerRef.value.getBoundingClientRect()
   const newHeight = e.clientY - containerRect.top
-
+  
   // Min 200px, max 80% of container
   const minHeight = 200
   const maxHeight = containerRect.height * 0.8
-
+  
   requestHeight.value = Math.max(minHeight, Math.min(newHeight, maxHeight))
 }
 
@@ -135,6 +139,8 @@ const handleSend = async () => {
       auth
     })
 
+    console.log('📥 Response received:', result)
+
     responseStatus.value = result.status
     responseDuration.value = result.duration
     responseSize.value = result.size
@@ -168,6 +174,12 @@ defineExpose({
     nextTick(() => {
       bodyTabRef.value?.focus?.()
     })
+  },
+  clearResponse: () => {
+    response.value = ''
+    responseStatus.value = null
+    responseDuration.value = null
+    responseSize.value = null
   }
 })
 </script>
@@ -177,25 +189,34 @@ defineExpose({
     <!-- Tabs -->
     <div class="px-4 border-b border-gray-200 bg-white flex-shrink-0">
       <div class="flex gap-6 -mb-px">
-        <button v-for="tab in tabs" :key="tab" @click="activeTab = tab" :class="[
-          'px-1 py-3 text-sm font-medium border-b-2 transition-colors',
-          activeTab === tab
-            ? 'border-blue-600 text-blue-600'
-            : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-        ]">
+        <button 
+          v-for="tab in tabs" 
+          :key="tab" 
+          @click="activeTab = tab" 
+          :class="[
+            'px-1 py-3 text-sm font-medium border-b-2 transition-colors',
+            activeTab === tab
+              ? 'border-blue-600 text-blue-600'
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          ]"
+        >
           {{ tab }}
         </button>
       </div>
     </div>
 
     <!-- Request Section - Resizable -->
-    <div class="bg-white flex-shrink-0 border-b border-gray-200 overflow-hidden flex flex-col"
-      :style="{ height: `${requestHeight}px` }">
+    <div 
+      class="bg-white flex-shrink-0 border-b border-gray-200 overflow-hidden flex flex-col"
+      :style="{ height: `${requestHeight}px` }"
+    >
       <div class="p-4 flex-shrink-0">
         <!-- Method & URL Bar -->
         <div class="flex items-stretch gap-2 mb-4">
-          <select v-model="method"
-            class="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+          <select 
+            v-model="method"
+            class="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
             <option value="GET">GET</option>
             <option value="POST">POST</option>
             <option value="PUT">PUT</option>
@@ -203,34 +224,59 @@ defineExpose({
             <option value="DELETE">DELETE</option>
           </select>
 
-          <input v-model="url" type="text" placeholder="Enter request URL (e.g., https://api.example.com/users)"
-            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input 
+            v-model="url" 
+            type="text" 
+            placeholder="Enter request URL (e.g., https://api.example.com/users)"
+            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+          />
 
-          <button @click="handleSend" :disabled="loading || !url" :class="[
-            'px-6 py-2 text-sm font-semibold rounded-md transition-all',
-            loading || !url
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
-          ]">
+          <button 
+            @click="handleSend" 
+            :disabled="loading || !url" 
+            :class="[
+              'px-6 py-2 text-sm font-semibold rounded-md transition-all',
+              loading || !url
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+            ]"
+          >
             {{ loading ? 'Sending...' : 'Send' }}
           </button>
         </div>
       </div>
 
       <!-- Tab Content -->
-      <div class="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
-        <ParamsTab v-if="activeTab === 'Params'" ref="paramsTabRef" />
-        <AuthorizationTab v-else-if="activeTab === 'Authorization'" ref="authTabRef" />
-        <HeadersTab v-else-if="activeTab === 'Headers'" ref="headersTabRef" />
-        <BodyTab v-else-if="activeTab === 'Body'" ref="bodyTabRef" :modelValue="body" />
+      <div class="flex-1 overflow-y-auto px-4 pb-4">
+        <ParamsTab 
+          v-show="activeTab === 'Params'" 
+          ref="paramsTabRef" 
+        />
+        <AuthorizationTab 
+          v-show="activeTab === 'Authorization'" 
+          ref="authTabRef" 
+        />
+        <HeadersTab 
+          v-show="activeTab === 'Headers'" 
+          ref="headersTabRef" 
+        />
+        <BodyTab 
+          v-show="activeTab === 'Body'" 
+          ref="bodyTabRef"
+          :key="bodyKey"
+          :modelValue="body"
+        />
       </div>
     </div>
 
     <!-- Resize Handle -->
-    <div @mousedown="startResize" :class="[
-      'h-1 bg-gray-200 hover:bg-blue-400 cursor-row-resize transition-colors flex-shrink-0 relative group',
-      isResizing ? 'bg-blue-500' : ''
-    ]">
+    <div 
+      @mousedown="startResize"
+      :class="[
+        'h-1 bg-gray-200 hover:bg-blue-400 cursor-row-resize transition-colors flex-shrink-0 relative group',
+        isResizing ? 'bg-blue-500' : ''
+      ]"
+    >
       <div class="absolute inset-x-0 -top-1 -bottom-1 flex items-center justify-center">
         <div class="w-12 h-1 rounded-full bg-gray-400 group-hover:bg-blue-500 transition-colors"></div>
       </div>
@@ -240,32 +286,33 @@ defineExpose({
     <div class="flex-1 flex flex-col overflow-hidden min-h-0">
       <div class="px-4 py-2.5 flex items-center justify-between bg-gray-50 border-b border-gray-200 flex-shrink-0">
         <h3 class="text-sm font-semibold text-gray-700">Response</h3>
-
+        
         <!-- Response Stats -->
         <div v-if="responseStatus !== null" class="flex items-center gap-4 text-xs">
-          <span :class="[
-            'font-semibold px-2 py-1 rounded',
-            responseStatus >= 200 && responseStatus < 300
-              ? 'text-green-700 bg-green-50'
-              : responseStatus >= 400 && responseStatus < 500
+          <span 
+            :class="[
+              'font-semibold px-2 py-1 rounded',
+              responseStatus >= 200 && responseStatus < 300 
+                ? 'text-green-700 bg-green-50' 
+                : responseStatus >= 400 && responseStatus < 500
                 ? 'text-orange-700 bg-orange-50'
                 : 'text-red-700 bg-red-50'
-          ]">
-            {{ responseStatus }} {{ responseStatus >= 200 && responseStatus < 300 ? '✓' : '✗' }} </span>
-              <span class="text-gray-600 flex items-center gap-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {{ responseDuration }}ms
-              </span>
-              <span class="text-gray-600 flex items-center gap-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                {{ (responseSize || 0) }} B
-              </span>
+            ]"
+          >
+            {{ responseStatus }} {{ responseStatus >= 200 && responseStatus < 300 ? '✓' : '✗' }}
+          </span>
+          <span class="text-gray-600 flex items-center gap-1">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ responseDuration }}ms
+          </span>
+          <span class="text-gray-600 flex items-center gap-1">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            {{ (responseSize || 0) }} B
+          </span>
         </div>
       </div>
 
@@ -274,31 +321,30 @@ defineExpose({
         <div v-if="!response && !loading" class="text-center py-12 text-gray-400">
           <div class="mb-4">
             <svg class="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
           <p class="text-sm font-medium">Click Send to get a response</p>
           <p class="text-xs mt-1 text-gray-400">Enter a URL and configure your request above</p>
         </div>
-
+        
         <!-- Loading State -->
         <div v-else-if="loading" class="text-center py-12">
           <div class="mb-4">
             <svg class="animate-spin w-12 h-12 mx-auto text-blue-600" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-              </path>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           </div>
           <p class="text-sm text-gray-600 font-medium">Sending request...</p>
           <p class="text-xs text-gray-500 mt-1">Please wait</p>
         </div>
-
+        
         <!-- Response Content -->
-        <pre v-else
-          class="bg-white border border-gray-200 rounded-lg p-4 text-xs font-mono whitespace-pre-wrap break-words shadow-sm">{{ response }}</pre>
+        <pre 
+          v-else
+          class="bg-white border border-gray-200 rounded-lg p-4 text-xs font-mono whitespace-pre-wrap break-words shadow-sm"
+        >{{ response }}</pre>
       </div>
     </div>
   </div>

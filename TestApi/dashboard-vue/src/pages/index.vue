@@ -12,6 +12,11 @@ const onSelectTestData = (payload: { content: string; name: string }) => {
   console.log('✅ Index: Received test data:', payload)
   selectedBody.value = payload.content
   
+  // THÊM: Clear response khi chọn test data mới
+  if (cardRef.value?.clearResponse) {
+    cardRef.value.clearResponse()
+  }
+  
   nextTick(() => {
     cardRef.value?.setActiveTab?.('Body')
     cardRef.value?.focusBody?.()
@@ -22,6 +27,11 @@ const onSelectRequest = (payload: { url: string; method: string; name: string })
   console.log('🔗 Index: Received request:', payload)
   selectedUrl.value = payload.url
   selectedMethod.value = payload.method
+  
+  // THÊM: Clear response khi chọn request mới
+  if (cardRef.value?.clearResponse) {
+    cardRef.value.clearResponse()
+  }
 }
 </script>
 
