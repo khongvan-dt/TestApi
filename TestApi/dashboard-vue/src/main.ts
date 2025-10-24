@@ -11,6 +11,7 @@ const app = createApp(App)
 app.use(createRouter({
   routes: [
      { path: '/', component: () => import('./pages/index.vue') },
+      { path: '/login', component: () => import('./pages/auth/login.vue') },
      {
       path: '/settings',
       component: () => import('./pages/settings.vue'),
