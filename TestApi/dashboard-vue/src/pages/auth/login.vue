@@ -6,7 +6,7 @@ import { useAuth } from '../../composables/useAuth'
 const { login } = useAuth()
 const router = useRouter()
 
-const usernameOrEmail = ref('')   
+const usernameOrEmail = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
@@ -24,7 +24,7 @@ const handleLogin = async () => {
     const result = await login(usernameOrEmail.value, password.value)
 
     if (result.success) {
-      router.push('/')
+      await router.push('/')
     } else {
       error.value = result.message || 'Login failed'
     }
