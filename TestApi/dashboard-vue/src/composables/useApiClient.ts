@@ -1,191 +1,166 @@
-import type { 
-  ApiResponse, 
-  LoginRequest, 
-  LoginResponse,
-  RegisterRequest,
-  Collection,
-  Request,
-  RequestRunPayload,
-  RequestRunResponse,
-  TestData,
-  Environment
-} from '../types/api'
-import { API_CONFIG } from '../config/config'
+import { ref } from 'vue'
+import axios from 'axios'
 
-const tokenKey = API_CONFIG.TOKEN_KEY
+interface RequestParams {
+  url: string
+  method: string
+  body?: any
+  params?: Array<{ key: string; value: string; enabled?: boolean }>
+  headers?: Array<{ key: string; value: string; enabled?: boolean }>
+  auth?: {
+    type: string
+    username?: string
+    password?: string
+    token?: string
+  } | null
+}
 
-// Token helpers
-const getAuthToken = () => localStorage.getItem(tokenKey)
-const setAuthToken = (token: string | null) => {
-  if (token) localStorage.setItem(tokenKey, token)
-  else localStorage.removeItem(tokenKey)
+interface ApiResponse {
+  success: boolean
+  data: any
+  error?: string
+  status: number
+  statusText: string
+  duration: number
+  size: number
 }
 
 export const useApiClient = () => {
-  const baseURL = API_CONFIG.BASE_URL
+  const loading = ref(false)
 
-  // Generic request
-  const getHeaders = () => ({
-    'Content-Type': 'application/json',
-    ...(getAuthToken() ? { 'Authorization': `Bearer ${getAuthToken()}` } : {})
-  })
+  const sendRequest = async (params: RequestParams): Promise<ApiResponse> => {
+    const startTime = Date.now()
+    loading.value = true
 
-  const request = async <T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> => {
     try {
-      const response = await fetch(`${baseURL}${endpoint}`, {
-        ...options,
-        headers: {
-          ...getHeaders(),
-          ...options.headers
+      console.log('🚀 Original request:', params.url)
+
+      let finalUrl = params.url
+      const requestHeaders: Record<string, string> = {}
+
+      // ✅ Detect external URL
+      const isExternalUrl = finalUrl.startsWith('http://') || finalUrl.startsWith('https://')
+      
+      if (isExternalUrl) {
+        console.log('✅ Using proxy for external URL')
+        requestHeaders['x-target-url'] = params.url
+        finalUrl = 'http://localhost:3001/proxy'
+        console.log('🔄 Proxy URL:', finalUrl)
+        console.log('🎯 Target:', requestHeaders['x-target-url'])
+      }
+
+      // Build query params
+      if (params.params && params.params.length > 0) {
+        const queryParams = params.params
+          .filter(p => p.enabled !== false && p.key && p.value)
+          .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+          .join('&')
+        
+        if (queryParams) {
+          if (isExternalUrl) {
+            requestHeaders['x-target-url'] += (params.url.includes('?') ? '&' : '?') + queryParams
+          } else {
+            finalUrl += (finalUrl.includes('?') ? '&' : '?') + queryParams
+          }
         }
-      })
+      }
+
+      // Build headers
+      if (params.headers && params.headers.length > 0) {
+        params.headers
+          .filter(h => h.enabled !== false && h.key && h.value)
+          .forEach(h => {
+            requestHeaders[h.key] = h.value
+          })
+      }
+
+      if (params.body && !requestHeaders['Content-Type']) {
+        requestHeaders['Content-Type'] = 'application/json'
+      }
+
+      // Handle Authorization
+      if (params.auth) {
+        if (params.auth.type === 'Bearer' && params.auth.token) {
+          requestHeaders['Authorization'] = `Bearer ${params.auth.token}`
+        } else if (params.auth.type === 'Basic' && params.auth.username && params.auth.password) {
+          const credentials = btoa(`${params.auth.username}:${params.auth.password}`)
+          requestHeaders['Authorization'] = `Basic ${credentials}`
+        }
+      }
+
+      // Build axios config
+      const axiosConfig: any = {
+        method: params.method,
+        url: finalUrl,
+        headers: requestHeaders,
+        timeout: 30000,
+      }
+
+      // Add body for POST/PUT/PATCH
+      if (['POST', 'PUT', 'PATCH'].includes(params.method.toUpperCase())) {
+        if (params.body) {
+          try {
+            axiosConfig.data = typeof params.body === 'string' 
+              ? JSON.parse(params.body) 
+              : params.body
+          } catch {
+            axiosConfig.data = params.body
+          }
+        }
+      }
+
+      console.log('📤 Final config:', axiosConfig)
+
+      // Send request
+      const response = await axios(axiosConfig)
       
-      const data = await response.json()
+      const duration = Date.now() - startTime
+      const size = JSON.stringify(response.data).length
+
+      console.log('✅ Success:', response.status)
+
+      return {
+        success: true,
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        duration,
+        size
+      }
+
+    } catch (error: any) {
+      const duration = Date.now() - startTime
       
-      if (!response.ok) {
+      console.error('❌ Error:', error.message)
+
+      if (error.response) {
         return {
           success: false,
-          message: data.message || 'API request failed',
-          data: undefined
+          data: error.response.data,
+          error: error.message,
+          status: error.response.status,
+          statusText: error.response.statusText,
+          duration,
+          size: JSON.stringify(error.response.data || {}).length
         }
-      }
-      
-      // Backend trả về format: { success, data, message }
-      return data
-    } catch (error: any) {
-      console.error('API Error:', error)
-      return {
-        success: false,
-        message: error.message || 'Network error',
-        data: undefined
-      }
-    }
-  }
-
-  // AUTH
-  const auth = {
-    login: async (payload: LoginRequest) => {
-      const response = await request<LoginResponse>('/Auth/login', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      })
-      
-      if (response.success && response.data?.token) {
-        setAuthToken(response.data.token)
-      }
-      
-      return response
-    },
-
-    register: async (payload: RegisterRequest) => {
-      return request<any>('/Auth/register', { 
-        method: 'POST', 
-        body: JSON.stringify(payload) 
-      })
-    },
-
-    logout: () => setAuthToken(null),
-
-    getProfile: async () => request<any>('/Auth/profile')
-  }
-
-  // WORKSPACES
-  const workspaces = {
-    getAll: async () => request<any[]>('/workspaces'),
-    getById: async (id: string) => request<any>(`/workspaces/${id}`),
-    create: async (payload: { name: string; description?: string }) =>
-      request<any>('/workspaces', { method: 'POST', body: JSON.stringify(payload) }),
-    update: async (id: string, payload: any) =>
-      request<any>(`/workspaces/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-    delete: async (id: string) => request<any>(`/workspaces/${id}`, { method: 'DELETE' })
-  }
-
-  // COLLECTIONS
-  const collections = {
-    getAll: async (workspaceId: string) => request<Collection[]>(`/collections?workspaceId=${workspaceId}`),
-    getById: async (id: string) => request<Collection>(`/collections/${id}`),
-    create: async (payload: any) =>
-      request<Collection>('/collections', { method: 'POST', body: JSON.stringify(payload) }),
-    update: async (id: string, payload: any) =>
-      request<Collection>(`/collections/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-    delete: async (id: string) => request<any>(`/collections/${id}`, { method: 'DELETE' })
-  }
-
-  // REQUESTS
-  const requests = {
-    getAll: async (collectionId: string) => request<Request[]>(`/requests?collectionId=${collectionId}`),
-    getById: async (id: string) => request<Request>(`/requests/${id}`),
-    create: async (payload: any) =>
-      request<Request>('/requests', { method: 'POST', body: JSON.stringify(payload) }),
-    update: async (id: string, payload: any) =>
-      request<Request>(`/requests/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-    delete: async (id: string) => request<any>(`/requests/${id}`, { method: 'DELETE' }),
-    run: async (payload: RequestRunPayload) => {
-      const startTime = Date.now()
-      try {
-        const response = await request<RequestRunResponse>('/requests/run', {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        })
-        const duration = Date.now() - startTime
-        return {
-          success: response.success,
-          data: response.data,
-          status: response.data?.statusCode || 0,
-          statusText: response.data?.statusText || '',
-          duration: response.data?.responseTimeMs || duration,
-          size: response.data?.responseSizeBytes || 0,
-          error: null
-        }
-      } catch (error: any) {
+      } else {
         return {
           success: false,
           data: null,
+          error: error.message + ' - Make sure proxy server is running on port 3001',
           status: 0,
-          statusText: 'Error',
-          duration: Date.now() - startTime,
-          size: 0,
-          error: error.message
+          statusText: 'Network Error',
+          duration,
+          size: 0
         }
       }
+    } finally {
+      loading.value = false
     }
   }
 
-  // TEST DATA
-  const testData = {
-    getAll: async (requestId: string) => request<TestData[]>(`/requests/${requestId}/testdata`),
-    getById: async (id: string) => request<TestData>(`/testdata/${id}`),
-    create: async (payload: any) => request<TestData>('/testdata', { method: 'POST', body: JSON.stringify(payload) }),
-    update: async (id: string, payload: any) => request<TestData>(`/testdata/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-    delete: async (id: string) => request<any>(`/testdata/${id}`, { method: 'DELETE' })
-  }
-
-  // ENVIRONMENTS
-  const environments = {
-    getAll: async (workspaceId: string) => request<Environment[]>(`/environments?workspaceId=${workspaceId}`),
-    getById: async (id: string) => request<Environment>(`/environments/${id}`),
-    create: async (payload: any) => request<Environment>('/environments', { method: 'POST', body: JSON.stringify(payload) }),
-    update: async (id: string, payload: any) => request<Environment>(`/environments/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-    delete: async (id: string) => request<any>(`/environments/${id}`, { method: 'DELETE' })
-  }
-
-  // EXECUTION HISTORIES
-  const executionHistories = {
-    getAll: async (requestId?: string) => {
-      const url = requestId ? `/executionhistories?requestId=${requestId}` : '/executionhistories'
-      return request<any[]>(url)
-    },
-    getById: async (id: string) => request<any>(`/executionhistories/${id}`),
-    delete: async (id: string) => request<any>(`/executionhistories/${id}`, { method: 'DELETE' })
-  }
-
   return {
-    auth,
-    workspaces,
-    collections,
-    requests,
-    testData,
-    environments,
-    executionHistories
+    loading,
+    sendRequest
   }
 }

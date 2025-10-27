@@ -1,72 +1,57 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref } from 'vue'
 import List from '../components/home/List.vue'
 import Card from '../components/home/Card.vue'
 
-const selectedBody = ref('{}')
 const selectedUrl = ref('')
 const selectedMethod = ref('POST')
-const cardRef = ref<any>(null)
+const selectedBody = ref('{}')
+const cardKey = ref(0) // Force re-render key
 
-const onSelectTestData = (payload: { content: string; name: string }) => {
-  console.log('✅ Index: Received test data:', payload)
-  selectedBody.value = payload.content
+// Nhận event từ List khi click request
+const handleSelectRequest = (payload: any) => {
+  console.log('📨 Index received selectRequest:', payload)
   
-  // THÊM: Clear response khi chọn test data mới
-  if (cardRef.value?.clearResponse) {
-    cardRef.value.clearResponse()
-  }
-  
-  nextTick(() => {
-    cardRef.value?.setActiveTab?.('Body')
-    cardRef.value?.focusBody?.()
-  })
-}
-
-const onSelectRequest = (payload: { url: string; method: string; name: string }) => {
-  console.log('🔗 Index: Received request:', payload)
   selectedUrl.value = payload.url
   selectedMethod.value = payload.method
   
-  // THÊM: Clear response khi chọn request mới
-  if (cardRef.value?.clearResponse) {
-    cardRef.value.clearResponse()
+  // ✅ Parse và format body content
+  if (payload.body?.content) {
+    try {
+      const parsed = JSON.parse(payload.body.content)
+      selectedBody.value = JSON.stringify(parsed, null, 2)
+    } catch (error) {
+      // Nếu không parse được, dùng raw content
+      selectedBody.value = payload.body.content
+    }
+  } else {
+    selectedBody.value = '{}'
   }
+  
+  // Force re-render Card (optional, nhưng đảm bảo update)
+  cardKey.value++
+  
+  console.log('✅ Updated body:', selectedBody.value)
 }
 </script>
 
 <template>
-  <!-- LEFT PANEL - List -->
-  <UDashboardPanel
-    id="inbox-1"
-    :default-size="25"
-    :min-size="20"
-    :max-size="30"
-    resizable
-  >
-    <UDashboardNavbar>
-      <template #leading>
-        <UDashboardSidebarCollapse />
-      </template>
-    </UDashboardNavbar>
-
-    <List 
-      @selectTestData="onSelectTestData" 
-      @selectRequest="onSelectRequest"
-    />
-  </UDashboardPanel>
-
-  <!-- RIGHT PANEL - Card -->
-  <UDashboardPanel
-    id="inbox-2"
-    :min-size="70"
-    class="overflow-hidden"
-  >
-    <Card 
-      ref="cardRef" 
-      :defaultBody="selectedBody"
-      :defaultUrl="selectedUrl"
-      :defaultMethod="selectedMethod"
-    />
-  </UDashboardPanel>
+  <div class="flex h-screen">
+    <!-- Sidebar: Collection List -->
+    <div class="w-80 border-r border-gray-200">
+      <List 
+        @selectRequest="handleSelectRequest"
+      />
+    </div>
+    
+    <!-- Main: API Request Card -->
+    <div class="flex-1">
+      <Card 
+        :key="cardKey"
+        :defaultUrl="selectedUrl"
+        :defaultMethod="selectedMethod"
+        :defaultBody="selectedBody"
+      />
+    </div>
+  </div>
 </template>

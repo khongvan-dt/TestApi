@@ -101,8 +101,7 @@ const stopResize = () => {
   document.removeEventListener('mousemove', handleResize)
   document.removeEventListener('mouseup', stopResize)
 }
-
-// Handle Send Request
+// Trong Card.vue - handleSend function
 const handleSend = async () => {
   if (!url.value) {
     alert('Please enter a URL')
@@ -119,7 +118,34 @@ const handleSend = async () => {
     const params = paramsTabRef.value?.getParams() || []
     const headers = headersTabRef.value?.getHeaders() || []
     const auth = authTabRef.value?.getAuth() || null
-    const requestBody = bodyTabRef.value?.getBody() || body.value
+    
+    // ✅ Get body từ BodyTab
+    let requestBody = null
+    if (bodyTabRef.value) {
+      const bodyType = bodyTabRef.value.getBodyType?.()
+      
+      if (bodyType === 'raw') {
+        requestBody = bodyTabRef.value.getBody()
+      } else if (bodyType === 'form-data') {
+        requestBody = bodyTabRef.value.getBody()
+      } else if (bodyType === 'x-www-form-urlencoded') {
+        // Convert params to URL encoded string
+        const urlParams = bodyTabRef.value.getBody() || []
+        requestBody = urlParams
+          .filter((p: any) => p.enabled !== false && p.key)
+          .map((p: any) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value || '')}`)
+          .join('&')
+        
+        // Add header for URL encoded
+        if (!headers.some((h: any) => h.key === 'Content-Type')) {
+          headers.push({ 
+            key: 'Content-Type', 
+            value: 'application/x-www-form-urlencoded',
+            enabled: true 
+          })
+        }
+      }
+    }
 
     console.log('📤 Sending request:', {
       url: url.value,
