@@ -13,6 +13,8 @@ const emit = defineEmits<{
     headers: Array<{ key: string; value: string }>
     queryParams: Array<{ key: string; value: string }>
   }): void
+  (e: 'addNewTab', collectionId: number): void  
+  (e: 'openExportImport'): void
 }>()
 
 // ==== COMPOSABLE ====
@@ -22,29 +24,17 @@ const { data, loading, error, fetchUserData, loadCachedData } = useUserData()
 const selectedCollection = ref<number | null>(null)
 const selectedRequest = ref<number | null>(null)
 
-// ✅ FIX: Bỏ map() vì API đã trả về đúng cấu trúc
 const collections = computed<Collection[]>(() => {
   if (!data.value?.collections) {
-    console.log('⚠️ No collections in data')
     return []
   }
-  
-  console.log('📊 Collections:', data.value.collections)
-   return data.value.collections
+  return data.value.collections
 })
 
 // ==== LIFECYCLE ====
 onMounted(async () => {
-  console.log('📦 CollectionList: Loading data...')
-  
-  // Load cached data first
   loadCachedData()
-  
-  // Then fetch fresh data
   await fetchUserData()
-  
-  console.log('✅ CollectionList: Data loaded', data.value)
-  console.log('✅ Collections:', collections.value)
 })
 
 // ==== METHODS ====
@@ -56,9 +46,7 @@ const toggleCollection = (id: number) => {
 const toggleRequest = (id: number, request: RequestItem) => {
   selectedRequest.value = selectedRequest.value === id ? null : id
 
-  // Emit request info khi click vào request
   if (selectedRequest.value === id) {
-    console.log('📡 List: emitting selectRequest', request)
     emit('selectRequest', {
       url: request.url,
       method: request.method,
@@ -70,27 +58,24 @@ const toggleRequest = (id: number, request: RequestItem) => {
   }
 }
 
-// Parse body content để hiển thị
-const getBodyContent = (body: RequestBody | null): string => {
-  if (!body || !body.content) return 'No body'
-  
-  try {
-    const parsed = JSON.parse(body.content)
-    return JSON.stringify(parsed, null, 2)
-  } catch {
-    return body.content
-  }
+const handleAddTab = (collectionId: number, event: Event) => {
+  event.stopPropagation()
+  emit('addNewTab', collectionId)
 }
 
-// ✅ Refresh data
 const refreshData = async () => {
   await fetchUserData()
 }
+
+// ✅ THÊM EXPOSE để parent có thể gọi refreshData
+defineExpose({
+  refreshData
+})
 </script>
 
 <template>
   <div class="h-full flex flex-col bg-white overflow-hidden">
-    <!-- ✅ Loading State -->
+    <!-- Loading State -->
     <div v-if="loading && collections.length === 0" class="flex-1 flex items-center justify-center p-4">
       <div class="text-center">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
@@ -98,7 +83,7 @@ const refreshData = async () => {
       </div>
     </div>
 
-    <!-- ✅ Error State -->
+    <!-- Error State -->
     <div v-else-if="error && collections.length === 0" class="flex-1 flex items-center justify-center p-4">
       <div class="text-center">
         <svg class="w-12 h-12 text-red-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +99,7 @@ const refreshData = async () => {
       </div>
     </div>
 
-    <!-- ✅ Empty State -->
+    <!-- Empty State -->
     <div v-else-if="collections.length === 0" class="flex-1 flex items-center justify-center p-4">
       <div class="text-center">
         <svg class="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,10 +110,11 @@ const refreshData = async () => {
       </div>
     </div>
 
-    <!-- ✅ Collections List -->
+    <!-- Collections List -->
     <div v-else class="flex-1 overflow-y-auto overflow-x-hidden p-2 text-sm">
-      <!-- Refresh Button -->
-      <div class="mb-2 px-2">
+      <!-- ✅ Action Buttons -->
+      <div class="mb-2 px-2 space-y-2">
+        <!-- Refresh Button -->
         <button 
           @click="refreshData"
           :disabled="loading"
@@ -145,29 +131,48 @@ const refreshData = async () => {
           </svg>
           <span>{{ loading ? 'Refreshing...' : 'Refresh' }}</span>
         </button>
+
+        <!-- Export/Import Button -->
+        <button 
+          @click="emit('openExportImport')"
+          class="w-full px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-600 text-xs rounded-md transition-colors flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+          </svg>
+          <span>Export / Import</span>
+        </button>
       </div>
 
       <div v-for="col in collections" :key="col.id" class="py-2">
-        <!-- CẤP 1: COLLECTION -->
+        <!-- COLLECTION HEADER -->
         <div
-          class="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-2 rounded-md border-l-2 transition-colors"
+          class="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-2 rounded-md border-l-2 transition-colors group"
           :class="selectedCollection === col.id ? 'border-blue-500 bg-blue-50' : 'border-transparent'"
           @click="toggleCollection(col.id)"
         >
-          <div class="flex-1 mr-2">
+          <div class="flex-1 mr-2 min-w-0">
             <div class="font-semibold text-gray-800 text-xs truncate">
-              📁 {{ col.name }}
+              {{ col.name }}
             </div>
             <div class="text-gray-400 text-xs truncate">
               {{ col.description }}
             </div>
           </div>
-          <span class="text-gray-400 text-xs whitespace-nowrap flex-shrink-0">
-            {{ col.requests.length }} API{{ col.requests.length > 1 ? 's' : '' }}
-          </span>
+          
+          <!-- NÚT + -->
+          <button
+            @click="handleAddTab(col.id, $event)"
+            class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded p-1 transition-all flex-shrink-0"
+            title="New tab"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
         </div>
 
-        <!-- CẤP 2: REQUEST -->
+        <!-- REQUEST LIST -->
         <div v-if="selectedCollection === col.id" class="pl-4 border-l border-gray-200 ml-2 mt-1 space-y-1">
           <div v-for="req in col.requests" :key="req.id">
             <div 
@@ -194,8 +199,6 @@ const refreshData = async () => {
                 {{ req.url }}
               </div>
             </div>
-
-            
           </div>
         </div>
       </div>

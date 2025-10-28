@@ -20,6 +20,14 @@ const props = withDefaults(defineProps<Props>(), {
   defaultBody: '{}'
 })
 
+// ✅ THÊM EMIT
+const emit = defineEmits<{
+  (e: 'update:url', value: string): void
+  (e: 'update:method', value: string): void
+  (e: 'update:body', value: string): void
+  (e: 'stateChange', state: any): void
+}>()
+
 const url = ref(props.defaultUrl)
 const method = ref(props.defaultMethod)
 const body = ref(props.defaultBody)
@@ -39,37 +47,57 @@ const headersTabRef = ref()
 const bodyTabRef = ref()
 
 // Resizable
-const requestHeight = ref(400) // Default height
+const requestHeight = ref(400)
 const isResizing = ref(false)
 const containerRef = ref<HTMLDivElement>()
 
-// THÊM key để force re-render
 const bodyKey = ref(0)
 
-// Import composable
 const { sendRequest } = useApiClient()
+
+// ✅ Watch changes và emit lên parent
+watch(url, (newVal) => {
+  emit('update:url', newVal)
+  emitStateChange()
+})
+
+watch(method, (newVal) => {
+  emit('update:method', newVal)
+  emitStateChange()
+})
+
+watch(body, (newVal) => {
+  emit('update:body', newVal)
+  emitStateChange()
+})
+
+// ✅ Emit toàn bộ state
+const emitStateChange = () => {
+  emit('stateChange', {
+    url: url.value,
+    method: method.value,
+    body: body.value,
+    activeTab: activeTab.value
+  })
+}
 
 // Watch URL changes
 watch(() => props.defaultUrl, (newUrl) => {
-  console.log('🔗 Card received new URL:', newUrl)
   url.value = newUrl
 })
 
 // Watch Method changes
 watch(() => props.defaultMethod, (newMethod) => {
-  console.log('⚙️ Card received new method:', newMethod)
   method.value = newMethod
 })
 
 // Watch Body changes
 watch(() => props.defaultBody, (newBody) => {
-  console.log('📦 Card received new body:', newBody)
   body.value = newBody
-  bodyKey.value++ // Force re-render
+  bodyKey.value++
   
   nextTick(() => {
     if (bodyTabRef.value?.updateBody) {
-      console.log('🔄 Updating BodyTab...')
       bodyTabRef.value.updateBody(newBody)
     }
   })
@@ -89,7 +117,6 @@ const handleResize = (e: MouseEvent) => {
   const containerRect = containerRef.value.getBoundingClientRect()
   const newHeight = e.clientY - containerRect.top
   
-  // Min 200px, max 80% of container
   const minHeight = 200
   const maxHeight = containerRect.height * 0.8
   
@@ -101,7 +128,7 @@ const stopResize = () => {
   document.removeEventListener('mousemove', handleResize)
   document.removeEventListener('mouseup', stopResize)
 }
-// Trong Card.vue - handleSend function
+
 const handleSend = async () => {
   if (!url.value) {
     alert('Please enter a URL')
@@ -119,7 +146,6 @@ const handleSend = async () => {
     const headers = headersTabRef.value?.getHeaders() || []
     const auth = authTabRef.value?.getAuth() || null
     
-    // ✅ Get body từ BodyTab
     let requestBody = null
     if (bodyTabRef.value) {
       const bodyType = bodyTabRef.value.getBodyType?.()
@@ -129,14 +155,12 @@ const handleSend = async () => {
       } else if (bodyType === 'form-data') {
         requestBody = bodyTabRef.value.getBody()
       } else if (bodyType === 'x-www-form-urlencoded') {
-        // Convert params to URL encoded string
         const urlParams = bodyTabRef.value.getBody() || []
         requestBody = urlParams
           .filter((p: any) => p.enabled !== false && p.key)
           .map((p: any) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value || '')}`)
           .join('&')
         
-        // Add header for URL encoded
         if (!headers.some((h: any) => h.key === 'Content-Type')) {
           headers.push({ 
             key: 'Content-Type', 
@@ -147,15 +171,6 @@ const handleSend = async () => {
       }
     }
 
-    console.log('📤 Sending request:', {
-      url: url.value,
-      method: method.value,
-      body: requestBody,
-      params,
-      headers,
-      auth
-    })
-
     const result = await sendRequest({
       url: url.value,
       method: method.value,
@@ -164,8 +179,6 @@ const handleSend = async () => {
       headers,
       auth
     })
-
-    console.log('📥 Response received:', result)
 
     responseStatus.value = result.status
     responseDuration.value = result.duration
@@ -182,7 +195,6 @@ const handleSend = async () => {
       }, null, 2)
     }
   } catch (error: any) {
-    console.error('❌ Error:', error)
     response.value = JSON.stringify({
       error: error.message || 'Unknown error occurred'
     }, null, 2)
@@ -191,7 +203,7 @@ const handleSend = async () => {
   }
 }
 
-// Expose methods
+// ✅ Expose methods
 defineExpose({
   setActiveTab: (tab: string) => {
     activeTab.value = tab
@@ -206,7 +218,22 @@ defineExpose({
     responseStatus.value = null
     responseDuration.value = null
     responseSize.value = null
-  }
+  },
+  getState: () => ({
+    url: url.value,
+    method: method.value,
+    body: body.value,
+    activeTab: activeTab.value
+  }),
+  get $refs() {
+    return {
+      paramsTabRef: paramsTabRef.value,
+      headersTabRef: headersTabRef.value,
+      authTabRef: authTabRef.value,
+      bodyTabRef: bodyTabRef.value
+    }
+  },
+  activeTab: activeTab.value
 })
 </script>
 
@@ -250,8 +277,10 @@ defineExpose({
             <option value="DELETE">DELETE</option>
           </select>
 
+          <!-- ✅ THÊM @input để emit changes -->
           <input 
-            v-model="url" 
+            v-model="url"
+            @input="emitStateChange"
             type="text" 
             placeholder="Enter request URL (e.g., https://api.example.com/users)"
             class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 

@@ -11,8 +11,6 @@ defineProps<{
 const router = useRouter()
 const { isAuthenticated, user: authUser, logout, fetchProfile } = useAuth()
 
-// ✅ Xóa showLoginModal vì không cần nữa
-// const showLoginModal = ref(false)
 
 onMounted(async () => {
   if (isAuthenticated.value && !authUser.value) {
