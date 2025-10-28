@@ -69,8 +69,10 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.CollectionId);
         });
 
-       modelBuilder.Entity<ExecutionHistory>(entity =>
+
+        modelBuilder.Entity<ExecutionHistory>(entity =>
         {
+            entity.ToTable("ExecutionHistory");
             entity.HasKey(e => e.Id);
 
             entity.Property(e => e.Method).HasMaxLength(10).IsRequired();
@@ -81,7 +83,7 @@ public class ApplicationDbContext : DbContext
 
             // User relationship
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.ExecutionHistories) // <-- Đặt property navigation ở đây
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -96,6 +98,8 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.RequestId);
             entity.HasIndex(e => e.ExecutedAt);
         });
+
+
         // RequestHeader
         modelBuilder.Entity<RequestHeader>(entity =>
         {

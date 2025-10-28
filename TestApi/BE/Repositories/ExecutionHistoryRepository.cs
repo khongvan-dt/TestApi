@@ -88,40 +88,47 @@ public class ExecutionHistoryRepository : Repository<ExecutionHistory>, IExecuti
     // ✅ Lưu lịch sử mới
     public async Task<ExecutionHistoryResponseDto> CreateAsync(CreateExecutionHistoryDto dto, int userId)
     {
-        var history = new ExecutionHistory
+        try
         {
-            UserId = userId,
-            RequestId = dto.RequestId,
-            Method = dto.Method,
-            Url = dto.Url,
-            Headers = dto.Headers,
-            QueryParams = dto.QueryParams,
-            Body = dto.Body,
-            StatusCode = dto.StatusCode,
-            StatusText = dto.StatusText,
-            ResponseHeaders = dto.ResponseHeaders,
-            ResponseBody = dto.ResponseBody,
-            ResponseTime = dto.ResponseTime,
-            ErrorMessage = dto.ErrorMessage,
-            ExecutedAt = dto.ExecutedAt,
-            CreatedAt = DateTime.UtcNow
-        };
+            var history = new ExecutionHistory
+            {
+                UserId = userId,
+                RequestId = dto.RequestId,
+                Method = dto.Method,
+                Url = dto.Url,
+                Headers = dto.Headers,
+                QueryParams = dto.QueryParams,
+                Body = dto.Body,
+                StatusCode = dto.StatusCode,
+                StatusText = dto.StatusText,
+                ResponseHeaders = dto.ResponseHeaders,
+                ResponseBody = dto.ResponseBody,
+                ResponseTime = dto.ResponseTime,
+                ErrorMessage = dto.ErrorMessage,
+                ExecutedAt = dto.ExecutedAt,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        await _context.ExecutionHistories.AddAsync(history);
-        await _context.SaveChangesAsync();
+            await _context.ExecutionHistories.AddAsync(history);
+            await _context.SaveChangesAsync();
 
-        return new ExecutionHistoryResponseDto
+            return new ExecutionHistoryResponseDto
+            {
+                Id = history.Id,
+                RequestId = history.RequestId,
+                Method = history.Method,
+                Url = history.Url,
+                StatusCode = history.StatusCode,
+                StatusText = history.StatusText,
+                ResponseTime = history.ResponseTime,
+                ExecutedAt = history.ExecutedAt,
+                ErrorMessage = history.ErrorMessage
+            };
+        }catch(Exception ex)
         {
-            Id = history.Id,
-            RequestId = history.RequestId,
-            Method = history.Method,
-            Url = history.Url,
-            StatusCode = history.StatusCode,
-            StatusText = history.StatusText,
-            ResponseTime = history.ResponseTime,
-            ExecutedAt = history.ExecutedAt,
-            ErrorMessage = history.ErrorMessage
-        };
+            throw new Exception($"Error creating execution history: {ex.Message}", ex);
+        }
+
     }
 
     // ✅ Xóa lịch sử cũ (cleanup)

@@ -320,9 +320,7 @@ const handleSend = async () => {
 
     // 6️⃣ Lưu lịch sử (không ảnh hưởng response)
     const historyPayload = {
-      requestId: props.requestId ?? 0,
-      collectionId: 1,
-      name: props.title || 'New Request',
+      requestId: props.requestId ?? null,
       method: method.value,
       url: url.value,
       queryParams: JSON.stringify(params),
@@ -335,7 +333,6 @@ const handleSend = async () => {
       responseTime: result.duration ?? 0,
       errorMessage: result.success ? '' : result.error || '',
       executedAt: new Date().toISOString(),
-      userId: 0
     }
 
     // Chạy bất đồng bộ, không await để không block hiển thị

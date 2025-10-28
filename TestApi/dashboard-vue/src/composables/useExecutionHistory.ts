@@ -1,7 +1,6 @@
 import apiClient from '../utils/axios'
 
 export interface CreateExecutionHistoryDto {
-  userId: number
   requestId: number
   method: string
   url: string
