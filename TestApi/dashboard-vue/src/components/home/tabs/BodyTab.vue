@@ -12,55 +12,85 @@ const props = withDefaults(defineProps<Props>(), {
   modelValue: '{}'
 })
 
+// Loại body đang chọn
 const bodyType = ref<'raw' | 'form-data' | 'none' | 'x-www-form-urlencoded' | 'binary'>('raw')
-const currentBody = ref(props.modelValue)
 
-// refs to children
-const rawRef = ref<any>(null)
+// State body hiện tại
+const rawContent = ref<string>('')           // cho tab Raw
+const formData = ref<any[]>([])              // cho tab form-data
+const formUrlEncoded = ref<any[]>([])        // cho tab x-www-form-urlencoded
+const binaryFile = ref<File | null>(null)
+
+// Refs tới các component con
+const rawEditorRef = ref<any>(null)
 const formRef = ref<any>(null)
 const paramsRef = ref<any>(null)
 
-// Watch modelValue changes
+// Khi modelValue từ parent thay đổi
 watch(() => props.modelValue, (newValue) => {
-  console.log('📝 BodyTab received:', newValue) // Debug log
-  currentBody.value = newValue
-  
-  if (rawRef.value?.updateBody) {
-    console.log('✍️ Updating RawEditor...') // Debug log
-    rawRef.value.updateBody(newValue)
+  console.log('📝 BodyTab received:', newValue)
+  if (bodyType.value === 'raw' && typeof newValue === 'string') {
+    rawContent.value = newValue
+    if (rawEditorRef.value?.updateBody) {
+      rawEditorRef.value.updateBody(newValue)
+    }
   }
 }, { immediate: true })
 
-const binaryFile = ref<File | null>(null)
-
+// Sự kiện chọn file binary
 const handleBinaryFileChange = (e: Event) => {
   const target = e.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
-    binaryFile.value = target.files[0]
-  } else {
-    binaryFile.value = null
-  }
+  binaryFile.value = target.files?.[0] ?? null
 }
 
-// Parent expose
+// Expose cho component cha (Card.vue hoặc RequestSender)
 defineExpose({
+  getBodyType: () => bodyType.value,
+
   getBody: () => {
-    if (bodyType.value === 'raw' && rawRef.value) return rawRef.value.getBody?.()
-    if (bodyType.value === 'form-data' && formRef.value) return formRef.value.getBody?.()
-    if (bodyType.value === 'x-www-form-urlencoded' && paramsRef.value) return paramsRef.value.getParams?.()
+    console.log('📦 getBody() called — bodyType:', bodyType.value)
+
+    if (bodyType.value === 'raw') {
+      console.log('📦 Raw body content:', rawContent.value)
+      return {
+        bodyType: 'raw',
+        content: rawContent.value
+      }
+    }
+
+    if (bodyType.value === 'form-data') {
+      console.log('📦 FormData content:', formData.value)
+      return {
+        bodyType: 'form-data',
+        content: formData.value
+      }
+    }
+
+    if (bodyType.value === 'x-www-form-urlencoded') {
+      console.log('📦 URL Encoded content:', formUrlEncoded.value)
+      return {
+        bodyType: 'x-www-form-urlencoded',
+        content: formUrlEncoded.value
+      }
+    }
+
+    if (bodyType.value === 'binary') {
+      console.log('📦 Binary file:', binaryFile.value)
+      return {
+        bodyType: 'binary',
+        content: binaryFile.value
+      }
+    }
+
+    console.warn('⚠️ Body type none → returning null')
     return null
   },
-  getBodyType: () => bodyType.value,
+
+
   updateBody: (newBody: string) => {
-    console.log('🔄 BodyTab updateBody called with:', newBody) // Debug log
-    currentBody.value = newBody
-    if (rawRef.value?.updateBody) {
-      rawRef.value.updateBody(newBody)
-    }
-  },
-  focus: () => {
-    if (bodyType.value === 'raw' && rawRef.value) {
-      rawRef.value.focus?.()
+    rawContent.value = newBody
+    if (rawEditorRef.value?.updateBody) {
+      rawEditorRef.value.updateBody(newBody)
     }
   }
 })
@@ -70,8 +100,8 @@ defineExpose({
   <div class="bg-white">
     <!-- Tabs -->
     <div class="flex items-center gap-4 mb-4">
-      <label 
-        v-for="t in ['none', 'form-data', 'x-www-form-urlencoded', 'raw', 'binary']" 
+      <label
+        v-for="t in ['none', 'form-data', 'x-www-form-urlencoded', 'raw', 'binary']"
         :key="t"
         class="flex items-center gap-2 cursor-pointer select-none"
         :class="bodyType === t ? 'text-blue-600 font-medium' : 'text-gray-600'"
@@ -81,26 +111,36 @@ defineExpose({
       </label>
     </div>
 
-    <!-- content -->
+    <!-- Content -->
     <div>
       <div v-show="bodyType === 'none'" class="text-center py-6 text-gray-400">
         This request does not have a body
       </div>
-      
-      <RawEditor 
-        v-show="bodyType === 'raw'" 
-        ref="rawRef" 
-        v-model="currentBody"
+
+      <!-- RAW -->
+      <RawEditor
+        v-if="bodyType === 'raw'"
+        v-model="rawContent"
+        ref="rawEditorRef"
       />
-      
-      <FormDataEditor v-show="bodyType === 'form-data'" ref="formRef" />
-      
-      <ParamsTab v-show="bodyType === 'x-www-form-urlencoded'" ref="paramsRef" />
-      
+
+      <!-- FORM-DATA -->
+      <FormDataEditor
+        v-show="bodyType === 'form-data'"
+        ref="formRef"
+      />
+
+      <!-- X-WWW-FORM-URLENCODED -->
+      <ParamsTab
+        v-show="bodyType === 'x-www-form-urlencoded'"
+        ref="paramsRef"
+      />
+
+      <!-- BINARY -->
       <div v-show="bodyType === 'binary'" class="py-6 flex flex-col items-center gap-3">
         <input id="binaryFile" type="file" class="hidden" @change="handleBinaryFileChange" />
 
-        <label 
+        <label
           for="binaryFile"
           class="cursor-pointer border border-gray-300 rounded-lg px-4 py-2 text-sm text-blue-600 bg-gray-50 hover:bg-blue-100 hover:text-blue-700 transition-colors"
         >

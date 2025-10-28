@@ -1,26 +1,19 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
-const props = defineProps<{
-  modelValue?: string
-}>()
+const props = defineProps<{ modelValue?: string }>()
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
-}>()
-
-const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const body = ref(props.modelValue ?? '')
 
-// Watch modelValue từ parent
 watch(() => props.modelValue, (newValue) => {
-  console.log('📄 RawEditor received:', newValue) // Debug log
   if (newValue !== undefined && newValue !== body.value) {
     body.value = newValue
   }
 }, { immediate: true })
 
 const updateBody = () => {
+  console.log('🪶 RawEditor emit update:modelValue', body.value)
   emit('update:modelValue', body.value)
 }
 
@@ -30,18 +23,15 @@ defineExpose({
     emit('update:modelValue', newBody)
   },
   getBody: () => body.value,
-  getBodyType: () => 'raw',  
-  focus: () => textareaRef.value?.focus()
+  getBodyType: () => 'raw'
 })
-
 </script>
 
 <template>
-  <div class="relative rounded-md border border-gray-300 overflow-hidden bg-white">
-    <div class="relative h-[360px] overflow-auto">
-      <textarea ref="textareaRef" v-model="body" @input="updateBody" spellcheck="false"
-        placeholder="Enter request body..."
-        class="w-full h-full px-3 py-2 text-sm font-mono text-gray-800 bg-white focus:outline-none resize-none"></textarea>
-    </div>
-  </div>
+  <textarea
+    v-model="body"
+    @input="updateBody"
+    placeholder="Enter request body..."
+    class="w-full h-[360px] px-3 py-2 font-mono"
+  />
 </template>

@@ -86,6 +86,5 @@ const items = computed<DropdownMenuItem[][]>(() => ([
       />
     </UDropdownMenu>
 
-    <!-- ✅ Xóa LoginModal khỏi đây -->
-  </div>
+   </div>
 </template>

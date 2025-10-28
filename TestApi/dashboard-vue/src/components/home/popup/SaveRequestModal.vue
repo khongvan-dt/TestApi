@@ -143,15 +143,14 @@ const handleSave = async () => {
     url: props.currentUrl,
     queryParams: queryParams.filter((p: any) => p.enabled !== false && p.key),
     headers: headers.filter((h: any) => h.enabled !== false && h.key),
-    body: requestBody ? {
-      bodyType: 'raw',
-      content: requestBody
-    } : null
+    body: requestBody ? requestBody : null
+
   }
 
   console.log('💾 Saving request:', requestData)
 
   const result = await saveRequest(requestData)
+  
 
   if (result && result.success) {
     saveResult.value = result.isNew ? 'created' : 'updated'
@@ -162,6 +161,7 @@ const handleSave = async () => {
     }, 1500)
   }
 }
+
 </script>
  
 

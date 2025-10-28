@@ -118,8 +118,7 @@ defineExpose({ refreshData })
 
     <!-- Collections List -->
     <div v-else class="flex-1 overflow-y-auto overflow-x-hidden p-2 text-sm">
-      <!-- ✅ Action Buttons -->
-      <div class="mb-2 px-2 space-y-2">
+       <div class="mb-2 px-2 space-y-2">
         <!-- Refresh Button -->
         <button @click="refreshData" :disabled="loading"
           class="w-full px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2">

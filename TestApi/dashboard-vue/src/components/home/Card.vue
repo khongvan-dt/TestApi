@@ -42,6 +42,12 @@ const activeTab = ref('Body')
 const responseStatus = ref<number | null>(null)
 const responseDuration = ref<number | null>(null)
 const responseSize = ref<number | null>(null)
+const bodyTabRef = ref(null)
+const authorizationTabRef = ref(null)
+const paramTabRef = ref(null)
+const headerTabRef = ref(null)
+
+
 
 const showSaveModal = ref(false)
 
@@ -51,7 +57,6 @@ const tabs = ['Params', 'Authorization', 'Headers', 'Body']
 const paramsTabRef = ref()
 const authTabRef = ref()
 const headersTabRef = ref()
-const bodyTabRef = ref()
 
 // Resizable
 const requestHeight = ref(400)
@@ -131,117 +136,7 @@ const stopResize = () => {
   document.removeEventListener('mouseup', stopResize)
 }
 
-// const handleSend = async () => {
-//   if (!url.value) {
-//     alert('Please enter a URL')
-//     return
-//   }
 
-//   loading.value = true
-//   response.value = ''
-//   responseStatus.value = null
-//   responseDuration.value = null
-//   responseSize.value = null
-
-//   try {
-//     // Lấy dữ liệu từ các tab
-//     const params = paramsTabRef.value?.getParams() || []
-//     const headers = headersTabRef.value?.getHeaders() || []
-//     const auth = authTabRef.value?.getAuth() || null
-
-//     let requestBody: any = null
-//     if (bodyTabRef.value) {
-//       const bodyType = bodyTabRef.value.getBodyType?.() || 'raw'
-//       const content = bodyTabRef.value.getBody() || ''
-
-//       if (bodyType === 'raw') {
-//         requestBody = content
-//         // Thêm Content-Type nếu chưa có
-//         if (!headers.some((h: any) => h.key.toLowerCase() === 'content-type')) {
-//           headers.push({ key: 'Content-Type', value: 'application/json', enabled: true })
-//         }
-//       } else if (bodyType === 'x-www-form-urlencoded') {
-//         const urlParams = content || []
-//         requestBody = urlParams
-//           .filter((p: any) => p.enabled !== false && p.key)
-//           .map((p: any) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value || '')}`)
-//           .join('&')
-//         if (!headers.some((h: any) => h.key.toLowerCase() === 'content-type')) {
-//           headers.push({ key: 'Content-Type', value: 'application/x-www-form-urlencoded', enabled: true })
-//         }
-//       } else if (bodyType === 'form-data') {
-//         requestBody = content || []
-//       }
-//     }
-
-//     // Thêm Authorization header nếu auth có
-//     if (auth && auth.type && auth.token) {
-//       headers.push({ key: 'Authorization', value: `${auth.type} ${auth.token}`, enabled: true })
-//     }
-
-//     interface Header {
-//       key: string
-//       value: string
-//     }
-
-//     // Format headers gửi request
-//     const formattedHeaders: Header[] = headers.map((h: any) => ({ key: h.key, value: h.value }))
-
-//     // Payload gửi request
-//     const requestPayload = {
-//       method: method.value,
-//       url: url.value,
-//       queryParams: params,
-//       headers: formattedHeaders,
-//       body: requestBody
-//     }
-
-//     // Gửi request
-//     const result = await sendRequest(requestPayload)
-
-//     // Hiển thị response
-//     responseStatus.value = result.status
-//     responseDuration.value = result.duration
-//     responseSize.value = result.size
-//     response.value = result.success
-//       ? JSON.stringify(result.data, null, 2)
-//       : JSON.stringify({
-//         error: result.error || 'Request failed',
-//         status: result.status,
-//         statusText: result.statusText,
-//         data: result.data
-//       }, null, 2)
-
-//     // Payload lưu history
-//     const historyPayload = {
-//       requestId: props.requestId ?? 0,
-//       collectionId: 1,
-//       name: props.title || 'New Request',
-//       method: method.value,
-//       url: url.value,
-//       queryParams: JSON.stringify(params),
-//       headers: JSON.stringify(formattedHeaders),
-//       body: JSON.stringify(requestBody || ''),
-//       statusCode: result.status ?? 0,
-//       statusText: result.statusText ?? '',
-//       responseHeaders: JSON.stringify(result.headers || {}),
-//       responseBody: result.success ? JSON.stringify(result.data) : '',
-//       responseTime: result.duration ?? 0,
-//       errorMessage: result.success ? '' : result.error || '',
-//       executedAt: new Date().toISOString(),
-//       userId: 0
-//     }
-
-//     await createExecutionHistory(historyPayload)
-
-//   } catch (error: any) {
-//     response.value = JSON.stringify({
-//       error: error.message || 'Unknown error occurred'
-//     }, null, 2)
-//   } finally {
-//     loading.value = false
-//   }
-// }
 
 const handleSend = async () => {
   if (!url.value) {
@@ -256,54 +151,69 @@ const handleSend = async () => {
   responseSize.value = null
 
   try {
+    console.group('🚀 SEND DEBUG LOG')
+
     // 1️⃣ Lấy dữ liệu từ các tab
     const params = paramsTabRef.value?.getParams() || []
     const headers = headersTabRef.value?.getHeaders() || []
-    const auth = authTabRef.value?.getAuth() || null
+    const auth = authTabRef.value?.getAuth?.() || null
+    console.log('🧩 Params:', params)
+    console.log('🧩 Headers (from tab):', headers)
+    console.log('🧩 Auth (from tab):', auth)
 
-    // 2️⃣ Xử lý body
+    // 2️⃣ BODY
     let requestBody: any = null
-    if (bodyTabRef.value) {
-      const bodyType = bodyTabRef.value.getBodyType?.() || 'raw'
-      const content = bodyTabRef.value.getBody() || ''
 
-      if (bodyType === 'raw') {
-        requestBody = content
-        if (!headers.some((h: any) => h.key.toLowerCase() === 'content-type')) {
-          headers.push({ key: 'Content-Type', value: 'application/json', enabled: true })
-        }
-      } else if (bodyType === 'x-www-form-urlencoded') {
-        const urlParams = content || []
-        requestBody = urlParams
-          .filter((p: any) => p.enabled !== false && p.key)
-          .map((p: any) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value || '')}`)
-          .join('&')
-        if (!headers.some((h: any) => h.key.toLowerCase() === 'content-type')) {
-          headers.push({ key: 'Content-Type', value: 'application/x-www-form-urlencoded', enabled: true })
-        }
-      } else if (bodyType === 'form-data') {
-        requestBody = content || []
-      }
+   if (bodyTabRef.value) {
+  const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
+  const bodyContent = bodyTabRef.value.getBody?.() || ''
+
+  if (bodyType !== 'none') {
+    requestBody = {
+      bodyType,
+      content: typeof bodyContent === 'string' ? bodyContent : JSON.stringify(bodyContent)
+    }
+  } else {
+    requestBody = null
+  }
+}
+ else {
+      console.warn('⚠️ bodyTabRef.value is null — cannot get body')
     }
 
-    // 3️⃣ Thêm Authorization header nếu có
+    // 3️⃣ Authorization header
     if (auth && auth.type && auth.token) {
-      headers.push({ key: 'Authorization', value: `${auth.type} ${auth.token}`, enabled: true })
+      const authHeader = {
+        key: 'Authorization',
+        value: `${auth.type.charAt(0).toUpperCase() + auth.type.slice(1)} ${auth.token}`,
+        enabled: true
+      }
+      headers.push(authHeader)
     }
 
-    interface Header { key: string; value: string }
-    const formattedHeaders: Header[] = headers.map((h: any) => ({ key: h.key, value: h.value }))
+    const formattedHeaders = headers
+      .filter((h: any) => h.enabled !== false && h.key)
+      .map((h: any) => ({
+        key: h.key,
+        value: h.value
+      }))
 
-    // 4️⃣ Payload gửi request
+    // 4️⃣ Tạo payload hoàn chỉnh
     const requestPayload = {
+      requestId: props.requestId ?? null,
+      collectionId: 1,
+      name: props.title ?? 'Untitled',
       method: method.value,
       url: url.value,
-      queryParams: params,
+      queryParams: params.filter((p: any) => p.enabled !== false && p.key),
       headers: formattedHeaders,
       body: requestBody
     }
 
-    // 5️⃣ Gửi request thật và hiển thị response ngay
+    console.log('🚀 FINAL REQUEST PAYLOAD:', JSON.stringify(requestPayload, null, 2))
+    console.groupEnd()
+
+    // 5️⃣ Gửi request thật
     const result = await sendRequest(requestPayload)
 
     responseStatus.value = result.status ?? null
@@ -317,28 +227,8 @@ const handleSend = async () => {
           statusText: result.statusText,
           data: result.data
         }, null, 2)
-
-    // 6️⃣ Lưu lịch sử (không ảnh hưởng response)
-    const historyPayload = {
-      requestId: props.requestId ?? null,
-      method: method.value,
-      url: url.value,
-      queryParams: JSON.stringify(params),
-      headers: JSON.stringify(formattedHeaders),
-      body: JSON.stringify(requestBody || ''),
-      statusCode: result.status ?? 0,
-      statusText: result.statusText ?? '',
-      responseHeaders: JSON.stringify(result.headers || {}),
-      responseBody: result.success ? JSON.stringify(result.data) : '',
-      responseTime: result.duration ?? 0,
-      errorMessage: result.success ? '' : result.error || '',
-      executedAt: new Date().toISOString(),
-    }
-
-    // Chạy bất đồng bộ, không await để không block hiển thị
-    createExecutionHistory(historyPayload).catch(err => console.error('Save history failed', err))
-
   } catch (error: any) {
+    console.error('❌ Error in handleSend:', error)
     response.value = JSON.stringify({
       error: error.message || 'Unknown error occurred'
     }, null, 2)
@@ -355,42 +245,42 @@ interface Header {
 const headers: Header[] = headersTabRef.value?.getHeaders() || []
 
 const getRequestData = () => {
-  const params = paramsTabRef.value?.getParams() || []
-  const headers = headersTabRef.value?.getHeaders() || []
-  const auth = authTabRef.value?.getAuth() || null
+  const params = paramTabRef?.value?.getParams?.() || []
+  const headers = headerTabRef?.value?.getHeaders?.() || []
+  const auth = authorizationTabRef?.value?.getAuthData?.() || null
 
-  // Body
-  let requestBody: any = null
+  let bodyData: any = null
+
   if (bodyTabRef.value) {
-    const bodyType = bodyTabRef.value.getBodyType?.() || 'raw'
-    const content = bodyTabRef.value.getBody?.() || ''
+    const result = bodyTabRef.value.getBody?.()
+    const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
 
-    requestBody = {
-      bodyType,
-      content
+    if (result && typeof result === 'object' && 'bodyType' in result && 'content' in result) {
+     
+      bodyData = result
+    } else if (bodyType !== 'none') {
+      bodyData = { bodyType, content: result || '' }
     }
-  }
-
-  const formattedHeaders: Header[] = headers.map((h: Header) => ({
-    key: h.key,
-    value: h.value
-  }))
-
-  if (requestBody?.bodyType === 'raw' && !formattedHeaders.some((h: Header) => h.key === 'Content-Type')) {
-    formattedHeaders.push({ key: 'Content-Type', value: 'application/json' })
   }
 
   return {
     url: url.value,
     method: method.value,
-    body: requestBody,
+    body: bodyData,
     params,
-    headers: formattedHeaders,
+    headers,
     auth
   }
 }
+console.log('getRequestData result:', getRequestData())
+
+
+
+
+
 
 const handleOpenSaveModal = () => {
+  console.log("🟦 Open Save Modal — current body:", body.value)
   showSaveModal.value = true
 }
 
@@ -434,6 +324,7 @@ defineExpose({
   },
   activeTab: activeTab.value
 })
+
 </script>
 
 <template>
@@ -579,7 +470,10 @@ defineExpose({
     </div>
 
     <SaveRequestModal v-if="showSaveModal" :current-url="url" :current-method="method" :current-body="body"
-      :request-id="requestId" :request-name="title" :card-ref="$root" @close="handleCloseSaveModal"
-      @saved="handleRequestSaved" />
+      :request-id="requestId" :request-name="title" :card-ref="{
+        getRequestData: getRequestData
+      }" @close="handleCloseSaveModal" @saved="handleRequestSaved" />
+
+
   </div>
 </template>
