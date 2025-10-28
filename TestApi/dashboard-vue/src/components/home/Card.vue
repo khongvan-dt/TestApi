@@ -161,23 +161,30 @@ const handleSend = async () => {
     console.log('🧩 Headers (from tab):', headers)
     console.log('🧩 Auth (from tab):', auth)
 
-    // 2️⃣ BODY
+    // 2️⃣ BODY (✅ ĐÃ FIX)
     let requestBody: any = null
 
-   if (bodyTabRef.value) {
-  const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
-  const bodyContent = bodyTabRef.value.getBody?.() || ''
+    if (bodyTabRef.value) {
+      const rawBody = bodyTabRef.value.getBody?.()
+      const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
 
-  if (bodyType !== 'none') {
-    requestBody = {
-      bodyType,
-      content: typeof bodyContent === 'string' ? bodyContent : JSON.stringify(bodyContent)
-    }
-  } else {
-    requestBody = null
-  }
-}
- else {
+      if (bodyType !== 'none' && rawBody) {
+        // Nếu getBody() đã trả object { bodyType, content }, dùng trực tiếp
+        if (typeof rawBody === 'object' && 'bodyType' in rawBody && 'content' in rawBody) {
+          requestBody = rawBody
+        } else {
+          // Ngược lại, bọc lại cho đúng định dạng
+          requestBody = {
+            bodyType,
+            content: typeof rawBody === 'string'
+              ? rawBody
+              : JSON.stringify(rawBody)
+          }
+        }
+      } else {
+        requestBody = null
+      }
+    } else {
       console.warn('⚠️ bodyTabRef.value is null — cannot get body')
     }
 
@@ -210,11 +217,16 @@ const handleSend = async () => {
       body: requestBody
     }
 
-    console.log('🚀 FINAL REQUEST PAYLOAD:', JSON.stringify(requestPayload, null, 2))
-    console.groupEnd()
 
-    // 5️⃣ Gửi request thật
-    const result = await sendRequest(requestPayload)
+    const actualBody =
+      requestPayload.body?.bodyType === 'raw'
+        ? requestPayload.body.content
+        : requestPayload.body
+
+    const result = await sendRequest({
+      ...requestPayload,
+      body: actualBody
+    })
 
     responseStatus.value = result.status ?? null
     responseDuration.value = result.duration ?? null
@@ -222,11 +234,11 @@ const handleSend = async () => {
     response.value = result.success
       ? JSON.stringify(result.data, null, 2)
       : JSON.stringify({
-          error: result.error || 'Request failed',
-          status: result.status,
-          statusText: result.statusText,
-          data: result.data
-        }, null, 2)
+        error: result.error || 'Request failed',
+        status: result.status,
+        statusText: result.statusText,
+        data: result.data
+      }, null, 2)
   } catch (error: any) {
     console.error('❌ Error in handleSend:', error)
     response.value = JSON.stringify({
@@ -256,7 +268,7 @@ const getRequestData = () => {
     const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
 
     if (result && typeof result === 'object' && 'bodyType' in result && 'content' in result) {
-     
+
       bodyData = result
     } else if (bodyType !== 'none') {
       bodyData = { bodyType, content: result || '' }
