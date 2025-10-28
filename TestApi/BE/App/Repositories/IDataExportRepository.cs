@@ -8,5 +8,6 @@ public interface IDataExportRepository
     Task<UserDataExportDto> GetUserDataAsync(int userId);
     Task<ImportResultDto> ImportUserDataAsync(int userId, UserDataExportDto importData);
     Task<SaveRequestResultDto> SaveRequestAsync(int userId, SaveRequestDto dto);
+    Task<SaveRequestResultDto> DeleteRequestAsync(int userId, int requestId);
 
 }

@@ -26,26 +26,22 @@ const updateBody = () => {
 
 defineExpose({
   updateBody: (newBody: string) => {
-    console.log('✏️ RawEditor updateBody:', newBody)  
     body.value = newBody
     emit('update:modelValue', newBody)
   },
   getBody: () => body.value,
+  getBodyType: () => 'raw',  
   focus: () => textareaRef.value?.focus()
 })
+
 </script>
 
 <template>
   <div class="relative rounded-md border border-gray-300 overflow-hidden bg-white">
     <div class="relative h-[360px] overflow-auto">
-      <textarea
-        ref="textareaRef"
-        v-model="body"
-        @input="updateBody"
-        spellcheck="false"
+      <textarea ref="textareaRef" v-model="body" @input="updateBody" spellcheck="false"
         placeholder="Enter request body..."
-        class="w-full h-full px-3 py-2 text-sm font-mono text-gray-800 bg-white focus:outline-none resize-none"
-      ></textarea>
+        class="w-full h-full px-3 py-2 text-sm font-mono text-gray-800 bg-white focus:outline-none resize-none"></textarea>
     </div>
   </div>
 </template>

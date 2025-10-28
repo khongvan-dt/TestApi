@@ -13,7 +13,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Collection> Collections { get; set; }
     public DbSet<Request> Requests { get; set; }
-     public DbSet<ExecutionHistory> ExecutionHistories { get; set; }
+    public DbSet<ExecutionHistory> ExecutionHistories { get; set; }
     public DbSet<RequestHeader> RequestHeaders { get; set; }
     public DbSet<RequestParam> RequestParams { get; set; }
     public DbSet<RequestBody> RequestBodies { get; set; }

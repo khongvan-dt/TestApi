@@ -86,11 +86,11 @@ public class ExecutionHistoryRepository : Repository<ExecutionHistory>, IExecuti
     }
 
     // ✅ Lưu lịch sử mới
-    public async Task<ExecutionHistoryResponseDto> CreateAsync(CreateExecutionHistoryDto dto)
+    public async Task<ExecutionHistoryResponseDto> CreateAsync(CreateExecutionHistoryDto dto, int userId)
     {
         var history = new ExecutionHistory
         {
-            UserId = dto.UserId,
+            UserId = userId,
             RequestId = dto.RequestId,
             Method = dto.Method,
             Url = dto.Url,
@@ -138,4 +138,28 @@ public class ExecutionHistoryRepository : Repository<ExecutionHistory>, IExecuti
 
         return oldHistories.Count;
     }
+
+    // ✅ Lấy lịch sử của user
+    public async Task<ExecutionHistoryResponseDto?> GetOneByUserIdAndRequestIdAsync(int userId, int requestId)
+    {
+        return await _context.ExecutionHistories
+            .Where(eh => eh.UserId == userId && eh.RequestId == requestId)
+            .OrderByDescending(eh => eh.ExecutedAt)
+            .Select(eh => new ExecutionHistoryResponseDto
+            {
+                Id = eh.Id,
+                RequestId = eh.RequestId,
+                Method = eh.Method,
+                Url = eh.Url,
+                StatusCode = eh.StatusCode,
+                StatusText = eh.StatusText,
+                ResponseTime = eh.ResponseTime,
+                ExecutedAt = DateTime.Now,
+                ErrorMessage = eh.ErrorMessage
+            })
+            .FirstOrDefaultAsync(); 
+    }
+
+
+
 }

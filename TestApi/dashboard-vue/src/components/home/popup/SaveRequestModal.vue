@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useUserData } from '../../../composables/useUserData'
-import { getMyCollections } from '../../../composables/useCollection'
+import { getMyCollections, createCollection } from '../../../composables/useCollection'
+
 
 interface Collection {
   id: number
@@ -18,6 +19,7 @@ interface Props {
   currentBody: string
   requestId?: number | null
   requestName?: string
+  cardRef?: any // ✅ THÊM prop này
 }
 
 const props = defineProps<Props>()
@@ -35,17 +37,69 @@ const saveResult = ref<string | null>(null)
 const collections = ref<Collection[]>([])
 const loadingCollections = ref(false)
 
- onMounted(async () => {
+const showCreateCollection = ref(false)
+const newCollectionName = ref('')
+const newCollectionDescription = ref('')
+const creatingCollection = ref(false)
+
+// ... existing load collections code ...
+
+onMounted(async () => {
+  await loadCollections()
+})
+
+const loadCollections = async () => {
   loadingCollections.value = true
   try {
     const result = await getMyCollections()
     collections.value = result || []
-   } catch (err) {
-     error.value = 'Failed to load collections'
+    console.log('✅ Loaded collections:', collections.value)
+  } catch (err) {
+    console.error('❌ Failed to load collections:', err)
+    error.value = 'Failed to load collections'
   } finally {
     loadingCollections.value = false
   }
-})
+}
+
+const toggleCreateCollection = () => {
+  showCreateCollection.value = !showCreateCollection.value
+  if (showCreateCollection.value) {
+    newCollectionName.value = ''
+    newCollectionDescription.value = ''
+  }
+}
+
+const handleCreateCollection = async () => {
+  if (!newCollectionName.value.trim()) {
+    error.value = 'Please enter collection name'
+    return
+  }
+
+  creatingCollection.value = true
+  error.value = null
+
+  try {
+    const result = await createCollection({
+      name: newCollectionName.value,
+      description: newCollectionDescription.value
+    })
+
+    if (result && result.id) {
+      await loadCollections()
+      selectedCollectionId.value = result.id
+      showCreateCollection.value = false
+      newCollectionName.value = ''
+      newCollectionDescription.value = ''
+      console.log('✅ Collection created:', result)
+    }
+  } catch (err: any) {
+    console.error('❌ Failed to create collection:', err)
+    error.value = err.message || 'Failed to create collection'
+  } finally {
+    creatingCollection.value = false
+  }
+}
 
 watch(() => props.requestName, (newVal) => {
   requestName.value = newVal || ''
@@ -67,20 +121,35 @@ const handleSave = async () => {
     return
   }
 
-  
+  // ✅ LẤY DATA TỪ CARD REF
+  let requestBody = null
+  let queryParams: any[] = []
+  let headers: any[] = []
+
+  if (props.cardRef?.getRequestData) {
+    const cardData = props.cardRef.getRequestData()
+    console.log('📦 Card data:', cardData)
+    
+    requestBody = cardData.body
+    queryParams = cardData.params || []
+    headers = cardData.headers || []
+  }
+
   const requestData = {
     requestId: props.requestId,
     collectionId: selectedCollectionId.value,
     name: requestName.value,
     method: props.currentMethod,
     url: props.currentUrl,
-    queryParams: [],
-    headers: [],
-    body: props.currentBody ? {
+    queryParams: queryParams.filter((p: any) => p.enabled !== false && p.key),
+    headers: headers.filter((h: any) => h.enabled !== false && h.key),
+    body: requestBody ? {
       bodyType: 'raw',
-      content: props.currentBody
+      content: requestBody
     } : null
   }
+
+  console.log('💾 Saving request:', requestData)
 
   const result = await saveRequest(requestData)
 
@@ -94,12 +163,13 @@ const handleSave = async () => {
   }
 }
 </script>
+ 
 
 <template>
   <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
       <!-- Header -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
         <h2 class="text-xl font-semibold text-gray-900">
           {{ requestId ? 'Update Request' : 'Save Request' }}
         </h2>
@@ -117,7 +187,14 @@ const handleSave = async () => {
       <div class="p-6 space-y-4">
         <!-- Error Message -->
         <div v-if="error" class="p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p class="text-sm text-red-600">{{ error }}</p>
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-red-600">{{ error }}</p>
+            <button @click="error = null" class="text-red-400 hover:text-red-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- Success Message -->
@@ -147,9 +224,54 @@ const handleSave = async () => {
 
         <!-- Collection Select -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Collection <span class="text-red-500">*</span>
-          </label>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-medium text-gray-700">
+              Collection <span class="text-red-500">*</span>
+            </label>
+            
+            <!-- ✅ THÊM: Button tạo collection mới -->
+            <button
+              @click="toggleCreateCollection"
+              class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              {{ showCreateCollection ? 'Cancel' : 'New Collection' }}
+            </button>
+          </div>
+
+          <!-- ✅ THÊM: Form tạo collection mới -->
+          <div v-if="showCreateCollection" class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+            <input
+              v-model="newCollectionName"
+              type="text"
+              placeholder="Collection name *"
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              @keydown.enter="handleCreateCollection"
+            />
+            <input
+              v-model="newCollectionDescription"
+              type="text"
+              placeholder="Description (optional)"
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              @keydown.enter="handleCreateCollection"
+            />
+            <button
+              @click="handleCreateCollection"
+              :disabled="creatingCollection || !newCollectionName.trim()"
+              class="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              <span v-if="creatingCollection" class="flex items-center justify-center gap-2">
+                <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating...
+              </span>
+              <span v-else>Create Collection</span>
+            </button>
+          </div>
           
           <!-- Loading State -->
           <div v-if="loadingCollections" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
@@ -201,7 +323,7 @@ const handleSave = async () => {
       </div>
 
       <!-- Footer -->
-      <div class="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
+      <div class="flex gap-3 p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0">
         <button
           @click="emit('close')"
           class="flex-1 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"

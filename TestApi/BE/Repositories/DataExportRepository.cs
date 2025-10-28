@@ -455,4 +455,40 @@ public class DataExportRepository : IDataExportRepository
             };
         }
     }
+
+    public async Task<SaveRequestResultDto> DeleteRequestAsync(int userId, int requestId)
+    {
+        try
+        {
+            var request = await _context.Requests
+                .Include(r => r.RequestParams)
+                .Include(r => r.RequestHeaders)
+                .Include(r => r.RequestBodies)
+                .Include(r => r.Collection) 
+                .FirstOrDefaultAsync(r => r.Id == requestId);
+
+            if (request == null)
+                return new SaveRequestResultDto { Success = false, Message = "Request not found" };
+
+            if (request.Collection.UserId != userId)
+                return new SaveRequestResultDto { Success = false, Message = "Access denied" };
+
+            // Xóa các bảng con
+            _context.RequestParams.RemoveRange(request.RequestParams);
+            _context.RequestHeaders.RemoveRange(request.RequestHeaders);
+            _context.RequestBodies.RemoveRange(request.RequestBodies);
+
+            // Xóa request chính
+            _context.Requests.Remove(request);
+
+            await _context.SaveChangesAsync();
+
+            return new SaveRequestResultDto { Success = true, Message = "Request deleted successfully" };
+        }
+        catch (Exception ex)
+        {
+            return new SaveRequestResultDto { Success = false, Message = $"Failed to delete request: {ex.Message}" };
+        }
+    }
+
 }

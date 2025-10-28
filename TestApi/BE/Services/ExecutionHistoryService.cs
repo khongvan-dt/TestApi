@@ -28,13 +28,17 @@ public class ExecutionHistoryService : IExecutionHistoryService
         return await _repository.GetDetailAsync(id, userId);
     }
 
-    public async Task<ExecutionHistoryResponseDto> SaveExecutionAsync(CreateExecutionHistoryDto dto)
+    public async Task<ExecutionHistoryResponseDto> SaveExecutionAsync(CreateExecutionHistoryDto dto, int userId)
     {
-        return await _repository.CreateAsync(dto);
+        return await _repository.CreateAsync(dto, userId);
     }
 
     public async Task<int> CleanupOldHistoriesAsync(int userId, int daysToKeep = 30)
     {
         return await _repository.DeleteOldHistoriesAsync(userId, daysToKeep);
+    }
+    public async Task<ExecutionHistoryResponseDto?> GetOneByUserIdAndRequestIdAsync(int userId, int requestId)
+    {
+        return await _repository.GetOneByUserIdAndRequestIdAsync(userId, requestId);
     }
 }

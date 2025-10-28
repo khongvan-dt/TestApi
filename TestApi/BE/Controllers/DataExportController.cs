@@ -226,6 +226,7 @@ public class DataExportController : ControllerBase
     /// Save or update a request
     /// </summary>
     [HttpPost("save")]
+    [Authorize]
     public async Task<IActionResult> SaveRequest([FromBody] SaveRequestDto dto)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -276,6 +277,41 @@ public class DataExportController : ControllerBase
         {
             _logger.LogError(ex, "Error saving request for user {UserId}", userId);
             return StatusCode(500, ApiResponse<object>.ErrorResponse("Failed to save request"));
+        }
+    }
+
+    /// <summary>
+    /// Delete a request
+    /// </summary>
+    [HttpPost("requestId")]
+    [Authorize]
+
+    public async Task<IActionResult> DeleteRequest([FromBody]  int requestId)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Unauthorized(ApiResponse<object>.ErrorResponse("Unauthorized"));
+
+        if (!int.TryParse(userIdClaim, out var userId))
+            return BadRequest(ApiResponse<object>.ErrorResponse("Invalid user ID"));
+
+        if (requestId <= 0)
+            return BadRequest(ApiResponse<object>.ErrorResponse("Invalid request ID"));
+
+        try
+        {
+            var result = await _service.DeleteRequestAsync(userId, requestId);
+
+            if (!result.Success)
+                return BadRequest(ApiResponse<object>.ErrorResponse(result.Message));
+
+            return Ok(ApiResponse<SaveRequestResultDto>.SuccessResponse(result, "Request deleted successfully"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting request {RequestId} for user {UserId}", requestId, userId);
+            return StatusCode(500, ApiResponse<object>.ErrorResponse("Failed to delete request"));
         }
     }
 

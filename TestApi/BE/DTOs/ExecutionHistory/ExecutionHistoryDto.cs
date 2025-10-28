@@ -43,10 +43,9 @@ public class ExecutionHistoryDetailDto
     public DateTime ExecutedAt { get; set; }
 }
 
-// ✅ Create DTO - Lưu lịch sử sau khi execute
+//  Create DTO - Lưu lịch sử sau khi execute
 public class CreateExecutionHistoryDto
 {
-    public int UserId { get; set; }
     public int? RequestId { get; set; }
 
     // Request snapshot

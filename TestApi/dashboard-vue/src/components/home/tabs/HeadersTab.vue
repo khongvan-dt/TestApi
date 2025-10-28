@@ -133,8 +133,12 @@ const bulkEdit = () => {
 const enabledCount = computed(() => headers.value.filter(h => h.enabled && h.key).length)
 
 defineExpose({
-  getHeaders: () => headers.value.filter(h => h.enabled && h.key)
+  getHeaders: () => {
+     const result = headers.value.filter(h => h.enabled && h.key)
+    return result
+  }
 })
+
 </script>
 
 <template>

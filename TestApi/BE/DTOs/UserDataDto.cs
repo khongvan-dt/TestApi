@@ -126,4 +126,5 @@
         public int RequestId { get; set; }
         public bool IsNew { get; set; } // true = created, false = updated
     }
+
 }

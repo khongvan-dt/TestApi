@@ -1,6 +1,7 @@
 ﻿using AutoApiTester.App.Repositories;
 using AutoApiTester.App.Services;
 using AutoApiTester.Models.DTOs;
+using Humanizer;
 
 namespace AutoApiTester.Services;
 
@@ -29,5 +30,9 @@ public class DataExportService : IDataExportService
     public async Task<SaveRequestResultDto> SaveRequestAsync(int userId, SaveRequestDto dto)
     {
         return await _repository.SaveRequestAsync(userId, dto);
+    }
+    public async Task<SaveRequestResultDto> DeleteRequestAsync(int userId, int requestId)
+    {
+        return await _repository.DeleteRequestAsync(userId, requestId);
     }
 }

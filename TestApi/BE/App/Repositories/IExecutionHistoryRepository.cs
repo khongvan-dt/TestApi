@@ -15,8 +15,9 @@ public interface IExecutionHistoryRepository : IRepository<ExecutionHistory>
     Task<ExecutionHistoryDetailDto?> GetDetailAsync(int id, int userId);
 
     // Lưu lịch sử mới
-    Task<ExecutionHistoryResponseDto> CreateAsync(CreateExecutionHistoryDto dto);
+    Task<ExecutionHistoryResponseDto> CreateAsync(CreateExecutionHistoryDto dto, int userId);
 
     // Xóa lịch sử cũ (để tránh DB quá lớn)
     Task<int> DeleteOldHistoriesAsync(int userId, int daysToKeep = 30);
+    Task<ExecutionHistoryResponseDto?> GetOneByUserIdAndRequestIdAsync(int userId, int requestId);
 }

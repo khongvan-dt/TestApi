@@ -7,6 +7,7 @@ public interface IExecutionHistoryService
     Task<IEnumerable<ExecutionHistoryResponseDto>> GetUserHistoriesAsync(int userId, int limit = 50);
     Task<IEnumerable<ExecutionHistoryResponseDto>> GetRequestHistoriesAsync(int requestId, int userId);
     Task<ExecutionHistoryDetailDto?> GetHistoryDetailAsync(int id, int userId);
-    Task<ExecutionHistoryResponseDto> SaveExecutionAsync(CreateExecutionHistoryDto dto);
+    Task<ExecutionHistoryResponseDto> SaveExecutionAsync(CreateExecutionHistoryDto dto, int userId);
     Task<int> CleanupOldHistoriesAsync(int userId, int daysToKeep = 30);
+    Task<ExecutionHistoryResponseDto?> GetOneByUserIdAndRequestIdAsync(int userId, int requestId);
 }
