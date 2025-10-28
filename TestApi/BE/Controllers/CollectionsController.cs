@@ -1,6 +1,8 @@
-using AutoApiTester.App.Services;
+﻿using AutoApiTester.App.Services;
 using AutoApiTester.Models.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AutoApiTester.Controllers;
 
@@ -15,14 +17,9 @@ public class CollectionController : ControllerBase
         _collectionService = collectionService;
     }
 
-    //[HttpGet("workspace/{workspaceId}")]
-    //public async Task<IActionResult> GetByWorkspaceId(int workspaceId)
-    //{
-    //    var result = await _collectionService.GetByWorkspaceIdAsync(workspaceId);
-    //    return Ok(ApiResponse<IEnumerable<CollectionResponseDto>>.SuccessResponse(result));
-    //}
+  
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var result = await _collectionService.GetByIdAsync(id);
@@ -57,5 +54,35 @@ public class CollectionController : ControllerBase
             return NotFound(ApiResponse<object>.ErrorResponse("Collection not found"));
 
         return Ok(ApiResponse<object>.SuccessResponse(null, "Collection deleted successfully"));
+    }
+    [HttpPost("myCollections")]
+    [Authorize]
+    public async Task<IActionResult> GetMyCollections() 
+    {
+         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            return Unauthorized(ApiResponse<object>.ErrorResponse("Unauthorized"));
+        }
+
+        if (!int.TryParse(userIdClaim, out var userId))
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Invalid user ID"));
+        }
+
+        try
+        {
+            var result = await _collectionService.GetByUserIdAsync(userId);
+
+            return Ok(ApiResponse<List<CollectionResponseDto>>.SuccessResponse(
+                result,
+                $"Retrieved {result.Count} collection(s)"
+            ));
+        }
+        catch (Exception ex)
+        {
+             return StatusCode(500, ApiResponse<object>.ErrorResponse("Failed to retrieve collections"));
+        }
     }
 }

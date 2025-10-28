@@ -8,5 +8,6 @@ namespace AutoApiTester.App.Services
         Task<CollectionResponseDto> CreateAsync(CreateCollectionDto dto);
         Task<CollectionResponseDto?> UpdateAsync(int id, UpdateCollectionDto dto);
         Task<bool> DeleteAsync(int id);
+        Task<List<CollectionResponseDto>> GetByUserIdAsync(int userId);
     }
 }

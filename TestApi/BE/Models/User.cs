@@ -33,6 +33,5 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation Properties
-    public virtual ICollection<Workspace> Workspaces { get; set; } = new List<Workspace>();
-    public virtual ICollection<ExecutionHistory> ExecutionHistories { get; set; } = new List<ExecutionHistory>();
+     public virtual ICollection<ExecutionHistory> ExecutionHistories { get; set; } = new List<ExecutionHistory>();
 }

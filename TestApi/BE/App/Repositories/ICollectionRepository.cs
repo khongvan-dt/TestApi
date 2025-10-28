@@ -6,7 +6,7 @@ namespace AutoApiTester.App.Repositories;
 public interface ICollectionRepository : IRepository<Collection>
 {
     // ✅ Lấy collections theo UserId
-    Task<IEnumerable<CollectionResponseDto>> GetByUserIdAsync(int userId);
+    Task<List<CollectionResponseDto>> GetByUserIdAsync(int userId);
 
     // ✅ Lấy 1 collection theo Id
     Task<CollectionResponseDto?> GetByIdAsync(int id);

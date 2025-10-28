@@ -2,8 +2,9 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import List from '../components/home/List.vue'
 import Card from '../components/home/Card.vue'
-import ExportImportModal from '../components/home/tabs/ExportImportModal.vue'  
+import ExportImportModal from '../components/home/popup/ExportImportModal.vue'
 
+// ✅ THÊM requestId vào interface
 interface Tab {
   id: string
   title: string
@@ -11,6 +12,7 @@ interface Tab {
   url: string
   body: string
   collectionId?: number
+  requestId?: number // ✅ THÊM DÒNG NÀY
   params?: Array<{ key: string; value: string; enabled: boolean }>
   headers?: Array<{ key: string; value: string; enabled: boolean }>
   auth?: any
@@ -25,6 +27,8 @@ const tabs = ref<Tab[]>([
     method: 'POST',
     url: '',
     body: '{}',
+    collectionId: undefined,
+    requestId: undefined, // ✅ THÊM
     params: [],
     headers: [],
     auth: null,
@@ -34,9 +38,7 @@ const tabs = ref<Tab[]>([
 
 const activeTabId = ref('default')
 const cardRef = ref()
-const listRef = ref() // ✅ THÊM REF
-
-// ✅ THÊM STATE cho modal
+const listRef = ref()
 const showExportImportModal = ref(false)
 
 const activeTab = computed(() => 
@@ -66,6 +68,7 @@ const handleSelectRequest = (payload: any) => {
     currentTab.url = payload.url
     currentTab.headers = payload.headers || []
     currentTab.params = payload.queryParams || []
+    currentTab.requestId = payload.id || undefined // ✅ THÊM: Lưu requestId khi select
     
     if (payload.body?.content) {
       try {
@@ -91,6 +94,7 @@ const handleAddNewTab = (collectionId: number) => {
     url: '',
     body: '{}',
     collectionId,
+    requestId: undefined, // ✅ THÊM
     params: [],
     headers: [],
     auth: null,
@@ -119,6 +123,8 @@ const closeTab = (tabId: string) => {
       method: 'POST',
       url: '',
       body: '{}',
+      collectionId: undefined,
+      requestId: undefined, // ✅ THÊM
       params: [],
       headers: [],
       auth: null,
@@ -134,7 +140,7 @@ const switchTab = (tabId: string) => {
   activeTabId.value = tabId
 }
 
-// ✅ THÊM HANDLERS cho Export/Import
+// Export/Import handlers
 const handleOpenExportImport = () => {
   showExportImportModal.value = true
 }
@@ -144,9 +150,25 @@ const handleCloseExportImport = () => {
 }
 
 const handleImported = async () => {
-  // Refresh list sau khi import thành công
   if (listRef.value?.refreshData) {
     await listRef.value.refreshData()
+  }
+}
+
+// ✅ THÊM: Handle request saved
+const handleRequestSaved = async (requestId: number) => {
+  console.log('✅ Request saved with ID:', requestId)
+  
+  // Refresh list
+  if (listRef.value?.refreshData) {
+    await listRef.value.refreshData()
+  }
+  
+  // Update tab với requestId mới
+  const currentTab = tabs.value.find(t => t.id === activeTabId.value)
+  if (currentTab) {
+    currentTab.requestId = requestId
+    console.log('📝 Updated tab requestId:', requestId)
   }
 }
 
@@ -202,26 +224,11 @@ watch(
           :class="activeTabId === tab.id ? 'bg-white border-b-2 border-blue-600' : ''"
           @click="switchTab(tab.id)"
         >
-          <span 
-            class="text-xs font-bold px-1 py-0.5 rounded flex-shrink-0"
-            :class="{
-              'bg-green-100 text-green-700': tab.method === 'POST',
-              'bg-blue-100 text-blue-700': tab.method === 'GET',
-              'bg-orange-100 text-orange-700': tab.method === 'PUT',
-              'bg-purple-100 text-purple-700': tab.method === 'PATCH',
-              'bg-red-100 text-red-700': tab.method === 'DELETE'
-            }"
-          >
-            {{ tab.method }}
-          </span>
+          
           
           <span class="text-sm truncate flex-1">{{ tab.title }}</span>
           
-          <span 
-            v-if="tab.url || tab.body !== '{}'"
-            class="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"
-            title="Has changes"
-          ></span>
+          
           
           <button
             v-if="tabs.length > 1"
@@ -246,20 +253,23 @@ watch(
         </button>
       </div>
 
-      <!-- Card -->
+      <!-- Card Component -->
       <div class="flex-1 overflow-hidden">
         <Card 
           ref="cardRef"
           :key="activeTab.id"
+          :title="activeTab.title"
           :defaultUrl="activeTab.url"
           :defaultMethod="activeTab.method"
           :defaultBody="activeTab.body"
+          :requestId="activeTab.requestId"
           @stateChange="handleStateChange"
+          @requestSaved="handleRequestSaved"
         />
       </div>
     </div>
 
-    <!-- ✅ Export/Import Modal -->
+    <!-- Export/Import Modal -->
     <ExportImportModal 
       v-if="showExportImportModal"
       @close="handleCloseExportImport"

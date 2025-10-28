@@ -1,5 +1,6 @@
 ﻿using AutoApiTester.App.Services;
 using AutoApiTester.Models.DTOs;
+using AutoApiTester.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -219,4 +220,63 @@ public class DataExportController : ControllerBase
             ));
         }
     }
+
+
+    /// <summary>
+    /// Save or update a request
+    /// </summary>
+    [HttpPost("save")]
+    public async Task<IActionResult> SaveRequest([FromBody] SaveRequestDto dto)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            return Unauthorized(ApiResponse<object>.ErrorResponse("Unauthorized"));
+        }
+
+        if (!int.TryParse(userIdClaim, out var userId))
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Invalid user ID"));
+        }
+
+        // Validate input
+        if (string.IsNullOrWhiteSpace(dto.Name))
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Request name is required"));
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.Url))
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("URL is required"));
+        }
+
+        if (dto.CollectionId <= 0)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Collection ID is required"));
+        }
+
+        try
+        {
+            var result = await _service.SaveRequestAsync(userId, dto);
+
+            if (!result.Success)
+            {
+                return BadRequest(ApiResponse<SaveRequestResultDto>.ErrorResponse(
+                    result.Message ?? "Failed to save request"
+                ));
+            }
+
+            return Ok(ApiResponse<SaveRequestResultDto>.SuccessResponse(
+                result,
+                result.IsNew ? "Request created successfully" : "Request updated successfully"
+            ));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving request for user {UserId}", userId);
+            return StatusCode(500, ApiResponse<object>.ErrorResponse("Failed to save request"));
+        }
+    }
+
 }

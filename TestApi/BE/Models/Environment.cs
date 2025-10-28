@@ -22,7 +22,5 @@ public class Environmentss
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation Properties
-    [ForeignKey("WorkspaceId")]
-    public virtual Workspace Workspace { get; set; } = null!;
+   
 }

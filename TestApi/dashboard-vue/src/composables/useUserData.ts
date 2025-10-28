@@ -54,7 +54,28 @@ export interface UserData {
   }
 }
 
-// ✅ THÊM Interface cho Import Result
+ export interface SaveRequestData {
+  requestId?: number | null
+  collectionId: number
+  name: string
+  method: string
+  url: string
+  authType?: string | null
+  authValue?: string | null
+  queryParams: Array<{ key: string; value: string }>
+  headers: Array<{ key: string; value: string }>
+  body?: {
+    bodyType: string
+    content: string
+  } | null
+}
+
+export interface SaveRequestResult {
+  success: boolean
+  message?: string
+  requestId: number
+  isNew: boolean
+}
 export interface ImportResult {
   success: boolean
   importedCollections: number
@@ -196,6 +217,28 @@ export const useUserData = () => {
       
       reader.readAsText(file)
     })
+  } 
+  const saveRequest = async (requestData: SaveRequestData): Promise<SaveRequestResult | null> => {
+    loading.value = true
+    error.value = null
+
+    try {
+       
+      const response = await apiClient.post('/DataExport/save', requestData)
+
+ 
+      if (response.data.success) {
+        return response.data.data
+      } else {
+        error.value = response.data.message || 'Failed to save request'
+        return null
+      }
+    } catch (err: any) {
+       error.value = err.response?.data?.message || err.message || 'Failed to save request'
+      return null
+    } finally {
+      loading.value = false
+    }
   }
 
   return {
@@ -208,6 +251,7 @@ export const useUserData = () => {
     exportUserData,
     importUserData,
     downloadAsFile,
-    readFile
+    readFile,
+    saveRequest
   }
 }

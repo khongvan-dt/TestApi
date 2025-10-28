@@ -15,16 +15,16 @@ public class CollectionRepository : Repository<Collection>, ICollectionRepositor
         _context = context;
     }
 
-    // ✅ Lấy danh sách collection theo UserId
-    public async Task<IEnumerable<CollectionResponseDto>> GetByUserIdAsync(int userId)
+    //  Lấy danh sách collection theo UserId
+    public async Task<List<CollectionResponseDto>> GetByUserIdAsync(int userId)
     {
         var collections = await _context.Collections
             .Include(c => c.Requests)
-            .Where(c => c.UserId == userId) // ✅ Filter theo UserId
+            .Where(c => c.UserId == userId)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
 
-        return collections.Select(c => new CollectionResponseDto
+        var result = collections.Select(c => new CollectionResponseDto
         {
             Id = c.Id,
             UserId = c.UserId,
@@ -32,10 +32,13 @@ public class CollectionRepository : Repository<Collection>, ICollectionRepositor
             Description = c.Description,
             CreatedAt = c.CreatedAt,
             RequestsCount = c.Requests?.Count ?? 0
-        });
+        }).ToList(); 
+
+        return result;
     }
 
-    // ✅ Lấy 1 collection theo Id (kèm requests)
+
+    //  Lấy 1 collection theo Id (kèm requests)
     public async Task<CollectionResponseDto?> GetByIdAsync(int id)
     {
         var collection = await _context.Collections
@@ -55,7 +58,7 @@ public class CollectionRepository : Repository<Collection>, ICollectionRepositor
         };
     }
 
-    // ✅ Tạo mới collection
+    //  Tạo mới collection
     public async Task<CollectionResponseDto> CreateAsync(CreateCollectionDto dto)
     {
         var collection = new Collection
@@ -80,7 +83,7 @@ public class CollectionRepository : Repository<Collection>, ICollectionRepositor
         };
     }
 
-    // ✅ Cập nhật collection
+    //  Cập nhật collection
     public async Task<CollectionResponseDto?> UpdateAsync(int id, UpdateCollectionDto dto)
     {
         var collection = await _context.Collections.FindAsync(id);
@@ -103,7 +106,7 @@ public class CollectionRepository : Repository<Collection>, ICollectionRepositor
         };
     }
 
-    // ✅ Xóa collection
+    //  Xóa collection
     public async Task<bool> DeleteAsync(int id)
     {
         var collection = await _context.Collections.FindAsync(id);
@@ -115,7 +118,7 @@ public class CollectionRepository : Repository<Collection>, ICollectionRepositor
         return true;
     }
 
-    // ✅ Kiểm tra collection có thuộc về user không
+    //  Kiểm tra collection có thuộc về user không
     public async Task<bool> BelongsToUserAsync(int collectionId, int userId)
     {
         return await _context.Collections

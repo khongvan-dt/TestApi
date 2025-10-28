@@ -4,6 +4,7 @@ import ParamsTab from './tabs/ParamsTab.vue'
 import AuthorizationTab from './tabs/AuthorizationTab.vue'
 import HeadersTab from './tabs/HeadersTab.vue'
 import BodyTab from './tabs/BodyTab.vue'
+import SaveRequestModal from '../home/popup/SaveRequestModal.vue' 
 import { useApiClient } from '../../composables/useApiClient'
 
 interface Props {
@@ -11,21 +12,23 @@ interface Props {
   defaultMethod?: string
   defaultUrl?: string
   defaultBody?: string
+  requestId?: number | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   title: 'API Request',
   defaultMethod: 'POST',
   defaultUrl: '',
-  defaultBody: '{}'
+  defaultBody: '{}',
+  requestId: null
 })
 
-// ✅ THÊM EMIT
 const emit = defineEmits<{
   (e: 'update:url', value: string): void
   (e: 'update:method', value: string): void
   (e: 'update:body', value: string): void
   (e: 'stateChange', state: any): void
+  (e: 'requestSaved', requestId: number): void 
 }>()
 
 const url = ref(props.defaultUrl)
@@ -37,6 +40,8 @@ const activeTab = ref('Body')
 const responseStatus = ref<number | null>(null)
 const responseDuration = ref<number | null>(null)
 const responseSize = ref<number | null>(null)
+
+const showSaveModal = ref(false)
 
 const tabs = ['Params', 'Authorization', 'Headers', 'Body']
 
@@ -55,7 +60,7 @@ const bodyKey = ref(0)
 
 const { sendRequest } = useApiClient()
 
-// ✅ Watch changes và emit lên parent
+// Watch changes và emit lên parent
 watch(url, (newVal) => {
   emit('update:url', newVal)
   emitStateChange()
@@ -71,7 +76,6 @@ watch(body, (newVal) => {
   emitStateChange()
 })
 
-// ✅ Emit toàn bộ state
 const emitStateChange = () => {
   emit('stateChange', {
     url: url.value,
@@ -81,17 +85,14 @@ const emitStateChange = () => {
   })
 }
 
-// Watch URL changes
 watch(() => props.defaultUrl, (newUrl) => {
   url.value = newUrl
 })
 
-// Watch Method changes
 watch(() => props.defaultMethod, (newMethod) => {
   method.value = newMethod
 })
 
-// Watch Body changes
 watch(() => props.defaultBody, (newBody) => {
   body.value = newBody
   bodyKey.value++
@@ -103,7 +104,6 @@ watch(() => props.defaultBody, (newBody) => {
   })
 }, { immediate: true })
 
-// Resize handlers
 const startResize = (e: MouseEvent) => {
   isResizing.value = true
   document.addEventListener('mousemove', handleResize)
@@ -203,7 +203,18 @@ const handleSend = async () => {
   }
 }
 
-// ✅ Expose methods
+const handleOpenSaveModal = () => {
+  showSaveModal.value = true
+}
+
+const handleCloseSaveModal = () => {
+  showSaveModal.value = false
+}
+
+const handleRequestSaved = (requestId: number) => {
+  emit('requestSaved', requestId)
+}
+
 defineExpose({
   setActiveTab: (tab: string) => {
     activeTab.value = tab
@@ -277,7 +288,6 @@ defineExpose({
             <option value="DELETE">DELETE</option>
           </select>
 
-          <!-- ✅ THÊM @input để emit changes -->
           <input 
             v-model="url"
             @input="emitStateChange"
@@ -285,6 +295,18 @@ defineExpose({
             placeholder="Enter request URL (e.g., https://api.example.com/users)"
             class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
           />
+
+          <!-- ✅ NÚT SAVE -->
+          <button 
+            @click="handleOpenSaveModal"
+            class="px-4 py-2 text-sm font-semibold bg-green-50 text-green-600 border border-green-300 rounded-md hover:bg-green-100 transition-colors flex items-center gap-2"
+            title="Save request"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+            <span class="hidden sm:inline">Save</span>
+          </button>
 
           <button 
             @click="handleSend" 
@@ -402,5 +424,17 @@ defineExpose({
         >{{ response }}</pre>
       </div>
     </div>
+
+    <!-- ✅ Save Modal -->
+    <SaveRequestModal 
+      v-if="showSaveModal"
+      :current-url="url"
+      :current-method="method"
+      :current-body="body"
+      :request-id="requestId"
+      :request-name="title"
+      @close="handleCloseSaveModal"
+      @saved="handleRequestSaved"
+    />
   </div>
 </template>

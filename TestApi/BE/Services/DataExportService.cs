@@ -26,4 +26,8 @@ public class DataExportService : IDataExportService
     {
         return await _repository.ImportUserDataAsync(userId, importData);
     }
+    public async Task<SaveRequestResultDto> SaveRequestAsync(int userId, SaveRequestDto dto)
+    {
+        return await _repository.SaveRequestAsync(userId, dto);
+    }
 }

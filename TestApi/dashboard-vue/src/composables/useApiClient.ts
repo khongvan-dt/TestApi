@@ -33,20 +33,16 @@ export const useApiClient = () => {
     loading.value = true
 
     try {
-      console.log('🚀 Original request:', params.url)
 
       let finalUrl = params.url
       const requestHeaders: Record<string, string> = {}
 
-      // ✅ Detect external URL
       const isExternalUrl = finalUrl.startsWith('http://') || finalUrl.startsWith('https://')
       
       if (isExternalUrl) {
-        console.log('✅ Using proxy for external URL')
         requestHeaders['x-target-url'] = params.url
         finalUrl = 'http://localhost:3001/proxy'
-        console.log('🔄 Proxy URL:', finalUrl)
-        console.log('🎯 Target:', requestHeaders['x-target-url'])
+       
       }
 
       // Build query params
@@ -109,7 +105,6 @@ export const useApiClient = () => {
         }
       }
 
-      console.log('📤 Final config:', axiosConfig)
 
       // Send request
       const response = await axios(axiosConfig)
@@ -117,7 +112,6 @@ export const useApiClient = () => {
       const duration = Date.now() - startTime
       const size = JSON.stringify(response.data).length
 
-      console.log('✅ Success:', response.status)
 
       return {
         success: true,
@@ -131,7 +125,6 @@ export const useApiClient = () => {
     } catch (error: any) {
       const duration = Date.now() - startTime
       
-      console.error('❌ Error:', error.message)
 
       if (error.response) {
         return {

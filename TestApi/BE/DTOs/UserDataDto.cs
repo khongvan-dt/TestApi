@@ -83,4 +83,47 @@
         public int UpdatedRequests { get; set; }
         public int TotalProcessed { get; set; }
     }
+
+
+
+    public class SaveRequestDto
+    {
+        public int? RequestId { get; set; } // Null = create new, có giá trị = update
+        public int CollectionId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Method { get; set; } = "GET";
+        public string Url { get; set; } = string.Empty;
+        public string? AuthType { get; set; }
+        public string? AuthValue { get; set; }
+
+        public List<ParamDto> QueryParams { get; set; } = new();
+        public List<HeaderDto> Headers { get; set; } = new();
+        public BodyDto? Body { get; set; }
+    }
+
+    public class ParamDto
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public class HeaderDto
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public class BodyDto
+    {
+        public string BodyType { get; set; } = "raw";
+        public string Content { get; set; } = string.Empty;
+    }
+
+    public class SaveRequestResultDto
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public int RequestId { get; set; }
+        public bool IsNew { get; set; } // true = created, false = updated
+    }
 }
