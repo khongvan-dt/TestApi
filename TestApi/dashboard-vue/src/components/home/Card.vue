@@ -32,7 +32,7 @@ const emit = defineEmits<{
   (e: 'requestSaved', requestId: number): void
 }>()
 
-// ✅ NEW: Local ref for requestId
+//  NEW: Local ref for requestId
 const currentRequestId = ref<number | null>(props.requestId)
 
 watch(() => props.requestId, (newId) => {
@@ -217,7 +217,7 @@ const handleSend = async () => {
 // -------------------------
 // Các function còn lại giữ nguyên
 // -------------------------
- 
+
 
 const getRequestData = () => {
   const params = paramsTabRef.value?.getParams?.() || []
@@ -257,6 +257,7 @@ defineExpose({
 </script>
 
 <template>
+  
   <div ref="containerRef" class="h-full flex flex-col bg-white">
     <!-- Tabs -->
     <div class="px-4 border-b border-gray-200 bg-white flex-shrink-0">
@@ -314,8 +315,11 @@ defineExpose({
 
       <!-- Tab Content -->
       <div class="flex-1 overflow-y-auto px-4 pb-4">
-        <ParamsTab v-show="activeTab === 'Params'" ref="paramsTabRef" />
-        <HeadersTab v-show="activeTab === 'Headers'" ref="headersTabRef" />
+        <ParamsTab v-show="activeTab === 'Params'" ref="paramsTabRef" :paramsData="getRequestData()?.params || []" />
+
+        <HeadersTab v-show="activeTab === 'Headers'" ref="headersTabRef"
+          :headersData="getRequestData()?.headers || []" />
+
         <AuthorizationTab v-show="activeTab === 'Authorization'" ref="authTabRef" />
         <BodyTab v-show="activeTab === 'Body'" ref="bodyTabRef" :key="bodyKey" :modelValue="body" />
 

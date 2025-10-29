@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref,watch } from 'vue'
 
 interface Param {
   id: string
@@ -12,6 +12,10 @@ interface Param {
 const params = ref<Param[]>([
   { id: '1', key: '', value: '', description: '', enabled: true }
 ])
+const props = defineProps<{
+  paramsData: Array<{ key: string; value: string }> | null
+}>();
+
 
 const addParam = () => {
   params.value.push({
@@ -40,6 +44,24 @@ const onKeyInput = (param: Param) => {
 defineExpose({
   getParams: () => params.value.filter(p => p.enabled && p.key)
 })
+watch(
+  () => props.paramsData,
+  (newParams) => {
+    if (newParams && newParams.length > 0) {
+      params.value = newParams.map((p, idx) => ({
+        id: Date.now().toString() + idx,
+        key: p.key,
+        value: p.value,
+        description: '',
+        enabled: true
+      }));
+    } else {
+      params.value = [{ id: '1', key: '', value: '', description: '', enabled: true }];
+    }
+  },
+  { immediate: true }
+)
+
 </script>
 
 

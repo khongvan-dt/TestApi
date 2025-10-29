@@ -28,8 +28,7 @@ const paramsRef = ref<any>(null)
 
 // Khi modelValue từ parent thay đổi
 watch(() => props.modelValue, (newValue) => {
-  console.log('📝 BodyTab received:', newValue)
-  if (bodyType.value === 'raw' && typeof newValue === 'string') {
+   if (bodyType.value === 'raw' && typeof newValue === 'string') {
     rawContent.value = newValue
     if (rawEditorRef.value?.updateBody) {
       rawEditorRef.value.updateBody(newValue)
@@ -48,10 +47,8 @@ defineExpose({
   getBodyType: () => bodyType.value,
 
   getBody: () => {
-    console.log('📦 getBody() called — bodyType:', bodyType.value)
-
-    if (bodyType.value === 'raw') {
-      console.log('📦 Raw body content:', rawContent.value)
+ 
+    if (bodyType.value === 'raw') { 
       return {
         bodyType: 'raw',
         content: rawContent.value
@@ -59,31 +56,27 @@ defineExpose({
     }
 
     if (bodyType.value === 'form-data') {
-      console.log('📦 FormData content:', formData.value)
-      return {
+       return {
         bodyType: 'form-data',
         content: formData.value
       }
     }
 
     if (bodyType.value === 'x-www-form-urlencoded') {
-      console.log('📦 URL Encoded content:', formUrlEncoded.value)
-      return {
+       return {
         bodyType: 'x-www-form-urlencoded',
         content: formUrlEncoded.value
       }
     }
 
     if (bodyType.value === 'binary') {
-      console.log('📦 Binary file:', binaryFile.value)
-      return {
+       return {
         bodyType: 'binary',
         content: binaryFile.value
       }
     }
 
-    console.warn('⚠️ Body type none → returning null')
-    return null
+     return null
   },
 
 
@@ -131,10 +124,12 @@ defineExpose({
       />
 
       <!-- X-WWW-FORM-URLENCODED -->
-      <ParamsTab
-        v-show="bodyType === 'x-www-form-urlencoded'"
-        ref="paramsRef"
-      />
+    <ParamsTab
+  v-show="bodyType === 'x-www-form-urlencoded'"
+  ref="paramsRef"
+  :paramsData="formUrlEncoded"
+/>
+
 
       <!-- BINARY -->
       <div v-show="bodyType === 'binary'" class="py-6 flex flex-col items-center gap-3">

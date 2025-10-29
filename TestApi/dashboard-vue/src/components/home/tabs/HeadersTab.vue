@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed,watch } from 'vue'
 
 interface Header {
   id: string
@@ -33,6 +33,9 @@ const showHeaderSuggestions = ref(false)
 const showValueSuggestions = ref(false)
 const activeHeaderIndex = ref(-1)
 const blurTimeout = ref<number | null>(null)
+const props = defineProps<{
+  headersData: Array<{ key: string; value: string }> | null
+}>();
 
 const usedHeaderKeys = computed(() =>
   headers.value
@@ -135,6 +138,23 @@ defineExpose({
     return result
   }
 })
+watch(
+  () => props.headersData,
+  (newHeaders) => {
+    if (newHeaders && newHeaders.length > 0) {
+      headers.value = newHeaders.map((h, idx) => ({
+        id: Date.now().toString() + idx,
+        key: h.key,
+        value: h.value,
+        description: '',
+        enabled: true
+      }));
+    } else {
+      headers.value = [{ id: '1', key: '', value: '', description: '', enabled: true }];
+    }
+  },
+  { immediate: true } // cập nhật ngay khi mount
+)
 
 </script>
 

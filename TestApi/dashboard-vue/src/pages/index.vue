@@ -195,7 +195,13 @@ watch(
 </script>
 
 <template>
+  
   <div class="flex h-screen" style="width: 95%;">
+     
+    
+
+     
+   
     <!-- Sidebar -->
     <div class="w-80 border-r border-gray-200 flex-shrink-0">
       <List ref="listRef" @selectRequest="handleSelectRequest" @addNewTab="handleAddNewTab"

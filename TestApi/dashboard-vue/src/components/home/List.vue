@@ -39,7 +39,7 @@ const toggleRequest = (id: number, request: RequestItem) => {
   selectedRequest.value = selectedRequest.value === id ? null : id
 
   if (selectedRequest.value === id) {
-     console.log('Selected Request ID:', request.id)
+    console.log('Selected Request ID:', request.id)
     emit('selectRequest', {
       url: request.url,
       method: request.method,
@@ -85,6 +85,11 @@ defineExpose({ refreshData })
 
 
 <template>
+  <UDashboardNavbar title="Home">
+    <template #leading>
+      <UDashboardSidebarCollapse />
+    </template>
+  </UDashboardNavbar>
   <div class="h-full flex flex-col bg-white overflow-hidden">
     <!-- Loading State -->
     <div v-if="loading && collections.length === 0" class="flex-1 flex items-center justify-center p-4">
