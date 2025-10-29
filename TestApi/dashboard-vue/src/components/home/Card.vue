@@ -55,6 +55,7 @@ const responseSize = ref<number | null>(null)
 
 const showSaveModal = ref(false)
 const tabs = ['Params', 'Authorization', 'Headers', 'Body']
+      console.log("🧩 Card received requestId:", props)
 
 // Resizable
 const requestHeight = ref(400)
@@ -349,13 +350,15 @@ defineExpose({
           :headersData="getRequestData()?.headers || []" />
 
         <AuthorizationTab v-show="activeTab === 'Authorization'" ref="authTabRef" />
-       <BodyTab 
-    v-show="activeTab === 'Body'" 
-    ref="bodyTabRef" 
-    :key="bodyKey" 
-    :modelValue="body" 
-    :dataBaseTest="props.dataBaseTest" 
-  />
+      <!-- Card.vue -->
+<BodyTab 
+  v-show="activeTab === 'Body'" 
+  ref="bodyTabRef" 
+  :key="bodyKey" 
+  :modelValue="body" 
+  :dataBaseTest="props.dataBaseTest"
+  :requestId="currentRequestId"    
+/>
       </div>
     </div>
 

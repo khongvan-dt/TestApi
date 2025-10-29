@@ -1,6 +1,8 @@
-using AutoApiTester.App.Services;
+﻿using AutoApiTester.App.Services;
 using AutoApiTester.Models.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AutoApiTester.Controllers;
 
@@ -58,4 +60,31 @@ public class RequestController : ControllerBase
 
         return Ok(ApiResponse<object>.SuccessResponse(null, "Request deleted successfully"));
     }
+
+    [HttpPost("updateTestdata")]
+    [Authorize]
+    public async Task<IActionResult> UpdateTestdata([FromBody] UpdateTestDataRequestDto dto)
+    {
+        if (dto == null || string.IsNullOrWhiteSpace(dto.NewTestDataContent))
+            return BadRequest(ApiResponse<object>.ErrorResponse("Request data cannot be null or empty"));
+
+        // Lấy userId từ claim
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Unauthorized(ApiResponse<object>.ErrorResponse("Unauthorized"));
+
+        if (!int.TryParse(userIdClaim, out var userId))
+            return BadRequest(ApiResponse<object>.ErrorResponse("Invalid user ID"));
+
+        try
+        {
+            await _requestService.UpdateTestDataContentAsync(dto);
+            return Ok(ApiResponse<object>.SuccessResponse("Request updated successfully"));
+        }
+        catch (Exception ex)
+        {
+             return StatusCode(500, ApiResponse<object>.ErrorResponse("Internal server error"));
+        }
+    }
+
 }

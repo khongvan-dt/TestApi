@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import List from '../components/home/List.vue'
 import Card from '../components/home/Card.vue'
 import ExportImportModal from '../components/home/popup/ExportImportModal.vue'
@@ -57,7 +57,7 @@ const handleStateChange = (state: any) => {
 }
 
 // Handle chọn request từ sidebar
- const handleSelectRequest = (payload: any) => {
+const handleSelectRequest = (payload: any) => {
   const currentTab = tabs.value.find(t => t.id === activeTabId.value)
   if (currentTab) {
     currentTab.title = payload.name
@@ -67,6 +67,7 @@ const handleStateChange = (state: any) => {
     currentTab.params = payload.queryParams || []
     currentTab.requestId = payload.requestId
     currentTab.dataBaseTest = payload.dataBaseTest || null  // LƯU
+    console.log("📦 handleSelectRequest:", payload.requestId)
 
     if (payload.body?.content) {
       try {
@@ -204,13 +205,13 @@ watch(
 </script>
 
 <template>
-  
-  <div class="flex h-screen" style="width: 95%;">
-     
-    
 
-     
-   
+  <div class="flex h-screen" style="width: 95%;">
+
+
+
+
+
     <!-- Sidebar -->
     <div class="w-80 border-r border-gray-200 flex-shrink-0">
       <List ref="listRef" @selectRequest="handleSelectRequest" @addNewTab="handleAddNewTab"
@@ -250,19 +251,11 @@ watch(
 
       <!-- Card Component -->
       <div class="flex-1 overflow-hidden">
-       <!-- Truyền dataBaseTest vào Card -->
-<Card 
-  ref="cardRef" 
-  :key="activeTab.id" 
-  :title="activeTab.title" 
-  :defaultUrl="activeTab.url"
-  :defaultMethod="activeTab.method" 
-  :defaultBody="activeTab.body" 
-  :requestId="activeTab.requestId"
-  :dataBaseTest="activeTab.dataBaseTest || null"
-  @stateChange="handleStateChange" 
-  @requestSaved="handleRequestSaved" 
-/>
+        <!-- Truyền dataBaseTest vào Card -->
+        <Card ref="cardRef" :key="activeTab.id" :title="activeTab.title" :defaultUrl="activeTab.url"
+          :defaultMethod="activeTab.method" :defaultBody="activeTab.body" :requestId="activeTab.requestId"
+          :dataBaseTest="activeTab.dataBaseTest || null" @stateChange="handleStateChange"
+          @requestSaved="handleRequestSaved" />
       </div>
     </div>
 

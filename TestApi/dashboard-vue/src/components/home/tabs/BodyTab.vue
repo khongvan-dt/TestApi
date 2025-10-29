@@ -7,15 +7,17 @@ import ParamsTab from './ParamsTab.vue'
 
 interface Props {
   modelValue?: string
-  dataBaseTest?: string | null  // Thêm prop
+  dataBaseTest?: string | null  
+  requestId?: number | null   
 }
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '{}',
-  dataBaseTest: null
+  dataBaseTest: null,
+  requestId: null
 })
 
 const currentDataBaseTest = ref<string>('')
-
+ 
 // Watch prop dataBaseTest từ Card.vue
 watch(() => props.dataBaseTest, (val) => {
   currentDataBaseTest.value = val || ''
@@ -50,6 +52,7 @@ watch(currentDataBaseTest, (val) => {
   if (val && bodyType.value !== 'base-data') {
     bodyType.value = 'base-data'
   }
+  
 }, { immediate: true })
 
 defineExpose({
@@ -109,9 +112,12 @@ defineExpose({
       <FormDataEditor v-show="bodyType === 'form-data'" ref="formRef" />
       <ParamsTab v-show="bodyType === 'x-www-form-urlencoded'" ref="paramsRef" :paramsData="formUrlEncoded" />
 
-      <!-- DataBaseTest Tab -->
-      <DataBaseTest v-show="bodyType === 'base-data'" :dataBaseTest="currentDataBaseTest" />
-
+<!-- BodyTab.vue -->
+<DataBaseTest 
+  v-show="bodyType === 'base-data'" 
+  :dataBaseTest="currentDataBaseTest"
+  :requestId="props.requestId"    
+/>
       <div v-show="bodyType === 'binary'" class="py-6 flex flex-col items-center gap-3">
         <input id="binaryFile" type="file" class="hidden" @change="handleBinaryFileChange" />
         <label for="binaryFile"

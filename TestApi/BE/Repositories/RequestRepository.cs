@@ -227,5 +227,17 @@ namespace AutoApiTester.Repositories
 
             return true;
         }
+
+        public async Task UpdateTestDataContentAsync(UpdateTestDataRequestDto dto)
+        {
+            var request = await _db.Requests.FindAsync(dto.RequestId);
+            if (request == null)
+                throw new Exception($"Request with Id {dto.RequestId} not found.");
+
+            request.TestDataContent = dto.NewTestDataContent;
+
+            await _db.SaveChangesAsync();
+        }
+
     }
 }

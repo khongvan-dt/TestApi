@@ -1,62 +1,72 @@
-<!-- DataBaseTest.vue -->
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch } from 'vue'
+import { useUserData } from '../../../../composables/useUserData'
+ import { UpdateTestdataRequest } from '../../../../composables/useRequest'
 
-const props = defineProps<{
-  dataBaseTest?: string
-}>()
+interface Props {
+  dataBaseTest?: string | null
+  requestId?: number | null
+}
 
-const body = ref<string>('')
+const props = defineProps<Props>()
+
+const emit = defineEmits<{ (e: 'update', value: string): void }>()
+
+const dbContent = ref(props.dataBaseTest || '')
+const editContent = ref(dbContent.value)
 const isEditing = ref(false)
-const editContent = ref<string>('')
+const isLoading = ref(false)
+const errorMessage = ref('')
+const { saveRequest } = useUserData()
 
-// Khởi tạo nội dung
-watch(() => props.dataBaseTest, (newVal) => {
-  const content = newVal ?? ''
-  body.value = content
-  editContent.value = content
-}, { immediate: true })
+watch(() => props.dataBaseTest, (val) => {
+  dbContent.value = val || ''
+  if (!isEditing.value) editContent.value = dbContent.value
+})
 
-// Bắt đầu chỉnh sửa
 const startEdit = () => {
   isEditing.value = true
-  editContent.value = body.value
-  nextTick(() => {
-    const textarea = document.getElementById('db-test-editor') as HTMLTextAreaElement
-    textarea?.focus()
-  })
+  editContent.value = dbContent.value
 }
 
-// Lưu
-const saveEdit = () => {
-  body.value = editContent.value
-  isEditing.value = false
-  // Gửi lên BodyTab
-  if (typeof defineExpose === 'function') {
-    // Sẽ expose getBody ở dưới
-  }
-}
-
-// Hủy
 const cancelEdit = () => {
-  editContent.value = body.value
   isEditing.value = false
+  editContent.value = dbContent.value
 }
 
-// Expose để BodyTab lấy dữ liệu
-defineExpose({
-  getBody: () => body.value,
-  getBodyType: () => 'base-data',
-  setDataBaseTest: (val: string) => {
-    body.value = val
-    editContent.value = val
+const saveEdit = async () => {
+  if (!props.requestId) {
+    errorMessage.value = 'Thiếu dữ liệu requestId.'
+    return
   }
-})
+
+  try {
+    isLoading.value = true
+    errorMessage.value = '' // Reset lỗi
+
+    // Gọi API mới
+    const result = await UpdateTestdataRequest({
+      requestId: props.requestId,
+      newTestDataContent: editContent.value  // Tên field đúng theo DTO
+    })
+
+    // result là { requestId, newTestDataContent } → thành công
+    dbContent.value = editContent.value
+    emit('update', dbContent.value)
+    isEditing.value = false
+
+  } catch (err: any) {
+    // Xử lý lỗi từ API
+    console.error('Lưu dataBaseTest thất bại:', err)
+    errorMessage.value = err.message || 'Lỗi hệ thống khi lưu Database Test.'
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <template>
   <div class="h-[360px] p-3 bg-gray-50 border rounded-lg flex flex-col">
-    <!-- Header: Nút Edit / Save / Cancel -->
     <div class="flex justify-end gap-2 mb-2">
       <button
         v-if="!isEditing"
@@ -65,16 +75,17 @@ defineExpose({
       >
         Edit
       </button>
-
       <div v-else class="flex gap-1">
         <button
           @click="saveEdit"
+          :disabled="isLoading"
           class="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 transition-colors"
         >
-          Save
+          {{ isLoading ? 'Saving...' : 'Save' }}
         </button>
         <button
           @click="cancelEdit"
+          :disabled="isLoading"
           class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
         >
           Cancel
@@ -82,15 +93,16 @@ defineExpose({
       </div>
     </div>
 
-    <!-- Nội dung -->
     <div class="flex-1 overflow-hidden">
-      <!-- Chế độ Xem -->
+      <p v-if="errorMessage" class="text-xs text-red-500 mb-1">{{ errorMessage }}</p>
+
       <pre
         v-if="!isEditing"
         class="text-xs font-mono text-gray-700 whitespace-pre-wrap break-words h-full overflow-y-auto p-2 bg-white rounded border"
-      >{{ body || 'No DataBaseTest content' }}</pre>
+      >
+{{ dbContent || 'No DataBaseTest content' }}
+      </pre>
 
-      <!-- Chế độ Sửa -->
       <textarea
         v-else
         id="db-test-editor"
@@ -101,9 +113,3 @@ defineExpose({
     </div>
   </div>
 </template>
-
-<style scoped>
-textarea {
-  line-height: 1.4;
-}
-</style>

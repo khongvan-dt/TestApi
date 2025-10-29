@@ -42,4 +42,9 @@ public class RequestService : IRequestService
     {
         return await _requestRepo.DeleteAsync(id);
     }
+    // ✅ Cập nhật nội dung test data
+    public async Task UpdateTestDataContentAsync(UpdateTestDataRequestDto dto)
+    {
+        await _requestRepo.UpdateTestDataContentAsync(dto);
+    }
 }

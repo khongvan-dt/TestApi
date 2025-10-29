@@ -9,5 +9,7 @@ namespace AutoApiTester.App.Services
         Task<RequestResponseDto> CreateAsync(CreateRequestDto dto);
         Task<RequestResponseDto?> UpdateAsync(int id, UpdateRequestDto dto);
         Task<bool> DeleteAsync(int id);
+        Task UpdateTestDataContentAsync(UpdateTestDataRequestDto dto);
+
     }
 }
