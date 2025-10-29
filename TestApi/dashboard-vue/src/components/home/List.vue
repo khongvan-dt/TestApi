@@ -12,6 +12,7 @@ const emit = defineEmits<{
     body: RequestBody | null
     headers: Array<{ key: string; value: string }>
     queryParams: Array<{ key: string; value: string }>
+    requestId: number
   }): void
   (e: 'addNewTab', collectionId: number): void
   (e: 'openExportImport'): void
@@ -38,13 +39,16 @@ const toggleRequest = (id: number, request: RequestItem) => {
   selectedRequest.value = selectedRequest.value === id ? null : id
 
   if (selectedRequest.value === id) {
+     console.log('Selected Request ID:', request.id)
     emit('selectRequest', {
       url: request.url,
       method: request.method,
       name: request.name,
       body: request.body,
       headers: request.headers,
-      queryParams: request.queryParams
+      queryParams: request.queryParams,
+      requestId: request.id
+
     })
   }
 }
@@ -57,13 +61,13 @@ const handleDeleteRequest = async (requestId: number, requestName: string, event
   try {
     const result = await deleteRequest(requestId)
     if (result?.success) {
-       await fetchUserData()
+      await fetchUserData()
       if (selectedRequest.value === requestId) selectedRequest.value = null
     } else {
       alert(result?.message || 'Failed to delete request')
     }
   } catch (err: any) {
-     alert('Failed to delete request: ' + (err.message || 'Unknown error'))
+    alert('Failed to delete request: ' + (err.message || 'Unknown error'))
   } finally {
     deletingRequestId.value = null
   }
@@ -118,7 +122,7 @@ defineExpose({ refreshData })
 
     <!-- Collections List -->
     <div v-else class="flex-1 overflow-y-auto overflow-x-hidden p-2 text-sm">
-       <div class="mb-2 px-2 space-y-2">
+      <div class="mb-2 px-2 space-y-2">
         <!-- Refresh Button -->
         <button @click="refreshData" :disabled="loading"
           class="w-full px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2">

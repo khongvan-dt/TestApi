@@ -4,7 +4,6 @@ import List from '../components/home/List.vue'
 import Card from '../components/home/Card.vue'
 import ExportImportModal from '../components/home/popup/ExportImportModal.vue'
 
-// ✅ THÊM requestId vào interface
 interface Tab {
   id: string
   title: string
@@ -12,7 +11,7 @@ interface Tab {
   url: string
   body: string
   collectionId?: number
-  requestId?: number // ✅ THÊM DÒNG NÀY
+  requestId?: number
   params?: Array<{ key: string; value: string; enabled: boolean }>
   headers?: Array<{ key: string; value: string; enabled: boolean }>
   auth?: any
@@ -28,7 +27,7 @@ const tabs = ref<Tab[]>([
     url: '',
     body: '{}',
     collectionId: undefined,
-    requestId: undefined, // ✅ THÊM
+    requestId: undefined,
     params: [],
     headers: [],
     auth: null,
@@ -41,7 +40,7 @@ const cardRef = ref()
 const listRef = ref()
 const showExportImportModal = ref(false)
 
-const activeTab = computed(() => 
+const activeTab = computed(() =>
   tabs.value.find(t => t.id === activeTabId.value) || tabs.value[0]
 )
 
@@ -58,18 +57,16 @@ const handleStateChange = (state: any) => {
 
 // Handle chọn request từ sidebar
 const handleSelectRequest = (payload: any) => {
-  console.log('📨 Index received selectRequest:', payload)
-  
+
   const currentTab = tabs.value.find(t => t.id === activeTabId.value)
-  
+
   if (currentTab) {
     currentTab.title = payload.name
     currentTab.method = payload.method
     currentTab.url = payload.url
     currentTab.headers = payload.headers || []
     currentTab.params = payload.queryParams || []
-    currentTab.requestId = payload.id || undefined // ✅ THÊM: Lưu requestId khi select
-    
+    currentTab.requestId = payload.requestId
     if (payload.body?.content) {
       try {
         const parsed = JSON.parse(payload.body.content)
@@ -86,7 +83,7 @@ const handleSelectRequest = (payload: any) => {
 // Thêm tab mới
 const handleAddNewTab = (collectionId: number) => {
   const newId = `tab-${Date.now()}`
-  
+
   tabs.value.push({
     id: newId,
     title: 'New Request',
@@ -94,28 +91,28 @@ const handleAddNewTab = (collectionId: number) => {
     url: '',
     body: '{}',
     collectionId,
-    requestId: undefined, // ✅ THÊM
+    requestId: undefined,
     params: [],
     headers: [],
     auth: null,
     activeSubTab: 'Body'
   })
-  
+
   activeTabId.value = newId
 }
 
 // Đóng tab
 const closeTab = (tabId: string) => {
   const index = tabs.value.findIndex(t => t.id === tabId)
-  
+
   if (index > -1) {
     tabs.value.splice(index, 1)
-    
+
     if (activeTabId.value === tabId && tabs.value.length > 0) {
       activeTabId.value = tabs.value[tabs.value.length - 1].id
     }
   }
-  
+
   if (tabs.value.length === 0) {
     tabs.value.push({
       id: 'default',
@@ -124,7 +121,7 @@ const closeTab = (tabId: string) => {
       url: '',
       body: '{}',
       collectionId: undefined,
-      requestId: undefined, // ✅ THÊM
+      requestId: undefined,
       params: [],
       headers: [],
       auth: null,
@@ -155,20 +152,16 @@ const handleImported = async () => {
   }
 }
 
-// ✅ THÊM: Handle request saved
 const handleRequestSaved = async (requestId: number) => {
-  console.log('✅ Request saved with ID:', requestId)
-  
+
   // Refresh list
   if (listRef.value?.refreshData) {
     await listRef.value.refreshData()
   }
-  
-  // Update tab với requestId mới
+
   const currentTab = tabs.value.find(t => t.id === activeTabId.value)
   if (currentTab) {
     currentTab.requestId = requestId
-    console.log('📝 Updated tab requestId:', requestId)
   }
 }
 
@@ -202,51 +195,38 @@ watch(
 </script>
 
 <template>
-  <div class="flex h-screen" style="width: 100%;">
+  <div class="flex h-screen" style="width: 95%;">
     <!-- Sidebar -->
     <div class="w-80 border-r border-gray-200 flex-shrink-0">
-      <List 
-        ref="listRef"
-        @selectRequest="handleSelectRequest"
-        @addNewTab="handleAddNewTab"
-        @openExportImport="handleOpenExportImport"
-      />
+      <List ref="listRef" @selectRequest="handleSelectRequest" @addNewTab="handleAddNewTab"
+        @openExportImport="handleOpenExportImport" />
     </div>
-    
+
     <!-- Main -->
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Tab Bar -->
       <div class="border-b border-gray-200 bg-gray-50 flex items-center overflow-x-auto flex-shrink-0">
-        <div 
-          v-for="tab in tabs" 
-          :key="tab.id"
+        <div v-for="tab in tabs" :key="tab.id"
           class="flex items-center gap-2 px-4 py-2.5 border-r border-gray-200 cursor-pointer hover:bg-white transition-colors min-w-0 max-w-xs group"
-          :class="activeTabId === tab.id ? 'bg-white border-b-2 border-blue-600' : ''"
-          @click="switchTab(tab.id)"
-        >
-          
-          
+          :class="activeTabId === tab.id ? 'bg-white border-b-2 border-blue-600' : ''" @click="switchTab(tab.id)">
+
+
           <span class="text-sm truncate flex-1">{{ tab.title }}</span>
-          
-          
-          
-          <button
-            v-if="tabs.length > 1"
-            @click.stop="closeTab(tab.id)"
+
+
+
+          <button v-if="tabs.length > 1" @click.stop="closeTab(tab.id)"
             class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded p-0.5 flex-shrink-0 transition-opacity"
-            title="Close tab"
-          >
+            title="Close tab">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        
-        <button
-          @click="handleAddNewTab(0)"
+
+        <button @click="handleAddNewTab(0)"
           class="px-3 py-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex-shrink-0"
-          title="New tab"
-        >
+          title="New tab">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
@@ -255,25 +235,13 @@ watch(
 
       <!-- Card Component -->
       <div class="flex-1 overflow-hidden">
-        <Card 
-          ref="cardRef"
-          :key="activeTab.id"
-          :title="activeTab.title"
-          :defaultUrl="activeTab.url"
-          :defaultMethod="activeTab.method"
-          :defaultBody="activeTab.body"
-          :requestId="activeTab.requestId"
-          @stateChange="handleStateChange"
-          @requestSaved="handleRequestSaved"
-        />
+        <Card ref="cardRef" :key="activeTab.id" :title="activeTab.title" :defaultUrl="activeTab.url"
+          :defaultMethod="activeTab.method" :defaultBody="activeTab.body" :requestId="activeTab.requestId"
+          @stateChange="handleStateChange" @requestSaved="handleRequestSaved" />
       </div>
     </div>
 
     <!-- Export/Import Modal -->
-    <ExportImportModal 
-      v-if="showExportImportModal"
-      @close="handleCloseExportImport"
-      @imported="handleImported"
-    />
+    <ExportImportModal v-if="showExportImportModal" @close="handleCloseExportImport" @imported="handleImported" />
   </div>
 </template>
