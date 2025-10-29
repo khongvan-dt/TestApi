@@ -13,8 +13,7 @@ watch(() => props.modelValue, (newValue) => {
 }, { immediate: true })
 
 const updateBody = () => {
-  console.log('🪶 RawEditor emit update:modelValue', body.value)
-  emit('update:modelValue', body.value)
+   emit('update:modelValue', body.value)
 }
 
 defineExpose({

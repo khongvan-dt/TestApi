@@ -27,7 +27,9 @@
         public List<RequestParamDto> QueryParams { get; set; } = new();
         public List<RequestHeaderDto> Headers { get; set; } = new();
         public RequestBodyDto? Body { get; set; }
-     }
+        public string? DataBaseTest { get; set; }
+
+    }
 
     // Nested child DTOs
     public class RequestParamDto

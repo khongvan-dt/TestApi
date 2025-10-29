@@ -27,6 +27,7 @@ export interface RequestItem {
   queryParams: QueryParam[]
   headers: RequestHeader[]
   body: RequestBody | null
+  dataBaseTest: string | null
 }
 
 export interface Collection {

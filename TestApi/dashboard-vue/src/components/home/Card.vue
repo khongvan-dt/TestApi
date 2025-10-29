@@ -14,6 +14,7 @@ interface Props {
   defaultUrl?: string
   defaultBody?: string
   requestId?: number | null
+  dataBaseTest?: string | null   
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -21,7 +22,8 @@ const props = withDefaults(defineProps<Props>(), {
   defaultMethod: 'POST',
   defaultUrl: '',
   defaultBody: '{}',
-  requestId: null
+  requestId: null,
+  dataBaseTest: null   
 })
 
 const emit = defineEmits<{
@@ -32,34 +34,27 @@ const emit = defineEmits<{
   (e: 'requestSaved', requestId: number): void
 }>()
 
-//  NEW: Local ref for requestId
-const currentRequestId = ref<number | null>(props.requestId)
+// ✅ KHỞI TẠO TRƯỚC WATCH
+const url = ref('')
+const method = ref('POST')
+const body = ref('{}')
+const currentRequestId = ref<number | null>(null)
 
-watch(() => props.requestId, (newId) => {
-  currentRequestId.value = newId
-  console.log('requestId updated', newId)
-})
+// ✅ Refs
+const bodyTabRef = ref<any>(null)
+const paramsTabRef = ref<any>(null)
+const authTabRef = ref<any>(null)
+const headersTabRef = ref<any>(null)
 
-const url = ref(props.defaultUrl)
-const method = ref(props.defaultMethod)
-const body = ref(props.defaultBody)
 const response = ref('')
 const loading = ref(false)
 const activeTab = ref('Body')
 const responseStatus = ref<number | null>(null)
 const responseDuration = ref<number | null>(null)
 const responseSize = ref<number | null>(null)
-const bodyTabRef = ref(null)
-const authorizationTabRef = ref(null)
-const headerTabRef = ref(null)
 
 const showSaveModal = ref(false)
 const tabs = ['Params', 'Authorization', 'Headers', 'Body']
-
-// Refs to tab components
-const paramsTabRef = ref()
-const authTabRef = ref()
-const headersTabRef = ref()
 
 // Resizable
 const requestHeight = ref(400)
@@ -67,6 +62,38 @@ const isResizing = ref(false)
 const containerRef = ref<HTMLDivElement>()
 const bodyKey = ref(0)
 const { sendRequest } = useApiClient()
+
+// ✅ WATCH PROPS - SAU KHI KHỞI TẠO REFS
+watch(() => props.defaultUrl, (newUrl) => {
+  url.value = newUrl || ''
+}, { immediate: true })
+
+watch(() => props.defaultMethod, (newMethod) => {
+  method.value = newMethod || 'POST'
+}, { immediate: true })
+
+watch(() => props.defaultBody, (newBody) => {
+  body.value = newBody || '{}'
+  bodyKey.value++
+  nextTick(() => {
+    if (bodyTabRef.value?.updateBody) {
+      bodyTabRef.value.updateBody(newBody || '{}')
+    }
+  })
+}, { immediate: true })
+
+// ✅ WATCH dataBaseTest
+watch(() => props.dataBaseTest, (val) => {
+  nextTick(() => {
+    if (bodyTabRef.value?.setDataBaseTest) {
+      bodyTabRef.value.setDataBaseTest(val)
+    }
+  })
+}, { immediate: true })
+
+watch(() => props.requestId, (newId) => {
+  currentRequestId.value = newId
+})
 
 watch(url, (newVal) => { emit('update:url', newVal); emitStateChange() })
 watch(method, (newVal) => { emit('update:method', newVal); emitStateChange() })
@@ -81,18 +108,7 @@ const emitStateChange = () => {
   })
 }
 
-watch(() => props.defaultUrl, (newUrl) => { url.value = newUrl })
-watch(() => props.defaultMethod, (newMethod) => { method.value = newMethod })
-watch(() => props.defaultBody, (newBody) => {
-  body.value = newBody
-  bodyKey.value++
-  nextTick(() => {
-    if (bodyTabRef.value?.updateBody) {
-      bodyTabRef.value.updateBody(newBody)
-    }
-  })
-}, { immediate: true })
-
+// Resize handlers
 const startResize = (e: MouseEvent) => {
   isResizing.value = true
   document.addEventListener('mousemove', handleResize)
@@ -115,7 +131,6 @@ const stopResize = () => {
   document.removeEventListener('mouseup', stopResize)
 }
 
-// ✅ UPDATED handleSend
 const handleSend = async () => {
   if (!url.value) {
     alert('Please enter a URL')
@@ -181,11 +196,11 @@ const handleSend = async () => {
     response.value = result.success
       ? JSON.stringify(result.data, null, 2)
       : JSON.stringify({
-        error: result.error || 'Request failed',
-        status: result.status,
-        statusText: result.statusText,
-        data: result.data
-      }, null, 2)
+          error: result.error || 'Request failed',
+          status: result.status,
+          statusText: result.statusText,
+          data: result.data
+        }, null, 2)
 
     const historyPayload = {
       requestId: currentRequestId.value,
@@ -214,11 +229,6 @@ const handleSend = async () => {
   }
 }
 
-// -------------------------
-// Các function còn lại giữ nguyên
-// -------------------------
-
-
 const getRequestData = () => {
   const params = paramsTabRef.value?.getParams?.() || []
   const headers = headersTabRef.value?.getHeaders?.() || []
@@ -236,7 +246,15 @@ const getRequestData = () => {
     }
   }
 
-  return { url: url.value, method: method.value, body: bodyData, params, headers, auth }
+  return { 
+    url: url.value, 
+    method: method.value, 
+    body: bodyData, 
+    params, 
+    headers, 
+    auth,
+    dataBaseTest: bodyTabRef.value?.getBody?.()?.content || null  // ✅ Thêm
+  }
 }
 
 const handleOpenSaveModal = () => { showSaveModal.value = true }
@@ -246,18 +264,28 @@ const handleRequestSaved = (requestId: number) => { emit('requestSaved', request
 defineExpose({
   setActiveTab: (tab: string) => { activeTab.value = tab },
   focusBody: () => { nextTick(() => { bodyTabRef.value?.focus?.() }) },
-  clearResponse: () => { response.value = ''; responseStatus.value = null; responseDuration.value = null; responseSize.value = null },
+  clearResponse: () => { 
+    response.value = ''; 
+    responseStatus.value = null; 
+    responseDuration.value = null; 
+    responseSize.value = null 
+  },
   getState: () => ({ url: url.value, method: method.value, body: body.value, activeTab: activeTab.value }),
   getRequestData,
   get $refs() {
-    return { paramsTabRef: paramsTabRef.value, headersTabRef: headersTabRef.value, authTabRef: authTabRef.value, bodyTabRef: bodyTabRef.value }
-  },
-  activeTab: activeTab.value
+    return { 
+      paramsTabRef: paramsTabRef.value, 
+      headersTabRef: headersTabRef.value, 
+      authTabRef: authTabRef.value, 
+      bodyTabRef: bodyTabRef.value 
+    }
+  }
 })
 </script>
 
+ 
 <template>
-  
+
   <div ref="containerRef" class="h-full flex flex-col bg-white">
     <!-- Tabs -->
     <div class="px-4 border-b border-gray-200 bg-white flex-shrink-0">
@@ -321,8 +349,13 @@ defineExpose({
           :headersData="getRequestData()?.headers || []" />
 
         <AuthorizationTab v-show="activeTab === 'Authorization'" ref="authTabRef" />
-        <BodyTab v-show="activeTab === 'Body'" ref="bodyTabRef" :key="bodyKey" :modelValue="body" />
-
+       <BodyTab 
+    v-show="activeTab === 'Body'" 
+    ref="bodyTabRef" 
+    :key="bodyKey" 
+    :modelValue="body" 
+    :dataBaseTest="props.dataBaseTest" 
+  />
       </div>
     </div>
 

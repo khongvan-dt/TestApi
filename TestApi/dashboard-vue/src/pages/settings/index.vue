@@ -148,9 +148,9 @@ const stepLabels = ['Chọn collection & API', 'Chọn Requests', 'Cấu hình J
         >
           <!-- Circle -->
           <div
-            :class="[
-              'w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg transition-all duration-300 shadow-md mr-2',
-              currentStep > idx + 1 ? 'bg-green-500' :
+             :class="[
+              'w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg transition-all duration-300 shadow-md ',
+              currentStep > idx + 1 ? 'bg-green-500 ' :
               currentStep === idx + 1 ? 'bg-blue-600' : 'bg-gray-300'
             ]"
           >

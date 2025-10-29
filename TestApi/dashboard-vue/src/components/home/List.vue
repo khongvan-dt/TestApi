@@ -12,7 +12,8 @@ const emit = defineEmits<{
     body: RequestBody | null
     headers: Array<{ key: string; value: string }>
     queryParams: Array<{ key: string; value: string }>
-    requestId: number
+    requestId: number,
+    dataBaseTest: string | null
   }): void
   (e: 'addNewTab', collectionId: number): void
   (e: 'openExportImport'): void
@@ -47,7 +48,8 @@ const toggleRequest = (id: number, request: RequestItem) => {
       body: request.body,
       headers: request.headers,
       queryParams: request.queryParams,
-      requestId: request.id
+      requestId: request.id,
+      dataBaseTest: request.dataBaseTest
 
     })
   }

@@ -40,7 +40,7 @@ public class DataExportRepository : IDataExportRepository
 
     public async Task<UserDataExportDto> GetUserDataAsync(int userId)
     {
-        // 1️⃣ User info
+        // 1️ User info
         var user = await _context.Users
             .Where(u => u.Id == userId)
             .Select(u => new UserDataDto
@@ -89,7 +89,9 @@ public class DataExportRepository : IDataExportRepository
 
                   Body = r.RequestBodies
                       .Select(b => new RequestBodyDto { BodyType = b.BodyType, Content = b.Content })
-                      .FirstOrDefault()
+                      .FirstOrDefault(),
+                  DataBaseTest = r.TestDataContent
+
               })
               .ToList()
       })

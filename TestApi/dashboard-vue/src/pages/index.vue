@@ -16,6 +16,7 @@ interface Tab {
   headers?: Array<{ key: string; value: string; enabled: boolean }>
   auth?: any
   activeSubTab?: string
+  dataBaseTest?: string | null
 }
 
 // State
@@ -56,10 +57,8 @@ const handleStateChange = (state: any) => {
 }
 
 // Handle chọn request từ sidebar
-const handleSelectRequest = (payload: any) => {
-
+ const handleSelectRequest = (payload: any) => {
   const currentTab = tabs.value.find(t => t.id === activeTabId.value)
-
   if (currentTab) {
     currentTab.title = payload.name
     currentTab.method = payload.method
@@ -67,15 +66,25 @@ const handleSelectRequest = (payload: any) => {
     currentTab.headers = payload.headers || []
     currentTab.params = payload.queryParams || []
     currentTab.requestId = payload.requestId
+    currentTab.dataBaseTest = payload.dataBaseTest || null  // LƯU
+
     if (payload.body?.content) {
       try {
         const parsed = JSON.parse(payload.body.content)
         currentTab.body = JSON.stringify(parsed, null, 2)
-      } catch (error) {
+      } catch {
         currentTab.body = payload.body.content
       }
     } else {
       currentTab.body = '{}'
+    }
+
+    // Tự động chọn tab base-data nếu có dataBaseTest
+    if (payload.dataBaseTest) {
+      currentTab.activeSubTab = 'Body'
+      nextTick(() => {
+        cardRef.value?.setActiveTab?.('Body')
+      })
     }
   }
 }
@@ -241,9 +250,19 @@ watch(
 
       <!-- Card Component -->
       <div class="flex-1 overflow-hidden">
-        <Card ref="cardRef" :key="activeTab.id" :title="activeTab.title" :defaultUrl="activeTab.url"
-          :defaultMethod="activeTab.method" :defaultBody="activeTab.body" :requestId="activeTab.requestId"
-          @stateChange="handleStateChange" @requestSaved="handleRequestSaved" />
+       <!-- Truyền dataBaseTest vào Card -->
+<Card 
+  ref="cardRef" 
+  :key="activeTab.id" 
+  :title="activeTab.title" 
+  :defaultUrl="activeTab.url"
+  :defaultMethod="activeTab.method" 
+  :defaultBody="activeTab.body" 
+  :requestId="activeTab.requestId"
+  :dataBaseTest="activeTab.dataBaseTest || null"
+  @stateChange="handleStateChange" 
+  @requestSaved="handleRequestSaved" 
+/>
       </div>
     </div>
 
