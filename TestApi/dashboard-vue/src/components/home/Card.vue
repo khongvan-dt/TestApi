@@ -1,469 +1,3 @@
-<!-- <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
-import ParamsTab from './tabs/ParamsTab.vue'
-import AuthorizationTab from './tabs/AuthorizationTab.vue'
-import HeadersTab from './tabs/HeadersTab.vue'
-import BodyTab from './tabs/BodyTab.vue'
-import SaveRequestModal from '../home/popup/SaveRequestModal.vue'
-import { useApiClient } from '../../composables/useApiClient'
-import { createExecutionHistory } from '../../composables/useExecutionHistory'
-
-
-interface Props {
-  title?: string
-  defaultMethod?: string
-  defaultUrl?: string
-  defaultBody?: string
-  requestId?: number | null
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  title: 'API Request',
-  defaultMethod: 'POST',
-  defaultUrl: '',
-  defaultBody: '{}',
-  requestId: null
-})
-
-const emit = defineEmits<{
-  (e: 'update:url', value: string): void
-  (e: 'update:method', value: string): void
-  (e: 'update:body', value: string): void
-  (e: 'stateChange', state: any): void
-  (e: 'requestSaved', requestId: number): void
-}>()
-
-const url = ref(props.defaultUrl)
-const method = ref(props.defaultMethod)
-const body = ref(props.defaultBody)
-const response = ref('')
-const loading = ref(false)
-const activeTab = ref('Body')
-const responseStatus = ref<number | null>(null)
-const responseDuration = ref<number | null>(null)
-const responseSize = ref<number | null>(null)
-const bodyTabRef = ref(null)
-const authorizationTabRef = ref(null)
-const paramTabRef = ref(null)
-const headerTabRef = ref(null)
-
-
-
-const showSaveModal = ref(false)
-
-const tabs = ['Params', 'Authorization', 'Headers', 'Body']
-
-// Refs to tab components
-const paramsTabRef = ref()
-const authTabRef = ref()
-const headersTabRef = ref()
-
-// Resizable
-const requestHeight = ref(400)
-const isResizing = ref(false)
-const containerRef = ref<HTMLDivElement>()
-
-const bodyKey = ref(0)
-
-const { sendRequest } = useApiClient()
-
-watch(url, (newVal) => {
-  emit('update:url', newVal)
-  emitStateChange()
-})
-
-watch(method, (newVal) => {
-  emit('update:method', newVal)
-  emitStateChange()
-})
-
-watch(body, (newVal) => {
-  emit('update:body', newVal)
-  emitStateChange()
-})
-
-const emitStateChange = () => {
-  emit('stateChange', {
-    url: url.value,
-    method: method.value,
-    body: body.value,
-    activeTab: activeTab.value
-  })
-}
-
-watch(() => props.defaultUrl, (newUrl) => {
-  url.value = newUrl
-})
-
-watch(() => props.defaultMethod, (newMethod) => {
-  method.value = newMethod
-})
-
-watch(() => props.defaultBody, (newBody) => {
-  body.value = newBody
-  bodyKey.value++
-
-  nextTick(() => {
-    if (bodyTabRef.value?.updateBody) {
-      bodyTabRef.value.updateBody(newBody)
-    }
-  })
-}, { immediate: true })
-
-const startResize = (e: MouseEvent) => {
-  isResizing.value = true
-  document.addEventListener('mousemove', handleResize)
-  document.addEventListener('mouseup', stopResize)
-  e.preventDefault()
-}
-
-const handleResize = (e: MouseEvent) => {
-  if (!isResizing.value || !containerRef.value) return
-
-  const containerRect = containerRef.value.getBoundingClientRect()
-  const newHeight = e.clientY - containerRect.top
-
-  const minHeight = 200
-  const maxHeight = containerRect.height * 0.8
-
-  requestHeight.value = Math.max(minHeight, Math.min(newHeight, maxHeight))
-}
-
-const stopResize = () => {
-  isResizing.value = false
-  document.removeEventListener('mousemove', handleResize)
-  document.removeEventListener('mouseup', stopResize)
-}
-
-const handleSend = async () => {
-  if (!url.value) {
-    alert('Please enter a URL')
-    return
-  }
-
-  loading.value = true
-  response.value = ''
-  responseStatus.value = null
-  responseDuration.value = null
-  responseSize.value = null
-
-  try {
-    // 1️ Lấy dữ liệu từ các tab
-    const params = paramsTabRef.value?.getParams() || []
-    const headers = headersTabRef.value?.getHeaders() || []
-    const auth = authTabRef.value?.getAuth?.() || null
-
-    // 2️ Lấy body
-    let requestBody: any = null
-    if (bodyTabRef.value) {
-      const rawBody = bodyTabRef.value.getBody?.()
-      const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
-
-      if (bodyType !== 'none' && rawBody != null) {
-        requestBody =
-          typeof rawBody === 'object' && 'bodyType' in rawBody && 'content' in rawBody
-            ? rawBody
-            : { bodyType, content: typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody) }
-      }
-    } else {
-      console.warn('⚠️ bodyTabRef.value is null — cannot get body')
-    }
-
-    // 3️ Authorization header
-    if (auth && auth.type && auth.token) {
-      headers.push({
-        key: 'Authorization',
-        value: `${auth.type.charAt(0).toUpperCase() + auth.type.slice(1)} ${auth.token}`,
-        enabled: true
-      })
-    }
-
-    const formattedHeaders = headers
-      .filter((h: any) => h.enabled !== false && h.key)
-      .map((h: any) => ({ key: h.key, value: h.value }))
-
-    // 4️ Tạo payload request
-    const requestPayload = {
-      requestId: props.requestId ?? null,
-      collectionId: 1,
-      name: props.title ?? 'Untitled',
-      method: method.value,
-      url: url.value,
-      queryParams: params.filter((p: any) => p.enabled !== false && p.key),
-      headers: formattedHeaders,
-      body: requestBody
-    }
-
-    // 5️ Chọn body thực gửi
-    const actualBody = requestPayload.body?.bodyType === 'raw'
-      ? requestPayload.body.content
-      : requestPayload.body
-
-    // 6️ Gửi request
-    const result = await sendRequest({ ...requestPayload, body: actualBody })
-
-    // 7️ Cập nhật response
-    responseStatus.value = result.status ?? null
-    responseDuration.value = result.duration ?? null
-    responseSize.value = result.size ?? null
-    response.value = result.success
-      ? JSON.stringify(result.data, null, 2)
-      : JSON.stringify({
-          error: result.error || 'Request failed',
-          status: result.status,
-          statusText: result.statusText,
-          data: result.data
-        }, null, 2)
-
-   const actualRequestId = props.requestId ?? null
-
-
-    // 9️ Lưu lịch sử bất đồng bộ
-    const historyPayload = {
-      requestId: actualRequestId,
-      collectionId: 1,
-      name: props.title || 'New Request',
-      method: method.value,
-      url: url.value,
-      queryParams: JSON.stringify(params),
-      headers: JSON.stringify(formattedHeaders),
-      body: JSON.stringify(requestBody || ''),
-      statusCode: result.status ?? 0,
-      statusText: result.statusText ?? '',
-      responseHeaders: JSON.stringify(result.headers || {}),
-      responseBody: result.success ? JSON.stringify(result.data) : '',
-      responseTime: result.duration ?? 0,
-      errorMessage: result.success ? '' : result.error || '',
-      executedAt: new Date().toISOString(),
-      userId: 0
-    }
-    createExecutionHistory(historyPayload).catch(err => console.error('Save history failed', err))
-
-  } catch (error: any) {
-    response.value = JSON.stringify({ error: error.message || 'Unknown error occurred' }, null, 2)
-  } finally {
-    loading.value = false
-  }
-}
-
-
-// const handleSend = async () => {
-//   if (!url.value) {
-//     alert('Please enter a URL')
-//     return
-//   }
-
-//   loading.value = true
-//   response.value = ''
-//   responseStatus.value = null
-//   responseDuration.value = null
-//   responseSize.value = null
-
-//   try {
- 
-//     // 1️ Lấy dữ liệu từ các tab
-//     const params = paramsTabRef.value?.getParams() || []
-//     const headers = headersTabRef.value?.getHeaders() || []
-//     const auth = authTabRef.value?.getAuth?.() || null
-    
-//      let requestBody: any = null
-
-//     if (bodyTabRef.value) {
-//       const rawBody = bodyTabRef.value.getBody?.()
-//       const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
-
-//       if (bodyType !== 'none' && rawBody) {
-//         // Nếu getBody() đã trả object { bodyType, content }, dùng trực tiếp
-//         if (typeof rawBody === 'object' && 'bodyType' in rawBody && 'content' in rawBody) {
-//           requestBody = rawBody
-//         } else {
-//           // Ngược lại, bọc lại cho đúng định dạng
-//           requestBody = {
-//             bodyType,
-//             content: typeof rawBody === 'string'
-//               ? rawBody
-//               : JSON.stringify(rawBody)
-//           }
-//         }
-//       } else {
-//         requestBody = null
-//       }
-//     } else {
-//       console.warn(' bodyTabRef.value is null — cannot get body')
-//     }
-
-//     // 3️ Authorization header
-//     if (auth && auth.type && auth.token) {
-//       const authHeader = {
-//         key: 'Authorization',
-//         value: `${auth.type.charAt(0).toUpperCase() + auth.type.slice(1)} ${auth.token}`,
-//         enabled: true
-//       }
-//       headers.push(authHeader)
-//     }
-
-//     const formattedHeaders = headers
-//       .filter((h: any) => h.enabled !== false && h.key)
-//       .map((h: any) => ({
-//         key: h.key,
-//         value: h.value
-//       }))
-
-//     // 4️ Tạo payload hoàn chỉnh
-//     const requestPayload = {
-//       requestId: props.requestId ?? null,
-//       collectionId: 1,
-//       name: props.title ?? 'Untitled',
-//       method: method.value,
-//       url: url.value,
-//       queryParams: params.filter((p: any) => p.enabled !== false && p.key),
-//       headers: formattedHeaders,
-//       body: requestBody
-//     }
-
-
-//     const actualBody =
-//       requestPayload.body?.bodyType === 'raw'
-//         ? requestPayload.body.content
-//         : requestPayload.body
-
-//     const result = await sendRequest({
-//       ...requestPayload,
-//       body: actualBody
-//     })
-
-//     responseStatus.value = result.status ?? null
-//     responseDuration.value = result.duration ?? null
-//     responseSize.value = result.size ?? null
-//     response.value = result.success
-//       ? JSON.stringify(result.data, null, 2)
-//       : JSON.stringify({
-//         error: result.error || 'Request failed',
-//         status: result.status,
-//         statusText: result.statusText,
-//         data: result.data
-//       }, null, 2)
-//        const actualRequestId = result?.requestId ?? props.requestId ?? null
-//        // 6️ Lưu lịch sử (không ảnh hưởng response)
-//     const historyPayload = {
-//       requestId: actualRequestId,
-//       collectionId: 1,
-//       name: props.title || 'New Request',
-//       method: method.value,
-//       url: url.value,
-//       queryParams: JSON.stringify(params),
-//       headers: JSON.stringify(formattedHeaders),
-//       body: JSON.stringify(requestBody || ''),
-//       statusCode: result.status ?? 0,
-//       statusText: result.statusText ?? '',
-//       responseHeaders: JSON.stringify(result.headers || {}),
-//       responseBody: result.success ? JSON.stringify(result.data) : '',
-//       responseTime: result.duration ?? 0,
-//       errorMessage: result.success ? '' : result.error || '',
-//       executedAt: new Date().toISOString(),
-//       userId: 0
-//     }
-
-//     // Chạy bất đồng bộ, không await để không block hiển thị
-//     createExecutionHistory(historyPayload).catch(err => console.error('Save history failed', err))
-
-//   } catch (error: any) {
-//      response.value = JSON.stringify({
-//       error: error.message || 'Unknown error occurred'
-//     }, null, 2)
-//   } finally {
-//     loading.value = false
-//   }
-// }
-
-
- 
-interface Header {
-  key: string
-  value: string
-}
-const headers: Header[] = headersTabRef.value?.getHeaders() || []
-
-const getRequestData = () => {
-  const params = paramTabRef?.value?.getParams?.() || []
-  const headers = headerTabRef?.value?.getHeaders?.() || []
-  const auth = authorizationTabRef?.value?.getAuthData?.() || null
-
-  let bodyData: any = null
-
-  if (bodyTabRef.value) {
-    const result = bodyTabRef.value.getBody?.()
-    const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
-
-    if (result && typeof result === 'object' && 'bodyType' in result && 'content' in result) {
-
-      bodyData = result
-    } else if (bodyType !== 'none') {
-      bodyData = { bodyType, content: result || '' }
-    }
-  }
-
-  return {
-    url: url.value,
-    method: method.value,
-    body: bodyData,
-    params,
-    headers,
-    auth
-  }
-}
- 
-const handleOpenSaveModal = () => {
-   showSaveModal.value = true
-}
-
-const handleCloseSaveModal = () => {
-  showSaveModal.value = false
-}
-
-const handleRequestSaved = (requestId: number) => {
-  emit('requestSaved', requestId)
-}
-
-defineExpose({
-  setActiveTab: (tab: string) => {
-    activeTab.value = tab
-  },
-  focusBody: () => {
-    nextTick(() => {
-      bodyTabRef.value?.focus?.()
-    })
-  },
-  clearResponse: () => {
-    response.value = ''
-    responseStatus.value = null
-    responseDuration.value = null
-    responseSize.value = null
-  },
-  getState: () => ({
-    url: url.value,
-    method: method.value,
-    body: body.value,
-    activeTab: activeTab.value
-  }),
-  getRequestData,
-  get $refs() {
-    return {
-      paramsTabRef: paramsTabRef.value,
-      headersTabRef: headersTabRef.value,
-      authTabRef: authTabRef.value,
-      bodyTabRef: bodyTabRef.value
-    }
-  },
-  activeTab: activeTab.value
-})
-watch(() => props.requestId, (newId) => {
-  console.log('requestId updated', newId)
-})
-
-
-</script> -->
-
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import ParamsTab from './tabs/ParamsTab.vue'
@@ -517,7 +51,6 @@ const responseDuration = ref<number | null>(null)
 const responseSize = ref<number | null>(null)
 const bodyTabRef = ref(null)
 const authorizationTabRef = ref(null)
-const paramTabRef = ref(null)
 const headerTabRef = ref(null)
 
 const showSaveModal = ref(false)
@@ -626,7 +159,7 @@ const handleSend = async () => {
       .map((h: any) => ({ key: h.key, value: h.value }))
 
     const requestPayload = {
-      requestId: currentRequestId.value, // ✅ use local ref here
+      requestId: currentRequestId.value,
       collectionId: 1,
       name: props.title ?? 'Untitled',
       method: method.value,
@@ -648,13 +181,12 @@ const handleSend = async () => {
     response.value = result.success
       ? JSON.stringify(result.data, null, 2)
       : JSON.stringify({
-          error: result.error || 'Request failed',
-          status: result.status,
-          statusText: result.statusText,
-          data: result.data
-        }, null, 2)
+        error: result.error || 'Request failed',
+        status: result.status,
+        statusText: result.statusText,
+        data: result.data
+      }, null, 2)
 
-    // ✅ Save execution history using currentRequestId
     const historyPayload = {
       requestId: currentRequestId.value,
       collectionId: 1,
@@ -685,10 +217,12 @@ const handleSend = async () => {
 // -------------------------
 // Các function còn lại giữ nguyên
 // -------------------------
+ 
+
 const getRequestData = () => {
-  const params = paramTabRef?.value?.getParams?.() || []
-  const headers = headerTabRef?.value?.getHeaders?.() || []
-  const auth = authorizationTabRef?.value?.getAuthData?.() || null
+  const params = paramsTabRef.value?.getParams?.() || []
+  const headers = headersTabRef.value?.getHeaders?.() || []
+  const auth = authTabRef.value?.getAuthData?.() || null
 
   let bodyData: any = null
   if (bodyTabRef.value) {
@@ -757,7 +291,7 @@ defineExpose({
             placeholder="Enter request URL (e.g., https://api.example.com/users)"
             class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
-           <button @click="handleOpenSaveModal"
+          <button @click="handleOpenSaveModal"
             class="px-4 py-2 text-sm font-semibold bg-green-50 text-green-600 border border-green-300 rounded-md hover:bg-green-100 transition-colors flex items-center gap-2"
             title="Save request">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -781,9 +315,10 @@ defineExpose({
       <!-- Tab Content -->
       <div class="flex-1 overflow-y-auto px-4 pb-4">
         <ParamsTab v-show="activeTab === 'Params'" ref="paramsTabRef" />
-        <AuthorizationTab v-show="activeTab === 'Authorization'" ref="authTabRef" />
         <HeadersTab v-show="activeTab === 'Headers'" ref="headersTabRef" />
+        <AuthorizationTab v-show="activeTab === 'Authorization'" ref="authTabRef" />
         <BodyTab v-show="activeTab === 'Body'" ref="bodyTabRef" :key="bodyKey" :modelValue="body" />
+
       </div>
     </div>
 

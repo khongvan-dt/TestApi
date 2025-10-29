@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useUserData } from '../../../composables/useUserData'
 import { getMyCollections, createCollection } from '../../../composables/useCollection'
 
-
+// -------------------- INTERFACES --------------------
 interface Collection {
   id: number
   userId: number
@@ -19,18 +19,20 @@ interface Props {
   currentBody: string
   requestId?: number | null
   requestName?: string
-  cardRef?: any // ✅ THÊM prop này
+  cardRef?: any 
 }
 
+// -------------------- PROPS & EMIT --------------------
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'saved', requestId: number): void
 }>()
 
+// -------------------- COMPOSABLE --------------------
 const { saveRequest, loading, error } = useUserData()
 
+// -------------------- STATE --------------------
 const selectedCollectionId = ref<number>(0)
 const requestName = ref(props.requestName || '')
 const saveResult = ref<string | null>(null)
@@ -42,26 +44,25 @@ const newCollectionName = ref('')
 const newCollectionDescription = ref('')
 const creatingCollection = ref(false)
 
-// ... existing load collections code ...
-
+// -------------------- LIFE CYCLE --------------------
 onMounted(async () => {
   await loadCollections()
 })
 
+// -------------------- LOAD COLLECTION --------------------
 const loadCollections = async () => {
   loadingCollections.value = true
   try {
     const result = await getMyCollections()
     collections.value = result || []
-    console.log('✅ Loaded collections:', collections.value)
-  } catch (err) {
-    console.error('❌ Failed to load collections:', err)
+   } catch (err) {
     error.value = 'Failed to load collections'
   } finally {
     loadingCollections.value = false
   }
 }
 
+// -------------------- CREATE COLLECTION --------------------
 const toggleCreateCollection = () => {
   showCreateCollection.value = !showCreateCollection.value
   if (showCreateCollection.value) {
@@ -91,20 +92,20 @@ const handleCreateCollection = async () => {
       showCreateCollection.value = false
       newCollectionName.value = ''
       newCollectionDescription.value = ''
-      console.log('✅ Collection created:', result)
     }
   } catch (err: any) {
-    console.error('❌ Failed to create collection:', err)
-    error.value = err.message || 'Failed to create collection'
+     error.value = err.message || 'Failed to create collection'
   } finally {
     creatingCollection.value = false
   }
 }
 
+// -------------------- WATCH REQUEST NAME --------------------
 watch(() => props.requestName, (newVal) => {
   requestName.value = newVal || ''
 })
 
+// -------------------- HANDLE SAVE (✅ CHỈNH SỬA PHẦN NÀY) --------------------
 const handleSave = async () => {
   if (!requestName.value.trim()) {
     error.value = 'Please enter a request name'
@@ -121,36 +122,48 @@ const handleSave = async () => {
     return
   }
 
-  // ✅ LẤY DATA TỪ CARD REF
+  // Lấy dữ liệu từ Card (Headers + Params + Body)
   let requestBody = null
   let queryParams: any[] = []
   let headers: any[] = []
 
   if (props.cardRef?.getRequestData) {
     const cardData = props.cardRef.getRequestData()
-    console.log('📦 Card data:', cardData)
+
+    requestBody = cardData.body || props.currentBody
+
+    // Params từ ParamsTab.vue
+    queryParams = (cardData.params || [])
+      .filter((p: any) => p.enabled !== false && p.key)
+      .map((p: any) => ({ key: p.key, value: p.value }))
     
-    requestBody = cardData.body
-    queryParams = cardData.params || []
-    headers = cardData.headers || []
+    console.log('🟢 Query Params:', queryParams) // log dữ liệu Params
+
+    // Headers từ HeadersTab.vue
+    headers = (cardData.headers || [])
+      .filter((h: any) => h.enabled !== false && h.key)
+      .map((h: any) => ({ key: h.key, value: h.value }))
+
+    console.log('🟢 Headers:', headers) // log dữ liệu Headers
   }
 
+  // Payload chuẩn gửi API
   const requestData = {
-    requestId: props.requestId,
+    requestId: props.requestId || 0,
     collectionId: selectedCollectionId.value,
     name: requestName.value,
     method: props.currentMethod,
     url: props.currentUrl,
-    queryParams: queryParams.filter((p: any) => p.enabled !== false && p.key),
-    headers: headers.filter((h: any) => h.enabled !== false && h.key),
-    body: requestBody ? requestBody : null
-
+    authType: '',  // giữ nguyên nếu cần
+    authValue: '', // giữ nguyên nếu cần
+    body: requestBody,
+    queryParams,
+    headers
   }
 
-  console.log('💾 Saving request:', requestData)
+  console.log('💾 Saving request payload:', requestData)
 
   const result = await saveRequest(requestData)
-  
 
   if (result && result.success) {
     saveResult.value = result.isNew ? 'created' : 'updated'
@@ -161,8 +174,8 @@ const handleSave = async () => {
     }, 1500)
   }
 }
-
 </script>
+
  
 
 <template>
