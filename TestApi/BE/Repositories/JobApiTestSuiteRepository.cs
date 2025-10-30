@@ -18,87 +18,96 @@ namespace AutoApiTester.Repositories
             _context = context;
         }
 
-        /// <summary>
-        /// Thêm mới hoặc cập nhật 1 JobApiTestSuite (kèm các test case con)
-        /// </summary>
-        public async Task<JobApiTestSuite> UpsertAsync(JobApiTestSuiteDto dto, string userName)
+
+
+
+
+
+
+
+
+        public async Task<List<JobApiTestSuite>> UpsertAsync(List<JobApiTestSuiteDto> dtoList, string userName)
         {
-            JobApiTestSuite entity;
+            var result = new List<JobApiTestSuite>();
 
-            if (dto.Id == null || dto.Id == 0)
+            foreach (var dto in dtoList)
             {
-                // INSERT mới
-                entity = new JobApiTestSuite
+                JobApiTestSuite entity;
+
+                if (dto.Id == null || dto.Id == 0)
                 {
-                    Name = dto.Name ?? "Unnamed Suite",
-                    Endpoint = dto.Endpoint,
-                    Method = dto.Method,
-                    Headers =  dto.Headers,
-                    DataBase = JsonSerializer.Serialize(dto.DataBase),
-                    Description = dto.Description,
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = userName,
-                    IsActive = true
-                };
-
-                // Map test cases
-                entity.TestCases = dto.TestCases.Select(tc => new JobApiTestCase
-                {
-                    CaseName = tc.CaseName ?? "Untitled Case",
-                    TestData = JsonSerializer.Serialize(tc.TestData),
-                    ExpectedStatus = tc.ExpectedStatus
-                }).ToList();
-
-                _context.JobApiTestSuites.Add(entity);
-            }
-            else
-            {
-                //  UPDATE
-                entity = await _context.JobApiTestSuites
-                    .Include(s => s.TestCases)
-                    .FirstOrDefaultAsync(s => s.Id == dto.Id);
-
-                if (entity == null)
-                    throw new Exception($"JobApiTestSuite with Id={dto.Id} not found.");
-
-                entity.Name = dto.Name ?? entity.Name;
-                entity.Endpoint = dto.Endpoint;
-                entity.Method = dto.Method;
-                entity.Headers = JsonSerializer.Serialize(dto.Headers);
-                entity.DataBase = JsonSerializer.Serialize(dto.DataBase);
-                entity.Description = dto.Description;
-                entity.UpdatedAt = DateTime.UtcNow;
-                entity.UpdatedBy = userName;
-
-                // Xử lý test case (insert/update)
-                foreach (var tcDto in dto.TestCases)
-                {
-                    if (tcDto.Id == null || tcDto.Id == 0)
+                    // INSERT mới
+                    entity = new JobApiTestSuite
                     {
-                        // Thêm mới
-                        entity.TestCases.Add(new JobApiTestCase
-                        {
-                            CaseName = tcDto.CaseName ?? "Untitled Case",
-                            TestData = JsonSerializer.Serialize(tcDto.TestData),
-                            ExpectedStatus = tcDto.ExpectedStatus
-                        });
-                    }
-                    else
+                        Name = dto.Name ?? "Unnamed Suite",
+                        Endpoint = dto.Endpoint,
+                        Method = dto.Method,
+                        Headers = JsonSerializer.Serialize(dto.Headers),
+                        DataBase = JsonSerializer.Serialize(dto.DataBase),
+                        Description = dto.Description,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userName,
+                        IsActive = true
+                    };
+
+                    entity.TestCases = dto.TestCases?.Select(tc => new JobApiTestCase
                     {
-                        // Cập nhật
-                        var existing = entity.TestCases.FirstOrDefault(t => t.Id == tcDto.Id);
-                        if (existing != null)
+                        CaseName = tc.CaseName ?? "Untitled Case",
+                        TestData = JsonSerializer.Serialize(tc.TestData),
+                        ExpectedStatus = tc.ExpectedStatus
+                    }).ToList() ?? new List<JobApiTestCase>();
+
+                    _context.JobApiTestSuites.Add(entity);
+                }
+                else
+                {
+                    // UPDATE
+                    entity = await _context.JobApiTestSuites
+                        .Include(s => s.TestCases)
+                        .FirstOrDefaultAsync(s => s.Id == dto.Id);
+
+                    if (entity == null)
+                        throw new Exception($"JobApiTestSuite with Id={dto.Id} not found.");
+
+                    entity.Name = dto.Name ?? entity.Name;
+                    entity.Endpoint = dto.Endpoint;
+                    entity.Method = dto.Method;
+                    entity.Headers = JsonSerializer.Serialize(dto.Headers);
+                    entity.DataBase = JsonSerializer.Serialize(dto.DataBase);
+                    entity.Description = dto.Description;
+                    entity.UpdatedAt = DateTime.UtcNow;
+                    entity.UpdatedBy = userName;
+
+                    foreach (var tcDto in dto.TestCases ?? new List<JobApiTestCaseDto>())
+                    {
+                        if (tcDto.Id == null || tcDto.Id == 0)
                         {
-                            existing.CaseName = tcDto.CaseName ?? existing.CaseName;
-                            existing.TestData = JsonSerializer.Serialize(tcDto.TestData);
-                            existing.ExpectedStatus = tcDto.ExpectedStatus;
+                            entity.TestCases.Add(new JobApiTestCase
+                            {
+                                CaseName = tcDto.CaseName ?? "Untitled Case",
+                                TestData = JsonSerializer.Serialize(tcDto.TestData),
+                                ExpectedStatus = tcDto.ExpectedStatus
+                            });
+                        }
+                        else
+                        {
+                            var existing = entity.TestCases.FirstOrDefault(t => t.Id == tcDto.Id);
+                            if (existing != null)
+                            {
+                                existing.CaseName = tcDto.CaseName ?? existing.CaseName;
+                                existing.TestData = JsonSerializer.Serialize(tcDto.TestData);
+                                existing.ExpectedStatus = tcDto.ExpectedStatus;
+                            }
                         }
                     }
                 }
+
+                result.Add(entity);
             }
 
             await _context.SaveChangesAsync();
-            return entity;
+            return result;
         }
+
     }
 }

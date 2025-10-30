@@ -47,11 +47,9 @@ namespace AutoApiTester.Controllers
         //    }
         //}
 
-        /// <summary>
-        /// Tạo mới hoặc cập nhật một JobApiTestSuite
-        /// </summary>
         [HttpPost("upsert")]
-        public async Task<ActionResult<JobApiTestSuite>> Upsert([FromBody] JobApiTestSuiteDto dto)
+        [Authorize]
+        public async Task<ActionResult<List<JobApiTestSuite>>> UpsertAsync([FromBody] List<JobApiTestSuiteDto> dto)
         {
             if (dto == null)
                 return BadRequest(new { message = "Dữ liệu không hợp lệ" });

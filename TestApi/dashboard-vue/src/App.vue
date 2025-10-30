@@ -8,23 +8,19 @@ const { isAuthenticated } = useAuth()
 const toast = useToast()
 
 const open = ref(false)
-const showLoginModal = ref(false) // ✅ Thêm state cho login modal
+const showLoginModal = ref(false)  
 
-// ✅ Auto show login modal khi chưa đăng nhập
-onMounted(() => {
+ onMounted(() => {
   if (!isAuthenticated.value) {
     showLoginModal.value = true
   }
 })
 
-// ✅ Watch authentication state
-watch(isAuthenticated, (newVal) => {
+ watch(isAuthenticated, (newVal) => {
   if (!newVal) {
-    // Nếu logout -> show login modal
-    showLoginModal.value = true
+     showLoginModal.value = true
   } else {
-    // Nếu login thành công -> hide modal
-    showLoginModal.value = false
+     showLoginModal.value = false
   }
 })
 
@@ -36,34 +32,33 @@ const links = [[{
     open.value = false
   }
 }, {
-  label: 'Settings',
-  to: '/settings',
+  label: 'Setting Job',
+  to: '/settingjob',
   icon: 'i-lucide-settings',
   defaultOpen: true,
   type: 'trigger',
   children: [{
-    label: 'General',
-    to: '/settings',
+    label: 'API Test Suites',
+    to: '/settingjob',
     exact: true,
     onSelect: () => {
       open.value = false
     }
   }, {
     label: 'Notifications',
-    to: '/settings/notifications',
+    to: '/settingjob/notifications',
     onSelect: () => {
       open.value = false
     }
   }, {
     label: 'Security',
-    to: '/settings/security',
+    to: '/settingjob/security',
     onSelect: () => {
       open.value = false
     }
   }]
 }]] satisfies NavigationMenuItem[][]
 
-// ✅ Handle login success
 const handleLoginSuccess = () => {
   showLoginModal.value = false
 }
@@ -73,7 +68,7 @@ const handleLoginSuccess = () => {
   <Suspense>
     <template #default>
       <UApp>
-        <!-- ✅ Chỉ hiển thị dashboard khi đã đăng nhập -->
+        <!-- Chỉ hiển thị dashboard khi đã đăng nhập -->
         <UDashboardGroup v-if="isAuthenticated" unit="rem" storage="local">
           <UDashboardSidebar 
             id="default" 
@@ -111,7 +106,7 @@ const handleLoginSuccess = () => {
           <NotificationsSlideover />
         </UDashboardGroup>
 
-        <!-- ✅ Nếu chưa đăng nhập - hiển thị placeholder hoặc để trống -->
+        <!-- Nếu chưa đăng nhập - hiển thị placeholder hoặc để trống -->
         <div v-else class="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
           <div class="text-center">
             <div class="animate-pulse">
@@ -121,7 +116,7 @@ const handleLoginSuccess = () => {
           </div>
         </div>
 
-        <!-- ✅ Login Modal - auto show khi chưa đăng nhập -->
+        <!-- Login Modal - auto show khi chưa đăng nhập -->
         <LoginModal 
           v-model="showLoginModal" 
           @login-success="handleLoginSuccess"

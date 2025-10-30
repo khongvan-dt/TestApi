@@ -14,12 +14,12 @@ app.use(createRouter({
           { path: '/dashboard', component: () => import('./pages/Dashboard.vue') },
 
       {
-      path: '/settings',
-      component: () => import('./pages/settings.vue'),
+      path: '/settingjob',
+      component: () => import('./pages/settingJob.vue'),
       children: [
-        { path: '', component: () => import('./pages/settings/index.vue') },
-         { path: 'notifications', component: () => import('./pages/settings/notifications.vue') },
-        { path: 'security', component: () => import('./pages/settings/security.vue') },
+        { path: '', component: () => import('./pages/settingsjob/index.vue') },
+         { path: 'notifications', component: () => import('./pages/settingsjob/notifications.vue') },
+        { path: 'security', component: () => import('./pages/settingsjob/security.vue') },
       ]
     }
   ],

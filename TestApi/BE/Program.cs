@@ -159,6 +159,10 @@ builder.Services.AddScoped<IRequestRepository, RequestRepository>();
 //builder.Services.AddScoped<IEnvironmentRepository, EnvironmentRepository>();
 //builder.Services.AddScoped<IExecutionRepository, ExecutionRepository>();
 builder.Services.AddScoped<IDataExportRepository, DataExportRepository>();
+builder.Services.AddScoped<IExecutionHistoryRepository, ExecutionHistoryRepository>();
+
+builder.Services.AddScoped<IJobApiTestSuiteRepository, JobApiTestSuiteRepository>();
+
 builder.Services.AddScoped<IDataExportService, DataExportService>();
 
 //  Register Services
@@ -166,13 +170,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 //builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<ICollectionService, CollectionService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
-//builder.Services.AddScoped<IEnvironmentService, EnvironmentService>();
-//builder.Services.AddScoped<IExecutionService, ExecutionService>();
-// Repositories
-builder.Services.AddScoped<IExecutionHistoryRepository, ExecutionHistoryRepository>();
-
-// Services
 builder.Services.AddScoped<IExecutionHistoryService, ExecutionHistoryService>();
+builder.Services.AddScoped<IJobApiTestSuiteService, JobApiTestSuiteService>();
+
 
 var app = builder.Build();
 

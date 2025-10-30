@@ -17,33 +17,27 @@ apiClient.interceptors.request.use(
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-      console.log('🔑 Token added to request:', token.substring(0, 20) + '...')
-    } else {
-      console.warn('⚠️ No token found in localStorage')
+     } else {
+      console.warn(' No token found in localStorage')
     }
     
-    console.log('📤 Request:', config.method?.toUpperCase(), config.url)
-    
+     
     return config
   },
   (error) => {
-    console.error('❌ Request error:', error)
-    return Promise.reject(error)
+     return Promise.reject(error)
   }
 )
 
 // ✅ Response interceptor - Handle errors
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('📥 Response:', response.status, response.config.url)
-    return response
+     return response
   },
   (error) => {
-    console.error('❌ Response error:', error.response?.status, error.config?.url)
-    
+     
     if (error.response?.status === 401) {
-      console.log('🚪 Unauthorized - Logging out...')
-      localStorage.removeItem(API_CONFIG.TOKEN_KEY)
+       localStorage.removeItem(API_CONFIG.TOKEN_KEY)
       localStorage.removeItem('user')
       window.location.href = '/'
     }
