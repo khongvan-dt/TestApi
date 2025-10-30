@@ -17,6 +17,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<RequestHeader> RequestHeaders { get; set; }
     public DbSet<RequestParam> RequestParams { get; set; }
     public DbSet<RequestBody> RequestBodies { get; set; }
+    public DbSet<JobApiTestSuite> JobApiTestSuites { get; set; }
+    public DbSet<JobApiTestCase> JobApiTestCases { get; set; }
+    public DbSet<JobApiTestHistory> JobApiTestHistories { get; set; }
+    public DbSet<JobScheduleApiTest> JobScheduleApiTests => Set<JobScheduleApiTest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -83,7 +87,7 @@ public class ApplicationDbContext : DbContext
 
             // User relationship
             entity.HasOne(e => e.User)
-                .WithMany(u => u.ExecutionHistories) // <-- Đặt property navigation ở đây
+                .WithMany(u => u.ExecutionHistories) 
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -145,5 +149,23 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.RequestId);
         });
 
+        modelBuilder.Entity<JobApiTestSuite>()
+               .HasMany(s => s.TestCases)
+               .WithOne(c => c.ApiTestSuite)
+               .HasForeignKey(c => c.ApiTestSuiteId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<JobApiTestCase>()
+            .HasMany(c => c.Histories)
+            .WithOne(h => h.ApiTestCase)
+            .HasForeignKey(h => h.ApiTestCaseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<JobScheduleApiTest>()
+              .HasOne(j => j.User)
+              .WithMany()
+              .HasForeignKey(j => j.UserId)
+              .OnDelete(DeleteBehavior.Cascade);
     }
+
 }

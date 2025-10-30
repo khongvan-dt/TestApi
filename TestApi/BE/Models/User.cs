@@ -34,4 +34,6 @@ public class User
 
     // Navigation Properties
      public virtual ICollection<ExecutionHistory> ExecutionHistories { get; set; } = new List<ExecutionHistory>();
+    public virtual ICollection<JobScheduleApiTest> JobScheduleApiTests { get; set; } = new List<JobScheduleApiTest>();
+
 }

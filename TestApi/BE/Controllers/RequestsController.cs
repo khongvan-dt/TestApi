@@ -63,7 +63,7 @@ public class RequestController : ControllerBase
 
     [HttpPost("updateTestdata")]
     [Authorize]
-    public async Task<IActionResult> UpdateTestdata([FromBody] UpdateTestDataRequestDto dto)
+    public async Task<IActionResult> UpdateTestdataRequest([FromBody] UpdateTestDataRequestDto dto)
     {
         if (dto == null || string.IsNullOrWhiteSpace(dto.NewTestDataContent))
             return BadRequest(ApiResponse<object>.ErrorResponse("Request data cannot be null or empty"));

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useUserData } from '../../../../composables/useUserData'
- import { UpdateTestdataRequest } from '../../../../composables/useRequest'
+import { UpdateTestdataRequest } from '../../../../composables/useRequest'
 
 interface Props {
   dataBaseTest?: string | null
@@ -17,7 +16,6 @@ const editContent = ref(dbContent.value)
 const isEditing = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
-const { saveRequest } = useUserData()
 
 watch(() => props.dataBaseTest, (val) => {
   dbContent.value = val || ''
@@ -42,12 +40,12 @@ const saveEdit = async () => {
 
   try {
     isLoading.value = true
-    errorMessage.value = '' // Reset lỗi
+    errorMessage.value = ''
 
     // Gọi API mới
     const result = await UpdateTestdataRequest({
       requestId: props.requestId,
-      newTestDataContent: editContent.value  // Tên field đúng theo DTO
+      newTestDataContent: editContent.value
     })
 
     // result là { requestId, newTestDataContent } → thành công
@@ -68,26 +66,17 @@ const saveEdit = async () => {
 <template>
   <div class="h-[360px] p-3 bg-gray-50 border rounded-lg flex flex-col">
     <div class="flex justify-end gap-2 mb-2">
-      <button
-        v-if="!isEditing"
-        @click="startEdit"
-        class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
-      >
+      <button v-if="!isEditing" @click="startEdit"
+        class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors">
         Edit
       </button>
       <div v-else class="flex gap-1">
-        <button
-          @click="saveEdit"
-          :disabled="isLoading"
-          class="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 transition-colors"
-        >
+        <button @click="saveEdit" :disabled="isLoading"
+          class="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 transition-colors">
           {{ isLoading ? 'Saving...' : 'Save' }}
         </button>
-        <button
-          @click="cancelEdit"
-          :disabled="isLoading"
-          class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-        >
+        <button @click="cancelEdit" :disabled="isLoading"
+          class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors">
           Cancel
         </button>
       </div>
@@ -96,20 +85,12 @@ const saveEdit = async () => {
     <div class="flex-1 overflow-hidden">
       <p v-if="errorMessage" class="text-xs text-red-500 mb-1">{{ errorMessage }}</p>
 
-      <pre
-        v-if="!isEditing"
-        class="text-xs font-mono text-gray-700 whitespace-pre-wrap break-words h-full overflow-y-auto p-2 bg-white rounded border"
-      >
-{{ dbContent || 'No DataBaseTest content' }}
-      </pre>
+      <pre v-if="!isEditing"
+        class="text-xs font-mono text-gray-700 whitespace-pre-wrap break-words h-full overflow-y-auto p-2 bg-white rounded border"> {{ dbContent || 'No DataBaseTest content' }} </pre>
 
-      <textarea
-        v-else
-        id="db-test-editor"
-        v-model="editContent"
+      <textarea v-else id="db-test-editor" v-model="editContent"
         class="w-full h-full p-2 text-xs font-mono text-gray-700 bg-white border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-        spellcheck="false"
-      />
+        spellcheck="false" />
     </div>
   </div>
 </template>
