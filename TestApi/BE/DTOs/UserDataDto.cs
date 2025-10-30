@@ -117,6 +117,7 @@
 
     public class BodyDto
     {
+        public int Id { get; set; } 
         public string BodyType { get; set; } = "raw";
         public string Content { get; set; } = string.Empty;
     }

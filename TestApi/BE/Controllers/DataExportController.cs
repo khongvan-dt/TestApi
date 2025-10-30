@@ -223,11 +223,11 @@ public class DataExportController : ControllerBase
 
 
     /// <summary>
-    /// Save or update a request
+    /// Save or update requests
     /// </summary>
     [HttpPost("save")]
     [Authorize]
-    public async Task<IActionResult> SaveRequest([FromBody] SaveRequestDto dto)
+    public async Task<IActionResult> SaveRequest([FromBody] List<SaveRequestDto> dtos)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -241,42 +241,41 @@ public class DataExportController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Invalid user ID"));
         }
 
-        // Validate input
-        if (string.IsNullOrWhiteSpace(dto.Name))
+        if (dtos == null || !dtos.Any())
         {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Request name is required"));
+            return BadRequest(ApiResponse<object>.ErrorResponse("Request list is empty"));
         }
 
-        if (string.IsNullOrWhiteSpace(dto.Url))
+        // Validate each DTO
+        var validationErrors = new List<string>();
+        foreach (var dto in dtos)
         {
-            return BadRequest(ApiResponse<object>.ErrorResponse("URL is required"));
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                validationErrors.Add($"Request name is required for collection {dto.CollectionId}");
+            if (string.IsNullOrWhiteSpace(dto.Url))
+                validationErrors.Add($"URL is required for request '{dto.Name}' in collection {dto.CollectionId}");
+            if (dto.CollectionId <= 0)
+                validationErrors.Add($"Collection ID is required for request '{dto.Name}'");
         }
 
-        if (dto.CollectionId <= 0)
+        if (validationErrors.Any())
         {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Collection ID is required"));
+            return BadRequest(ApiResponse<object>.ErrorResponse(string.Join("; ", validationErrors)));
         }
 
         try
         {
-            var result = await _service.SaveRequestAsync(userId, dto);
+            var results = await _service.SaveRequestsAsync(userId, dtos);
 
-            if (!result.Success)
-            {
-                return BadRequest(ApiResponse<SaveRequestResultDto>.ErrorResponse(
-                    result.Message ?? "Failed to save request"
-                ));
-            }
-
-            return Ok(ApiResponse<SaveRequestResultDto>.SuccessResponse(
-                result,
-                result.IsNew ? "Request created successfully" : "Request updated successfully"
+            return Ok(ApiResponse<List<SaveRequestResultDto>>.SuccessResponse(
+                results,
+                "Requests processed successfully"
             ));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving request for user {UserId}", userId);
-            return StatusCode(500, ApiResponse<object>.ErrorResponse("Failed to save request"));
+            _logger.LogError(ex, "Error saving requests for user {UserId}", userId);
+            return StatusCode(500, ApiResponse<object>.ErrorResponse("Failed to save requests"));
         }
     }
 

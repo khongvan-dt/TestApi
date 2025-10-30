@@ -324,138 +324,162 @@ public class DataExportRepository : IDataExportRepository
         }
     }
 
-    public async Task<SaveRequestResultDto> SaveRequestAsync(int userId, SaveRequestDto dto)
+    public async Task<List<SaveRequestResultDto>> SaveRequestsAsync(int userId, List<SaveRequestDto> dtos)
     {
+        var results = new List<SaveRequestResultDto>();
+
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
-            // 1️⃣ Verify collection belongs to user
-            var collection = await _context.Collections
-                .FirstOrDefaultAsync(c => c.Id == dto.CollectionId && c.UserId == userId);
-
-            if (collection == null)
+            foreach (var dto in dtos)
             {
-                return new SaveRequestResultDto
+                // 1️ Verify collection belongs to user
+                var collection = await _context.Collections
+                    .FirstOrDefaultAsync(c => c.Id == dto.CollectionId && c.UserId == userId);
+
+                if (collection == null)
                 {
-                    Success = false,
-                    Message = "Collection not found or access denied"
-                };
-            }
-
-            Request request;
-            bool isNew = false;
-
-            // 2️⃣ Check if updating existing request or creating new
-            if (dto.RequestId.HasValue && dto.RequestId.Value > 0)
-            {
-                // UPDATE existing request
-                request = await _context.Requests
-                    .Include(r => r.RequestParams)
-                    .Include(r => r.RequestHeaders)
-                    .Include(r => r.RequestBodies)
-                    .FirstOrDefaultAsync(r => r.Id == dto.RequestId.Value && r.CollectionId == dto.CollectionId);
-
-                if (request == null)
-                {
-                    return new SaveRequestResultDto
+                    results.Add(new SaveRequestResultDto
                     {
                         Success = false,
-                        Message = "Request not found"
+                        Message = $"Collection {dto.CollectionId} not found or access denied"
+                    });
+                    continue;
+                }
+
+                Request request;
+                bool isNew = false;
+
+                // 2️ Check if updating existing request or creating new
+                if (dto.RequestId.HasValue && dto.RequestId.Value > 0)
+                {
+                    request = await _context.Requests
+                        .Include(r => r.RequestParams)
+                        .Include(r => r.RequestHeaders)
+                        .Include(r => r.RequestBodies)
+                        .FirstOrDefaultAsync(r => r.Id == dto.RequestId.Value && r.CollectionId == dto.CollectionId);
+
+                    if (request == null)
+                    {
+                        results.Add(new SaveRequestResultDto
+                        {
+                            Success = false,
+                            Message = $"Request {dto.RequestId} not found"
+                        });
+                        continue;
+                    }
+
+                    // Update properties
+                    request.Name = dto.Name;
+                    request.Method = dto.Method;
+                    request.Url = dto.Url;
+                    request.AuthType = dto.AuthType;
+                    request.AuthValue = dto.AuthValue;
+
+                    // Remove old related data
+                    _context.RequestParams.RemoveRange(request.RequestParams);
+                    _context.RequestHeaders.RemoveRange(request.RequestHeaders);
+                    _context.RequestBodies.RemoveRange(request.RequestBodies);
+                }
+                else
+                {
+                    // CREATE new request
+                    isNew = true;
+                    request = new Request
+                    {
+                        CollectionId = dto.CollectionId,
+                        Name = dto.Name,
+                        Method = dto.Method,
+                        Url = dto.Url,
+                        AuthType = dto.AuthType,
+                        AuthValue = dto.AuthValue,
+                        CreatedAt = DateTime.UtcNow
                     };
+
+                    _context.Requests.Add(request);
+                    await _context.SaveChangesAsync(); // Lấy RequestId mới
                 }
 
-                // Update properties
-                request.Name = dto.Name;
-                request.Method = dto.Method;
-                request.Url = dto.Url;
-                request.AuthType = dto.AuthType;
-                request.AuthValue = dto.AuthValue;
-
-                // Remove old related data
-                _context.RequestParams.RemoveRange(request.RequestParams);
-                _context.RequestHeaders.RemoveRange(request.RequestHeaders);
-                _context.RequestBodies.RemoveRange(request.RequestBodies);
-            }
-            else
-            {
-                // CREATE new request
-                isNew = true;
-                request = new Request
+                // 3️⃣ Add query params
+                if (dto.QueryParams?.Any() == true)
                 {
-                    CollectionId = dto.CollectionId,
-                    Name = dto.Name,
-                    Method = dto.Method,
-                    Url = dto.Url,
-                    AuthType = dto.AuthType,
-                    AuthValue = dto.AuthValue,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.Requests.Add(request);
-                await _context.SaveChangesAsync(); // Get RequestId
-            }
-
-            // 3️⃣ Add query params
-            if (dto.QueryParams?.Any() == true)
-            {
-                foreach (var param in dto.QueryParams.Where(p => !string.IsNullOrEmpty(p.Key)))
-                {
-                    _context.RequestParams.Add(new RequestParam
+                    foreach (var param in dto.QueryParams.Where(p => !string.IsNullOrEmpty(p.Key)))
                     {
-                        RequestId = request.Id,
-                        Key = param.Key,
-                        Value = param.Value
-                    });
+                        _context.RequestParams.Add(new RequestParam
+                        {
+                            RequestId = request.Id,
+                            Key = param.Key,
+                            Value = param.Value
+                        });
+                    }
                 }
-            }
 
-            // 4️⃣ Add headers
-            if (dto.Headers?.Any() == true)
-            {
-                foreach (var header in dto.Headers.Where(h => !string.IsNullOrEmpty(h.Key)))
+                // 4️ Add headers
+                if (dto.Headers?.Any() == true)
                 {
-                    _context.RequestHeaders.Add(new RequestHeader
+                    foreach (var header in dto.Headers.Where(h => !string.IsNullOrEmpty(h.Key)))
                     {
-                        RequestId = request.Id,
-                        Key = header.Key,
-                        Value = header.Value
-                    });
+                        _context.RequestHeaders.Add(new RequestHeader
+                        {
+                            RequestId = request.Id,
+                            Key = header.Key,
+                            Value = header.Value
+                        });
+                    }
                 }
-            }
 
-            // 5️⃣ Add body
-            if (dto.Body != null && !string.IsNullOrWhiteSpace(dto.Body.Content))
-            {
-                _context.RequestBodies.Add(new RequestBody
+                // 5️ Add body
+                 if (dto.Body != null && !string.IsNullOrWhiteSpace(dto.Body.Content))
                 {
+                    if (dto.Body.Id !=null && dto.Body.Id > 0)
+                    {
+                        // Update existing body
+                        var existingBody = await _context.RequestBodies
+                            .FirstOrDefaultAsync(b => b.Id == dto.Body.Id && b.RequestId == request.Id);
+
+                        if (existingBody != null)
+                        {
+                            existingBody.BodyType = dto.Body.BodyType;
+                            existingBody.Content = dto.Body.Content;
+                        }
+                    }
+                    else
+                    {
+                        // Add new body
+                        _context.RequestBodies.Add(new RequestBody
+                        {
+                            RequestId = request.Id,
+                            BodyType = dto.Body.BodyType,
+                            Content = dto.Body.Content
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+
+                results.Add(new SaveRequestResultDto
+                {
+                    Success = true,
                     RequestId = request.Id,
-                    BodyType = dto.Body.BodyType,
-                    Content = dto.Body.Content
+                    IsNew = isNew,
+                    Message = isNew ? "Request created successfully" : "Request updated successfully"
                 });
             }
 
-            await _context.SaveChangesAsync();
             await transaction.CommitAsync();
-
-            return new SaveRequestResultDto
-            {
-                Success = true,
-                RequestId = request.Id,
-                IsNew = isNew,
-                Message = isNew ? "Request created successfully" : "Request updated successfully"
-            };
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
- 
-            return new SaveRequestResultDto
+
+            results.Add(new SaveRequestResultDto
             {
                 Success = false,
-                Message = $"Failed to save request: {ex.Message}"
-            };
+                Message = $"Failed to save requests: {ex.Message}"
+            });
         }
+
+        return results;
     }
 
     public async Task<SaveRequestResultDto> DeleteRequestAsync(int userId, int requestId)

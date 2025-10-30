@@ -16,7 +16,7 @@ interface Collection {
 interface Props {
   currentUrl: string
   currentMethod: string
-  currentBody: string
+  currentBody: any // { bodyType: string, content: string }
   requestId?: number | null
   requestName?: string
   cardRef?: any 
@@ -55,7 +55,7 @@ const loadCollections = async () => {
   try {
     const result = await getMyCollections()
     collections.value = result || []
-   } catch (err) {
+  } catch (err) {
     error.value = 'Failed to load collections'
   } finally {
     loadingCollections.value = false
@@ -94,18 +94,17 @@ const handleCreateCollection = async () => {
       newCollectionDescription.value = ''
     }
   } catch (err: any) {
-     error.value = err.message || 'Failed to create collection'
+    error.value = err.message || 'Failed to create collection'
   } finally {
     creatingCollection.value = false
   }
 }
 
-// -------------------- WATCH REQUEST NAME --------------------
-watch(() => props.requestName, (newVal) => {
+ watch(() => props.requestName, (newVal) => {
   requestName.value = newVal || ''
 })
 
-// -------------------- HANDLE SAVE (✅ CHỈNH SỬA PHẦN NÀY) --------------------
+// -------------------- HANDLE SAVE --------------------
 const handleSave = async () => {
   if (!requestName.value.trim()) {
     error.value = 'Please enter a request name'
@@ -122,58 +121,93 @@ const handleSave = async () => {
     return
   }
 
-  // Lấy dữ liệu từ Card (Headers + Params + Body)
-  let requestBody = null
+  let requestBody = props.currentBody
   let queryParams: any[] = []
   let headers: any[] = []
 
   if (props.cardRef?.getRequestData) {
     const cardData = props.cardRef.getRequestData()
-
     requestBody = cardData.body || props.currentBody
-
-    // Params từ ParamsTab.vue
     queryParams = (cardData.params || [])
       .filter((p: any) => p.enabled !== false && p.key)
       .map((p: any) => ({ key: p.key, value: p.value }))
-    
- 
-    // Headers từ HeadersTab.vue
     headers = (cardData.headers || [])
       .filter((h: any) => h.enabled !== false && h.key)
       .map((h: any) => ({ key: h.key, value: h.value }))
+  }
 
-   }
-
-  // Payload chuẩn gửi API
-  const requestData = {
+  const baseRequest = {
     requestId: props.requestId || 0,
     collectionId: selectedCollectionId.value,
     name: requestName.value,
     method: props.currentMethod,
     url: props.currentUrl,
-    authType: '', 
+    authType: '',
     authValue: '',
-    body: requestBody,
     queryParams,
     headers
   }
 
- 
-  const result = await saveRequest(requestData)
+  let requestDataArray: any[] = []
 
-  if (result && result.success) {
-    saveResult.value = result.isNew ? 'created' : 'updated'
+  // Kiểm tra nếu body type là 'raw' và có chứa nhiều JSON objects
+  if (requestBody?.bodyType === 'raw' && requestBody.content) {
+    const content = requestBody.content.trim()
     
-    setTimeout(() => {
-      emit('saved', result.requestId)
-      emit('close')
-    }, 1500)
+    // Kiểm tra nếu content có dạng nhiều JSON objects cách nhau bởi dấu phay
+    // Pattern: }...whitespace...,..whitespace...{
+    if (/\}\s*,\s*\{/.test(content)) {
+      try {
+        // Wrap content trong array và parse
+        const wrappedContent = `[${content}]`
+        const parsedArray = JSON.parse(wrappedContent)
+        
+        // Tạo một request riêng cho mỗi object
+        requestDataArray = parsedArray.map((obj: any) => ({
+          ...baseRequest,
+          body: {
+            bodyType: 'raw',
+            content: JSON.stringify(obj, null, 2)
+          }
+        }))
+      } catch (e) {
+        console.error('Failed to parse multiple JSON objects:', e)
+        // Nếu parse lỗi, giữ nguyên như một request duy nhất
+        requestDataArray = [{
+          ...baseRequest,
+          body: requestBody
+        }]
+      }
+    } else {
+      // Chỉ có một JSON object
+      requestDataArray = [{
+        ...baseRequest,
+        body: requestBody
+      }]
+    }
+  } else {
+    // Không phải raw body hoặc không có content
+    requestDataArray = [{
+      ...baseRequest,
+      body: requestBody
+    }]
+  }
+
+  // Gửi mảng requestDataArray lên API
+  try {
+     const result = await saveRequest(requestDataArray)
+    if (result && result.success) {
+      saveResult.value = result.isNew ? 'created' : 'updated'
+      setTimeout(() => {
+        emit('saved', result.requestId)
+        emit('close')
+      }, 1500)
+    }
+  } catch (err: any) {
+    error.value = err.message || 'Failed to save request'
   }
 }
 </script>
-
- 
 
 <template>
   <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -181,12 +215,9 @@ const handleSave = async () => {
       <!-- Header -->
       <div class="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
         <h2 class="text-xl font-semibold text-gray-900">
-          {{ requestId ? 'Update Request' : 'Save Request' }}
+          {{ props.requestId ? 'Update Request' : 'Save Request' }}
         </h2>
-        <button 
-          @click="emit('close')"
-          class="text-gray-400 hover:text-gray-600 transition-colors"
-        >
+        <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -238,8 +269,6 @@ const handleSave = async () => {
             <label class="block text-sm font-medium text-gray-700">
               Collection <span class="text-red-500">*</span>
             </label>
-            
-            <!-- ✅ THÊM: Button tạo collection mới -->
             <button
               @click="toggleCreateCollection"
               class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
@@ -251,7 +280,7 @@ const handleSave = async () => {
             </button>
           </div>
 
-          <!-- ✅ THÊM: Form tạo collection mới -->
+          <!-- New Collection Form -->
           <div v-if="showCreateCollection" class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
             <input
               v-model="newCollectionName"
@@ -282,8 +311,8 @@ const handleSave = async () => {
               <span v-else>Create Collection</span>
             </button>
           </div>
-          
-          <!-- Loading State -->
+
+          <!-- Collections Loading -->
           <div v-if="loadingCollections" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
             <div class="flex items-center gap-2 text-gray-500">
               <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -317,18 +346,18 @@ const handleSave = async () => {
             <span 
               class="text-xs font-bold px-2 py-0.5 rounded"
               :class="{
-                'bg-green-100 text-green-700': currentMethod === 'POST',
-                'bg-blue-100 text-blue-700': currentMethod === 'GET',
-                'bg-orange-100 text-orange-700': currentMethod === 'PUT',
-                'bg-purple-100 text-purple-700': currentMethod === 'PATCH',
-                'bg-red-100 text-red-700': currentMethod === 'DELETE'
+                'bg-green-100 text-green-700': props.currentMethod === 'POST',
+                'bg-blue-100 text-blue-700': props.currentMethod === 'GET',
+                'bg-orange-100 text-orange-700': props.currentMethod === 'PUT',
+                'bg-purple-100 text-purple-700': props.currentMethod === 'PATCH',
+                'bg-red-100 text-red-700': props.currentMethod === 'DELETE'
               }"
             >
-              {{ currentMethod }}
+              {{ props.currentMethod }}
             </span>
             <span class="text-sm text-gray-900 font-medium truncate">{{ requestName || 'Untitled' }}</span>
           </div>
-          <p class="text-xs text-gray-500 truncate">{{ currentUrl || 'No URL' }}</p>
+          <p class="text-xs text-gray-500 truncate">{{ props.currentUrl || 'No URL' }}</p>
         </div>
       </div>
 
@@ -352,7 +381,7 @@ const handleSave = async () => {
             </svg>
             Saving...
           </span>
-          <span v-else>{{ requestId ? 'Update' : 'Save' }}</span>
+          <span v-else>{{ props.requestId ? 'Update' : 'Save' }}</span>
         </button>
       </div>
     </div>

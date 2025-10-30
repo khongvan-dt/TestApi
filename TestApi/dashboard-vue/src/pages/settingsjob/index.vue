@@ -290,8 +290,7 @@ const formatSchedule = (value: string) => {
 
         <!-- BƯỚC 3: Cấu hình Job -->
         <div v-else-if="currentStep === 3" class="space-y-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-
+ 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Tên Job <span
                   class="text-red-500">*</span></label>
@@ -299,22 +298,9 @@ const formatSchedule = (value: string) => {
                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               <p v-if="!job.name.trim()" class="text-xs text-red-500 mt-1">Vui lòng nhập tên job</p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Lịch chạy</label>
-              <select v-model="job.schedule"
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500">
-                <option value="daily">Hàng ngày</option>
-                <option value="weekly">Hàng tuần</option>
-                <option value="monthly">Hàng tháng</option>
-              </select>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-              <textarea v-model="job.description" placeholder="Mô tả ngắn gọn về job..."
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none h-24" />
-            </div>
-          </div>
-        </div>
+            
+            
+         </div>
 
         <!-- BƯỚC 4: Xác nhận -->
         <div v-else-if="currentStep === 4" class="space-y-6">
