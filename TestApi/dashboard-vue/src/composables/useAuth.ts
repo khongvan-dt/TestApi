@@ -51,10 +51,8 @@ export const useAuth = () => {
     }
   }
 
-  // ✅ FIX: Logout với redirect và force reload
-  const logout = async () => {
-    console.log('🚪 Logging out...')
-    
+   const logout = async () => {
+     
     // 1. Clear state ngay lập tức
     user.value = null
     token.value = null
@@ -65,8 +63,7 @@ export const useAuth = () => {
     // 3. Clear sessionStorage nếu có
     sessionStorage.clear()
     
-    console.log('✅ Logout completed - redirecting...')
-    
+     
     // 4. Force redirect về home và reload
     await router.push('/')
     
@@ -75,8 +72,7 @@ export const useAuth = () => {
   }
 
   const fetchProfile = async () => {
-    // ✅ FIX: Không fetch nếu không authenticated
-    if (!isAuthenticated.value || !token.value) {
+     if (!isAuthenticated.value || !token.value) {
       return
     }
     
@@ -94,8 +90,7 @@ export const useAuth = () => {
     } catch (error: any) {
       console.error('Failed to fetch profile:', error)
       
-      // ✅ FIX: Nếu token invalid, logout
-      if (error.response?.status === 401) {
+       if (error.response?.status === 401) {
         logout()
       }
     }

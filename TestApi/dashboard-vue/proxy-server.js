@@ -19,16 +19,11 @@ app.get('/', (req, res) => {
 app.all('/proxy', async (req, res) => {
   try {
     const targetUrl = req.headers['x-target-url']
-    
+
     if (!targetUrl) {
       return res.status(400).json({ error: 'Missing x-target-url header' })
     }
 
-    console.log('🔄 Proxying request:')
-    console.log('  Target:', targetUrl)
-    console.log('  Method:', req.method)
-    console.log('  Headers:', req.headers)
-    console.log('  Body:', req.body)
 
     // Build request config
     const config = {
@@ -50,23 +45,20 @@ app.all('/proxy', async (req, res) => {
       config.data = req.body
     }
 
-    console.log('📤 Sending request with config:', config)
-
+ 
     // Make request
     const response = await axios(config)
 
-    console.log('✅ Response received:', response.status)
-
+ 
     // Return response
     res.status(response.status).json(response.data)
 
   } catch (error) {
-    console.error('❌ Proxy error:', error.message)
-    
+ 
     if (error.response) {
       res.status(error.response.status).json(error.response.data)
     } else {
-      res.status(500).json({ 
+      res.status(500).json({
         error: error.message,
         details: 'Proxy server error'
       })
@@ -74,8 +66,4 @@ app.all('/proxy', async (req, res) => {
   }
 })
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 Proxy server running on http://localhost:${PORT}`)
-  console.log(`📡 Endpoint: http://localhost:${PORT}/proxy`)
-  console.log(`🔧 Usage: Send requests with header "x-target-url: <url>"\n`)
-})
+ 

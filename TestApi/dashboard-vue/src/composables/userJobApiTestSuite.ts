@@ -3,7 +3,7 @@ import apiClient from '../utils/axios'
 export interface JobApiTestCaseDto {
   id?: number
   caseName?: string
-  testData?: Record<string, any> | string  // 👈 chấp nhận cả object & string
+  testData?: Record<string, any> | string   
   expectedStatus?: number
 }
 
@@ -12,8 +12,8 @@ export interface JobApiTestSuiteDto {
   name?: string
   endpoint: string
   method: string
-  headers?: Record<string, any> | string   // 👈 chấp nhận cả object & string
-  dataBase?: Record<string, any> | string  // 👈 chấp nhận cả object & string
+  headers?: Record<string, any> | string    
+  dataBase?: Record<string, any> | string   
   description?: string
   testCases?: JobApiTestCaseDto[]
 }
@@ -32,6 +32,7 @@ export async function upsertSuite(dtos: JobApiTestSuiteDto[]): Promise<JobApiTes
  * Upsert nhiều suite song song
  */
 export async function upsertSuites(dtos: JobApiTestSuiteDto[]) {
-  const promises = dtos.map(d => upsertSuite(d))
+  const promises = dtos.map(d => upsertSuite([d]))   
   return Promise.all(promises)
 }
+

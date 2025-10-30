@@ -137,15 +137,13 @@ const handleSave = async () => {
       .filter((p: any) => p.enabled !== false && p.key)
       .map((p: any) => ({ key: p.key, value: p.value }))
     
-    console.log('🟢 Query Params:', queryParams) // log dữ liệu Params
-
+ 
     // Headers từ HeadersTab.vue
     headers = (cardData.headers || [])
       .filter((h: any) => h.enabled !== false && h.key)
       .map((h: any) => ({ key: h.key, value: h.value }))
 
-    console.log('🟢 Headers:', headers) // log dữ liệu Headers
-  }
+   }
 
   // Payload chuẩn gửi API
   const requestData = {
@@ -154,15 +152,14 @@ const handleSave = async () => {
     name: requestName.value,
     method: props.currentMethod,
     url: props.currentUrl,
-    authType: '',  // giữ nguyên nếu cần
-    authValue: '', // giữ nguyên nếu cần
+    authType: '', 
+    authValue: '',
     body: requestBody,
     queryParams,
     headers
   }
 
-  console.log('💾 Saving request payload:', requestData)
-
+ 
   const result = await saveRequest(requestData)
 
   if (result && result.success) {

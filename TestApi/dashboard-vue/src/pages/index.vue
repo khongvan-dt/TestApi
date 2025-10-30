@@ -66,9 +66,8 @@ const handleSelectRequest = (payload: any) => {
     currentTab.headers = payload.headers || []
     currentTab.params = payload.queryParams || []
     currentTab.requestId = payload.requestId
-    currentTab.dataBaseTest = payload.dataBaseTest || null  // LƯU
-    console.log("📦 handleSelectRequest:", payload.requestId)
-
+    currentTab.dataBaseTest = payload.dataBaseTest || null  
+ 
     if (payload.body?.content) {
       try {
         const parsed = JSON.parse(payload.body.content)

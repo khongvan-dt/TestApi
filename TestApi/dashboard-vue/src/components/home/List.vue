@@ -40,8 +40,7 @@ const toggleRequest = (id: number, request: RequestItem) => {
   selectedRequest.value = selectedRequest.value === id ? null : id
 
   if (selectedRequest.value === id) {
-    console.log('Selected Request ID:', request.id)
-    emit('selectRequest', {
+     emit('selectRequest', {
       url: request.url,
       method: request.method,
       name: request.name,

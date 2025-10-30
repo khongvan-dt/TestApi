@@ -55,8 +55,7 @@ const responseSize = ref<number | null>(null)
 
 const showSaveModal = ref(false)
 const tabs = ['Params', 'Authorization', 'Headers', 'Body']
-      console.log("🧩 Card received requestId:", props)
-
+ 
 // Resizable
 const requestHeight = ref(400)
 const isResizing = ref(false)

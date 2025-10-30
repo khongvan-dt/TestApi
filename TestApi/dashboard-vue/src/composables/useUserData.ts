@@ -127,8 +127,7 @@ export const useUserData = () => {
     if (cached) {
       try {
         data.value = JSON.parse(cached)
-        console.log(' Loaded cached data:', data.value)
-      } catch (err) {
+       } catch (err) {
         console.error('Error parsing cached data:', err)
       }
     }
@@ -157,7 +156,7 @@ export const useUserData = () => {
     }
   }
 
-  // ✅ THÊM: Import data
+  //  THÊM: Import data
   const importUserData = async (importData: UserData): Promise<ImportResult | null> => {
     loading.value = true
     error.value = null
