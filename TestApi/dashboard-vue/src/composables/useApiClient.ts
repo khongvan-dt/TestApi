@@ -34,74 +34,80 @@ export const useApiClient = () => {
         finalUrl = 'http://localhost:3001/proxy'
       }
 
-      // Build body
-      let requestBody: any = params.body
-      if (typeof requestBody === 'object' && requestBody.content) {
-        requestBody = requestBody.content
-      }
+      // ✅ Body đã được xử lý ở Card.vue rồi
+      let requestBody = params.body
 
-      // ✅ Nếu body là chuỗi chứa nhiều object → chuyển thành mảng JSON hợp lệ
-      if (typeof requestBody === 'string') {
-        let tmp = requestBody.trim()
-        if (tmp.startsWith('{') && tmp.includes('},')) {
-          tmp = `[${tmp}]`
-        }
-        try {
-          requestBody = JSON.parse(tmp)
-        } catch {
-          requestBody = tmp
-        }
-      }
+      console.log('🔵 [useApiClient] requestBody:', requestBody)
 
-      // ✅ Nếu là mảng → test nhiều trường hợp
+      // ✅ Nếu là array → test nhiều cases
       if (Array.isArray(requestBody)) {
+        console.log('🔵 [useApiClient] Testing', requestBody.length, 'cases')
+        
         const results = []
-        for (const testCase of requestBody) {
-          const response = await axios({
-            method: params.method,
-            url: finalUrl,
-            headers: requestHeaders,
-            data: testCase
-          })
-          results.push({
-            success: true,
-            status: response.status,
-            statusText: response.statusText,
-            duration: Date.now() - startTime,
-            size: JSON.stringify(response.data).length,
-            data: response.data
-          })
+        for (let i = 0; i < requestBody.length; i++) {
+          const testCase = requestBody[i]
+          console.log(`🔵 [useApiClient] Test case ${i + 1}:`, testCase)
+          
+          try {
+            const response = await axios({
+              method: params.method,
+              url: finalUrl,
+              headers: requestHeaders,
+              data: testCase
+            })
+            
+            results.push({
+              success: true,
+              status: response.status,
+              statusText: response.statusText,
+              duration: Date.now() - startTime,
+              size: JSON.stringify(response.data).length,
+              data: response.data,
+              testCase: i + 1,
+              requestData: testCase
+            })
+          } catch (error: any) {
+            results.push({
+              success: false,
+              status: error.response?.status || 0,
+              statusText: error.response?.statusText || 'Error',
+              duration: Date.now() - startTime,
+              data: error.response?.data || error.message,
+              testCase: i + 1,
+              requestData: testCase
+            })
+          }
         }
+        
         return results
       }
 
-      // ✅ Nếu chỉ 1 object → gửi 1 lần
+      // ✅ Single request
+      console.log('🔵 [useApiClient] Single request:', requestBody)
+      
       const response = await axios({
         method: params.method,
         url: finalUrl,
         headers: requestHeaders,
         data: requestBody
       })
-      return [
-        {
-          success: true,
-          status: response.status,
-          statusText: response.statusText,
-          duration: Date.now() - startTime,
-          size: JSON.stringify(response.data).length,
-          data: response.data
-        }
-      ]
+
+      return [{
+        success: true,
+        status: response.status,
+        statusText: response.statusText,
+        duration: Date.now() - startTime,
+        size: JSON.stringify(response.data).length,
+        data: response.data
+      }]
     } catch (error: any) {
-      return [
-        {
-          success: false,
-          status: error.response?.status || 0,
-          statusText: error.response?.statusText || 'Network Error',
-          duration: Date.now() - startTime,
-          data: error.response?.data || error.message
-        }
-      ]
+      return [{
+        success: false,
+        status: error.response?.status || 0,
+        statusText: error.response?.statusText || 'Network Error',
+        duration: Date.now() - startTime,
+        data: error.response?.data || error.message
+      }]
     } finally {
       loading.value = false
     }

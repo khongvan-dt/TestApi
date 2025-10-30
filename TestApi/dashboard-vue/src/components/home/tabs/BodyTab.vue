@@ -121,13 +121,17 @@ function setBodyId(id: number) {
   currentBodyId.value = id
   console.log('🟡 [BodyTab.vue] currentBodyId updated to:', currentBodyId.value)
 }
+function getDataBaseTest() {
+  return currentDataBaseTest.value
+}
 
 defineExpose({
   getBodyType: () => bodyType.value,
   getBody,
   updateBody,
   setDataBaseTest,
-  setBodyId
+  setBodyId,
+  getDataBaseTest  
 })
 </script>
 

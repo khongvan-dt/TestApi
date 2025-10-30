@@ -291,6 +291,7 @@ async function saveHistory(result: any, requestBody: any, params: any[], headers
 }
 
 // Send request
+ 
 async function handleSend() {
   if (!url.value) {
     alert('Please enter a URL')
@@ -306,7 +307,29 @@ async function handleSend() {
   try {
     const params = paramsTabRef.value?.getParams() || []
     const headers = buildHeaders()
-    const requestBody = formatRequestBody()
+    
+    // ✅ FIX: Lấy cả baseData và rawBody
+    const bodyData = bodyTabRef.value?.getBody?.()
+    const bodyType = bodyTabRef.value?.getBodyType?.() || 'none'
+    const baseData = bodyTabRef.value?.getDataBaseTest?.() || null
+
+    console.log('🟠 [Card.vue] baseData:', baseData)
+    console.log('🟠 [Card.vue] bodyData:', bodyData)
+    console.log('🟠 [Card.vue] bodyType:', bodyType)
+
+    let requestBody: any = null
+
+    // ✅ Logic merge baseData + rawBody
+    if (bodyType === 'raw' && bodyData?.content) {
+      requestBody = mergeTestData(baseData, bodyData.content)
+      console.log('🟠 [Card.vue] Merged requestBody:', requestBody)
+    } else if (bodyType === 'base-data' && baseData) {
+      // Nếu chọn tab base-data → chỉ dùng baseData
+      requestBody = baseData
+    } else if (bodyData?.content) {
+      // Các trường hợp khác
+      requestBody = bodyData.content
+    }
 
     const requestPayload = {
       requestId: currentRequestId.value,
@@ -319,30 +342,114 @@ async function handleSend() {
       body: requestBody
     }
 
-    const actualBody = requestPayload.body?.bodyType === 'raw'
-      ? requestPayload.body.content
-      : requestPayload.body
+    console.log('🟠 [Card.vue] Final requestPayload:', requestPayload)
 
-    const result = await sendRequest({ ...requestPayload, body: actualBody })
+    const result = await sendRequest(requestPayload)
 
-    responseStatus.value = result.status ?? null
-    responseDuration.value = result.duration ?? null
-    responseSize.value = result.size ?? null
-    
-    response.value = result.success
-      ? JSON.stringify(result.data, null, 2)
-      : JSON.stringify({
-        error: result.error || 'Request failed',
-        status: result.status,
-        statusText: result.statusText,
-        data: result.data
-      }, null, 2)
+    console.log('🟠 [Card.vue] API Result:', result)
 
+    // ✅ Xử lý array results
+    if (Array.isArray(result)) {
+      const allResults = result.map((r, index) => ({
+        testCase: index + 1,
+        success: r.success,
+        status: r.status,
+        statusText: r.statusText,
+        duration: r.duration,
+        size: r.size,
+        data: r.data
+      }))
+
+      responseStatus.value = result[0]?.status ?? null
+      responseDuration.value = result[0]?.duration ?? null
+      responseSize.value = result[0]?.size ?? null
+
+      response.value = JSON.stringify(allResults, null, 2)
+    } else {
+      responseStatus.value = result.status ?? null
+      responseDuration.value = result.duration ?? null
+      responseSize.value = result.size ?? null
+
+      response.value = result.success
+        ? JSON.stringify(result.data, null, 2)
+        : JSON.stringify({
+          error: result.error || 'Request failed',
+          status: result.status,
+          statusText: result.statusText,
+          data: result.data
+        }, null, 2)
+    }
+
+    // Save history với requestBody gốc
     await saveHistory(result, requestBody, params, headers)
   } catch (error: any) {
     response.value = JSON.stringify({ error: error.message || 'Unknown error occurred' }, null, 2)
   } finally {
     loading.value = false
+  }
+}
+
+// ✅ Hàm merge baseData với overrides
+function mergeTestData(baseDataStr: string | null, rawBodyStr: string): any {
+  if (!baseDataStr) {
+    // Không có baseData → chỉ parse rawBody
+    return parseRawBody(rawBodyStr)
+  }
+
+  try {
+    const baseData = JSON.parse(baseDataStr)
+
+    // Parse rawBody (có thể là 1 object hoặc nhiều objects)
+    let overrides = parseRawBody(rawBodyStr)
+
+    // Nếu rawBody chỉ có 1 object → wrap thành array
+    if (!Array.isArray(overrides)) {
+      overrides = [overrides]
+    }
+
+    // Merge từng override với baseData
+    const mergedTestCases = overrides.map((override: any) => ({
+      ...baseData,
+      ...override
+    }))
+
+    console.log('🟢 [Card.vue] mergeTestData result:', mergedTestCases)
+
+    return mergedTestCases
+  } catch (error) {
+    console.error('❌ [Card.vue] mergeTestData error:', error)
+    return parseRawBody(rawBodyStr)
+  }
+}
+
+// ✅ Parse rawBody (hỗ trợ cả comma-separated format)
+function parseRawBody(rawStr: string): any {
+  const trimmed = rawStr.trim()
+
+  // Case 1: Đã có [] bao quanh
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      return trimmed
+    }
+  }
+
+  // Case 2: Nhiều objects cách nhau bởi dấu phẩy
+  if (/\}\s*,\s*\{/.test(trimmed)) {
+    try {
+      const wrapped = `[${trimmed}]`
+      return JSON.parse(wrapped)
+    } catch {
+      return trimmed
+    }
+  }
+
+  // Case 3: Single object
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    return trimmed
   }
 }
 
