@@ -8,55 +8,52 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{ (e: 'update', value: string): void }>()
 
-const dbContent = ref(props.dataBaseTest || '')
-const editContent = ref(dbContent.value)
+const dbContent = ref('')
+const editContent = ref('')
 const isEditing = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
+// Watch props changes
 watch(() => props.dataBaseTest, (val) => {
   dbContent.value = val || ''
   if (!isEditing.value) editContent.value = dbContent.value
-})
+}, { immediate: true })
 
-const startEdit = () => {
+function startEdit() {
   isEditing.value = true
   editContent.value = dbContent.value
 }
 
-const cancelEdit = () => {
+function cancelEdit() {
   isEditing.value = false
   editContent.value = dbContent.value
+  errorMessage.value = ''
 }
 
-const saveEdit = async () => {
+async function saveEdit() {
   if (!props.requestId) {
-    errorMessage.value = 'Thiếu dữ liệu requestId.'
+    errorMessage.value = 'Missing requestId.'
     return
   }
 
-  try {
-    isLoading.value = true
-    errorMessage.value = ''
+  isLoading.value = true
+  errorMessage.value = ''
 
-    // Gọi API mới
-    const result = await UpdateTestdataRequest({
+  try {
+    await UpdateTestdataRequest({
       requestId: props.requestId,
       newTestDataContent: editContent.value
     })
 
-    // result là { requestId, newTestDataContent } → thành công
     dbContent.value = editContent.value
     emit('update', dbContent.value)
     isEditing.value = false
-
   } catch (err: any) {
-    // Xử lý lỗi từ API
-    console.error('Lưu dataBaseTest thất bại:', err)
-    errorMessage.value = err.message || 'Lỗi hệ thống khi lưu Database Test.'
+    console.error('Save dataBaseTest failed:', err)
+    errorMessage.value = err.message || 'System error when saving Database Test.'
   } finally {
     isLoading.value = false
   }
@@ -70,25 +67,25 @@ const saveEdit = async () => {
         class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors">
         Edit
       </button>
-      <div v-else class="flex gap-1">
+      <template v-else>
         <button @click="saveEdit" :disabled="isLoading"
-          class="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 transition-colors">
+          class="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 disabled:opacity-50 transition-colors">
           {{ isLoading ? 'Saving...' : 'Save' }}
         </button>
         <button @click="cancelEdit" :disabled="isLoading"
-          class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors">
+          class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors">
           Cancel
         </button>
-      </div>
+      </template>
     </div>
 
     <div class="flex-1 overflow-hidden">
       <p v-if="errorMessage" class="text-xs text-red-500 mb-1">{{ errorMessage }}</p>
 
       <pre v-if="!isEditing"
-        class="text-xs font-mono text-gray-700 whitespace-pre-wrap break-words h-full overflow-y-auto p-2 bg-white rounded border"> {{ dbContent || 'No DataBaseTest content' }} </pre>
+        class="text-xs font-mono text-gray-700 whitespace-pre-wrap break-words h-full overflow-y-auto p-2 bg-white rounded border">{{ dbContent || 'No DataBaseTest content' }}</pre>
 
-      <textarea v-else id="db-test-editor" v-model="editContent"
+      <textarea v-else v-model="editContent"
         class="w-full h-full p-2 text-xs font-mono text-gray-700 bg-white border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
         spellcheck="false" />
     </div>

@@ -12,58 +12,96 @@ const emit = defineEmits<{
     body: RequestBody | null
     headers: Array<{ key: string; value: string }>
     queryParams: Array<{ key: string; value: string }>
-    requestId: number,
+    requestId: number
     dataBaseTest: string | null
   }): void
   (e: 'addNewTab', collectionId: number): void
   (e: 'openExportImport'): void
 }>()
 
+// Composables
 const { data, loading, error, fetchUserData, loadCachedData } = useUserData()
+
+// State
 const selectedCollection = ref<number | null>(null)
 const selectedRequest = ref<number | null>(null)
 const deletingRequestId = ref<number | null>(null)
 
+// Computed
 const collections = computed<Collection[]>(() => data.value?.collections || [])
 
+// Lifecycle
 onMounted(async () => {
   loadCachedData()
   await fetchUserData()
 })
 
-const toggleCollection = (id: number) => {
+// Toggle Collection
+function toggleCollection(id: number) {
   selectedCollection.value = selectedCollection.value === id ? null : id
   selectedRequest.value = null
 }
 
-const toggleRequest = (id: number, request: RequestItem) => {
+function toggleRequest(id: number, request: RequestItem) {
   selectedRequest.value = selectedRequest.value === id ? null : id
 
   if (selectedRequest.value === id) {
-     emit('selectRequest', {
+    console.log('🔵 [List.vue] Request raw data:', request)
+    console.log('🔵 [List.vue] All Bodies:', request.bodies)
+
+    // ✅ FIX: Merge tất cả bodies thành comma-separated format
+    let mergedBody = null
+
+    if (request.bodies && request.bodies.length > 0) {
+      if (request.bodies.length === 1) {
+        // Chỉ có 1 body → hiển thị bình thường
+        mergedBody = request.bodies[0]
+      } else {
+        // Nhiều bodies → merge thành comma-separated format
+        const mergedContent = request.bodies
+          .map(b => b.content)
+          .join(',')
+
+        mergedBody = {
+          id: request.bodies[0].id,  // Lấy ID của body đầu tiên
+          bodyType: 'raw',
+          content: mergedContent
+        }
+
+        console.log('🔵 [List.vue] Merged multiple bodies:', mergedBody)
+      }
+    }
+
+    emit('selectRequest', {
       url: request.url,
       method: request.method,
       name: request.name,
-      body: request.body,
+      body: mergedBody,
+      bodies: request.bodies,  // Gửi thêm tất cả bodies
       headers: request.headers,
       queryParams: request.queryParams,
       requestId: request.id,
       dataBaseTest: request.dataBaseTest
-
     })
   }
 }
 
-const handleDeleteRequest = async (requestId: number, requestName: string, event: Event) => {
+// Delete Request
+async function handleDeleteRequest(requestId: number, requestName: string, event: Event) {
   event.stopPropagation()
+
   if (!confirm(`Are you sure you want to delete "${requestName}"?`)) return
 
   deletingRequestId.value = requestId
+
   try {
     const result = await deleteRequest(requestId)
+
     if (result?.success) {
       await fetchUserData()
-      if (selectedRequest.value === requestId) selectedRequest.value = null
+      if (selectedRequest.value === requestId) {
+        selectedRequest.value = null
+      }
     } else {
       alert(result?.message || 'Failed to delete request')
     }
@@ -74,16 +112,31 @@ const handleDeleteRequest = async (requestId: number, requestName: string, event
   }
 }
 
-const handleAddTab = (collectionId: number, event: Event) => {
+// Add Tab
+function handleAddTab(collectionId: number, event: Event) {
   event.stopPropagation()
   emit('addNewTab', collectionId)
 }
 
-const refreshData = async () => await fetchUserData()
+// Refresh Data
+async function refreshData() {
+  await fetchUserData()
+}
+
+// Get method color classes
+function getMethodColorClass(method: string) {
+  const colorMap: Record<string, string> = {
+    'POST': 'bg-green-100 text-green-700',
+    'GET': 'bg-blue-100 text-blue-700',
+    'PUT': 'bg-orange-100 text-orange-700',
+    'PATCH': 'bg-purple-100 text-purple-700',
+    'DELETE': 'bg-red-100 text-red-700'
+  }
+  return colorMap[method] || 'bg-gray-100 text-gray-700'
+}
 
 defineExpose({ refreshData })
 </script>
-
 
 <template>
   <UDashboardNavbar title="Home">
@@ -91,6 +144,7 @@ defineExpose({ refreshData })
       <UDashboardSidebarCollapse />
     </template>
   </UDashboardNavbar>
+
   <div class="h-full flex flex-col bg-white overflow-hidden">
     <!-- Loading State -->
     <div v-if="loading && collections.length === 0" class="flex-1 flex items-center justify-center p-4">
@@ -151,8 +205,9 @@ defineExpose({ refreshData })
         </button>
       </div>
 
+      <!-- Collections -->
       <div v-for="col in collections" :key="col.id" class="py-2">
-        <!-- COLLECTION HEADER -->
+        <!-- Collection Header -->
         <div
           class="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-2 rounded-md border-l-2 transition-colors group"
           :class="selectedCollection === col.id ? 'border-blue-500 bg-blue-50' : 'border-transparent'"
@@ -166,7 +221,7 @@ defineExpose({ refreshData })
             </div>
           </div>
 
-          <!-- NÚT + -->
+          <!-- Add Tab Button -->
           <button @click="handleAddTab(col.id, $event)"
             class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded p-1 transition-all flex-shrink-0"
             title="New tab">
@@ -174,23 +229,17 @@ defineExpose({ refreshData })
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
           </button>
-
         </div>
 
-        <!-- REQUEST LIST -->
+        <!-- Request List -->
         <div v-if="selectedCollection === col.id" class="pl-4 border-l border-gray-200 ml-2 mt-1 space-y-1">
           <div v-for="req in col.requests" :key="req.id">
             <div class="cursor-pointer px-2 py-1.5 hover:bg-gray-50 rounded-md transition-colors relative"
               :class="selectedRequest === req.id ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'"
               @click="toggleRequest(req.id, req)">
               <div class="flex items-center gap-2 mb-0.5">
-                <span class="text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0" :class="{
-                  'bg-green-100 text-green-700': req.method === 'POST',
-                  'bg-blue-100 text-blue-700': req.method === 'GET',
-                  'bg-orange-100 text-orange-700': req.method === 'PUT',
-                  'bg-purple-100 text-purple-700': req.method === 'PATCH',
-                  'bg-red-100 text-red-700': req.method === 'DELETE'
-                }">
+                <span class="text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                  :class="getMethodColorClass(req.method)">
                   {{ req.method }}
                 </span>
                 <span class="text-gray-800 text-xs truncate flex-1 font-medium">{{ req.name }}</span>
@@ -199,9 +248,9 @@ defineExpose({ refreshData })
                 {{ req.url }}
               </div>
 
-              <!-- DELETE BUTTON -->
+              <!-- Delete Button -->
               <button @click="handleDeleteRequest(req.id, req.name, $event)" :disabled="deletingRequestId === req.id"
-                class="absolute right-1 top-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded p-1 flex-shrink-0"
+                class="absolute right-1 top-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded p-1 flex-shrink-0 transition-colors"
                 title="Delete request">
                 <svg v-if="deletingRequestId === req.id" class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -214,10 +263,8 @@ defineExpose({ refreshData })
                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
-
             </div>
           </div>
-
         </div>
       </div>
     </div>

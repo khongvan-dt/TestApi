@@ -14,7 +14,7 @@ const formDataItems = ref<FormDataItem[]>([
   { id: '1', key: '', type: 'text', value: '', description: '', enabled: true }
 ])
 
-const addFormData = () => {
+function addFormData() {
   formDataItems.value.push({
     id: Date.now().toString(),
     key: '',
@@ -25,43 +25,48 @@ const addFormData = () => {
   })
 }
 
-const removeFormData = (id: string) => {
+function removeFormData(id: string) {
   formDataItems.value = formDataItems.value.filter(i => i.id !== id)
   if (formDataItems.value.length === 0) addFormData()
 }
 
-const handleFileChange = (e: Event, item: FormDataItem) => {
+function handleFileChange(e: Event, item: FormDataItem) {
   const target = e.target as HTMLInputElement
-  if (target.files && target.files.length > 0) item.value = target.files[0]
-  else item.value = null
+  item.value = target.files?.[0] || null
 }
 
-// auto add when typing key in last row
-const onKeyInput = (item: FormDataItem) => {
+function onKeyInput(item: FormDataItem) {
   const last = formDataItems.value[formDataItems.value.length - 1]
-  if (item.id === last.id && String(item.key).trim() !== '') addFormData()
+  if (item.id === last.id && item.key.trim()) {
+    addFormData()
+  }
 }
 
-// remove empty middle rows (optional helper)
-const compactEmptyRows = () => {
-  // keep last row empty always
+function compactEmptyRows() {
   const last = formDataItems.value[formDataItems.value.length - 1]
   formDataItems.value = formDataItems.value.filter(i => {
     if (i === last) return true
-    return !(i.key.trim() === '' && String(i.value || '').toString().trim() === '')
+    return !(i.key.trim() === '' && String(i.value || '').trim() === '')
   })
   if (formDataItems.value.length === 0) addFormData()
 }
 
-defineExpose({
-  getBody: () => {
-    const fd = new FormData()
-    formDataItems.value.filter(i => i.enabled && i.key).forEach(i => {
-      if (i.type === 'file' && i.value instanceof File) fd.append(i.key, i.value)
-      else if (i.type === 'text') fd.append(i.key, String(i.value ?? ''))
+function getBody() {
+  const fd = new FormData()
+  formDataItems.value
+    .filter(i => i.enabled && i.key)
+    .forEach(i => {
+      if (i.type === 'file' && i.value instanceof File) {
+        fd.append(i.key, i.value)
+      } else if (i.type === 'text') {
+        fd.append(i.key, String(i.value ?? ''))
+      }
     })
-    return fd
-  },
+  return fd
+}
+
+defineExpose({
+  getBody,
   getBodyType: () => 'form-data',
   addFormData,
   removeFormData,
@@ -137,6 +142,5 @@ defineExpose({
         </div>
       </div>
     </div>
-
   </div>
 </template>

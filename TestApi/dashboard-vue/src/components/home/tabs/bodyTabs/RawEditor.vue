@@ -2,9 +2,9 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps<{ modelValue?: string }>()
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>()
 
-const body = ref(props.modelValue ?? '')
+const body = ref('')
 
 watch(() => props.modelValue, (newValue) => {
   if (newValue !== undefined && newValue !== body.value) {
@@ -12,15 +12,17 @@ watch(() => props.modelValue, (newValue) => {
   }
 }, { immediate: true })
 
-const updateBody = () => {
-   emit('update:modelValue', body.value)
+function updateBody() {
+  emit('update:modelValue', body.value)
+}
+
+function setBody(newBody: string) {
+  body.value = newBody
+  emit('update:modelValue', newBody)
 }
 
 defineExpose({
-  updateBody: (newBody: string) => {
-    body.value = newBody
-    emit('update:modelValue', newBody)
-  },
+  updateBody: setBody,
   getBody: () => body.value,
   getBodyType: () => 'raw'
 })
@@ -31,6 +33,6 @@ defineExpose({
     v-model="body"
     @input="updateBody"
     placeholder="Enter request body..."
-    class="w-full h-[360px] px-3 py-2 font-mono"
+    class="w-full h-[360px] px-3 py-2 font-mono text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
   />
 </template>

@@ -3,7 +3,6 @@ import { ref, watch, onMounted } from 'vue'
 import { useUserData } from '../../../composables/useUserData'
 import { getMyCollections, createCollection } from '../../../composables/useCollection'
 
-// -------------------- INTERFACES --------------------
 interface Collection {
   id: number
   userId: number
@@ -16,45 +15,45 @@ interface Collection {
 interface Props {
   currentUrl: string
   currentMethod: string
-  currentBody: any // { bodyType: string, content: string }
+  currentBody: any
   requestId?: number | null
   requestName?: string
   cardRef?: any 
 }
 
-// -------------------- PROPS & EMIT --------------------
 const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'saved', requestId: number): void
 }>()
 
-// -------------------- COMPOSABLE --------------------
+// Composables
 const { saveRequest, loading, error } = useUserData()
 
-// -------------------- STATE --------------------
+// State
 const selectedCollectionId = ref<number>(0)
-const requestName = ref(props.requestName || '')
+const requestName = ref('')
 const saveResult = ref<string | null>(null)
 const collections = ref<Collection[]>([])
 const loadingCollections = ref(false)
-
 const showCreateCollection = ref(false)
 const newCollectionName = ref('')
 const newCollectionDescription = ref('')
 const creatingCollection = ref(false)
 
-// -------------------- LIFE CYCLE --------------------
-onMounted(async () => {
-  await loadCollections()
-})
+// Watch props
+watch(() => props.requestName, (newVal) => {
+  requestName.value = newVal || ''
+}, { immediate: true })
 
-// -------------------- LOAD COLLECTION --------------------
-const loadCollections = async () => {
+// Lifecycle
+onMounted(loadCollections)
+
+// Load Collections
+async function loadCollections() {
   loadingCollections.value = true
   try {
-    const result = await getMyCollections()
-    collections.value = result || []
+    collections.value = await getMyCollections() || []
   } catch (err) {
     error.value = 'Failed to load collections'
   } finally {
@@ -62,8 +61,8 @@ const loadCollections = async () => {
   }
 }
 
-// -------------------- CREATE COLLECTION --------------------
-const toggleCreateCollection = () => {
+// Toggle Create Collection
+function toggleCreateCollection() {
   showCreateCollection.value = !showCreateCollection.value
   if (showCreateCollection.value) {
     newCollectionName.value = ''
@@ -71,8 +70,10 @@ const toggleCreateCollection = () => {
   }
 }
 
-const handleCreateCollection = async () => {
-  if (!newCollectionName.value.trim()) {
+// Create Collection
+async function handleCreateCollection() {
+  const name = newCollectionName.value.trim()
+  if (!name) {
     error.value = 'Please enter collection name'
     return
   }
@@ -82,11 +83,11 @@ const handleCreateCollection = async () => {
 
   try {
     const result = await createCollection({
-      name: newCollectionName.value,
+      name,
       description: newCollectionDescription.value
     })
 
-    if (result && result.id) {
+    if (result?.id) {
       await loadCollections()
       selectedCollectionId.value = result.id
       showCreateCollection.value = false
@@ -100,27 +101,116 @@ const handleCreateCollection = async () => {
   }
 }
 
- watch(() => props.requestName, (newVal) => {
-  requestName.value = newVal || ''
-})
+// ✅ FIX: Normalize body structure - GIỮ NGUYÊN ID
+function normalizeBody(body: any) {
+  // ✅ Lấy id từ body hiện tại, nếu không có mới set 0
+  const bodyId = body?.id || 0
+  
+  return {
+    id: bodyId,  // ✅ Giữ nguyên ID
+    bodyType: body?.bodyType || 'raw',
+    content: body?.content || ''
+  }
+}
 
-// -------------------- HANDLE SAVE --------------------
-const handleSave = async () => {
-  if (!requestName.value.trim()) {
-    error.value = 'Please enter a request name'
-    return
+function parseMultipleJsonObjects(content: string): any[] | null {
+  const trimmed = content.trim()
+  
+  // Case 1: Đã có [] bao quanh
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      return null
+    }
+  }
+  
+  // Case 2: Nhiều JSON objects cách nhau bởi dấu phẩy
+  if (/\}\s*,\s*\{/.test(trimmed)) {
+    try {
+      // Wrap trong []
+      const wrapped = `[${trimmed}]`
+      const parsed = JSON.parse(wrapped)
+      
+      // Chỉ return nếu parse thành công VÀ là array có > 1 phần tử
+      if (Array.isArray(parsed) && parsed.length > 1) {
+        console.log('🔴 [SaveRequestModal] Parsed multiple JSON:', parsed)
+        return parsed
+      }
+    } catch (e) {
+      console.error('🔴 [SaveRequestModal] Failed to parse multiple JSON:', e)
+      return null
+    }
+  }
+  
+  return null
+}
+
+// ✅ FIX: Build request data array - Split thành nhiều requests
+function buildRequestDataArray(baseRequest: any, requestBody: any): any[] {
+  console.log('🔴 [SaveRequestModal] buildRequestDataArray called')
+  console.log('🔴 [SaveRequestModal] requestBody:', requestBody)
+  
+  const bodyId = requestBody?.id || 0
+  console.log('🔴 [SaveRequestModal] Extracted bodyId:', bodyId)
+  
+  // Nếu không phải raw body hoặc không có content
+  if (requestBody?.bodyType !== 'raw' || !requestBody.content) {
+    console.log('🔴 [SaveRequestModal] Not raw or no content, returning single request')
+    return [{
+      ...baseRequest,
+      body: {
+        id: bodyId,
+        bodyType: requestBody?.bodyType || 'raw',
+        content: requestBody?.content || ''
+      }
+    }]
   }
 
-  if (selectedCollectionId.value === 0) {
-    error.value = 'Please select a collection'
-    return
+  const content = requestBody.content.trim()
+  const parsedArray = parseMultipleJsonObjects(content)
+
+  // ✅ Nếu detect được nhiều JSON objects
+  if (parsedArray && parsedArray.length > 1) {
+    console.log('🔴 [SaveRequestModal] Multiple JSON detected, count:', parsedArray.length)
+    
+    // ✅ Tạo nhiều requests, mỗi request có 1 body
+    const requests = parsedArray.map((obj: any, index: number) => ({
+      ...baseRequest,
+      body: {
+        id: index === 0 ? bodyId : 0,  // Request đầu giữ bodyId, còn lại là 0 (insert mới)
+        bodyType: 'raw',
+        content: JSON.stringify(obj, null, 2)
+      }
+    }))
+    
+    console.log('🔴 [SaveRequestModal] Multiple requests created:', requests)
+    return requests
   }
 
-  if (!props.currentUrl.trim()) {
-    error.value = 'URL cannot be empty'
-    return
-  }
+  // ✅ Chỉ có 1 JSON object
+  console.log('🔴 [SaveRequestModal] Single JSON, returning single request')
+  return [{
+    ...baseRequest,
+    body: {
+      id: bodyId,
+      bodyType: 'raw',
+      content: content
+    }
+  }]
+}
 
+
+// Validate save request
+function validateSaveRequest(): string | null {
+  if (!requestName.value.trim()) return 'Please enter a request name'
+  if (selectedCollectionId.value === 0) return 'Please select a collection'
+  if (!props.currentUrl.trim()) return 'URL cannot be empty'
+  return null
+}
+
+// Get request data from card
+function getCardData() {
   let requestBody = props.currentBody
   let queryParams: any[] = []
   let headers: any[] = []
@@ -136,6 +226,21 @@ const handleSave = async () => {
       .map((h: any) => ({ key: h.key, value: h.value }))
   }
 
+  return { requestBody, queryParams, headers }
+}
+
+// Save Request
+async function handleSave() {
+  const validationError = validateSaveRequest()
+  if (validationError) {
+    error.value = validationError
+    return
+  }
+
+  const { requestBody, queryParams, headers } = getCardData()
+
+  console.log('🟢 SaveRequestModal - requestBody:', requestBody)  // Debug
+
   const baseRequest = {
     requestId: props.requestId || 0,
     collectionId: selectedCollectionId.value,
@@ -148,55 +253,13 @@ const handleSave = async () => {
     headers
   }
 
-  let requestDataArray: any[] = []
+  const requestDataArray = buildRequestDataArray(baseRequest, requestBody)
+  
+  console.log('🟡 SaveRequestModal - requestDataArray:', requestDataArray)  // Debug
 
-  // Kiểm tra nếu body type là 'raw' và có chứa nhiều JSON objects
-  if (requestBody?.bodyType === 'raw' && requestBody.content) {
-    const content = requestBody.content.trim()
-    
-    // Kiểm tra nếu content có dạng nhiều JSON objects cách nhau bởi dấu phay
-    // Pattern: }...whitespace...,..whitespace...{
-    if (/\}\s*,\s*\{/.test(content)) {
-      try {
-        // Wrap content trong array và parse
-        const wrappedContent = `[${content}]`
-        const parsedArray = JSON.parse(wrappedContent)
-        
-        // Tạo một request riêng cho mỗi object
-        requestDataArray = parsedArray.map((obj: any) => ({
-          ...baseRequest,
-          body: {
-            bodyType: 'raw',
-            content: JSON.stringify(obj, null, 2)
-          }
-        }))
-      } catch (e) {
-        console.error('Failed to parse multiple JSON objects:', e)
-        // Nếu parse lỗi, giữ nguyên như một request duy nhất
-        requestDataArray = [{
-          ...baseRequest,
-          body: requestBody
-        }]
-      }
-    } else {
-      // Chỉ có một JSON object
-      requestDataArray = [{
-        ...baseRequest,
-        body: requestBody
-      }]
-    }
-  } else {
-    // Không phải raw body hoặc không có content
-    requestDataArray = [{
-      ...baseRequest,
-      body: requestBody
-    }]
-  }
-
-  // Gửi mảng requestDataArray lên API
   try {
-     const result = await saveRequest(requestDataArray)
-    if (result && result.success) {
+    const result = await saveRequest(requestDataArray)
+    if (result?.success) {
       saveResult.value = result.isNew ? 'created' : 'updated'
       setTimeout(() => {
         emit('saved', result.requestId)

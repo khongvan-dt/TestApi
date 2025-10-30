@@ -1,6 +1,8 @@
 ﻿namespace AutoApiTester.Models.DTOs
 {
-    // User DTO
+    // ====================================
+    // 🔴 KHÔNG THAY ĐỔI - User DTO
+    // ====================================
     public class UserDataDto
     {
         public int Id { get; set; }
@@ -11,8 +13,9 @@
         public DateTime CreatedAt { get; set; }
     }
 
-   
-    // ✅ Request DTO theo DB
+    // ====================================
+    // ✅ THAY ĐỔI - Request DTO (Body → Bodies)
+    // ====================================
     public class RequestDataDto
     {
         public int Id { get; set; }
@@ -26,12 +29,16 @@
         // ✅ Nested
         public List<RequestParamDto> QueryParams { get; set; } = new();
         public List<RequestHeaderDto> Headers { get; set; } = new();
-        public RequestBodyDto? Body { get; set; }
-        public string? DataBaseTest { get; set; }
 
+        // ✅ THAY ĐỔI: Body → Bodies (List)
+        public List<RequestBodyDto> Bodies { get; set; } = new();
+
+        public string? DataBaseTest { get; set; }
     }
 
-    // Nested child DTOs
+    // ====================================
+    // 🔴 KHÔNG THAY ĐỔI - Nested child DTOs
+    // ====================================
     public class RequestParamDto
     {
         public string? Key { get; set; }
@@ -46,11 +53,14 @@
 
     public class RequestBodyDto
     {
+        public int Id { get; set; }
         public string? BodyType { get; set; }
         public string? Content { get; set; }
     }
 
-    // ✅ Collection DTO theo DB
+    // ====================================
+    // 🔴 KHÔNG THAY ĐỔI - Collection DTO
+    // ====================================
     public class CollectionDataDto
     {
         public int Id { get; set; }
@@ -62,7 +72,9 @@
         public List<RequestDataDto> Requests { get; set; } = new();
     }
 
-    // ✅ Main Export DTO
+    // ====================================
+    // 🔴 KHÔNG THAY ĐỔI - Main Export DTO
+    // ====================================
     public class UserDataExportDto
     {
         public UserDataDto? User { get; set; }
@@ -74,7 +86,11 @@
     {
         public int TotalCollections { get; set; }
         public int TotalRequests { get; set; }
-     }
+    }
+
+    // ====================================
+    // 🔴 KHÔNG THAY ĐỔI - Import Result DTO
+    // ====================================
     public class ImportResultDto
     {
         public bool Success { get; set; }
@@ -86,8 +102,9 @@
         public int TotalProcessed { get; set; }
     }
 
-
-
+    // ====================================
+    // 🔴 KHÔNG THAY ĐỔI - Save Request DTOs
+    // ====================================
     public class SaveRequestDto
     {
         public int? RequestId { get; set; } // Null = create new, có giá trị = update
@@ -100,7 +117,8 @@
 
         public List<ParamDto> QueryParams { get; set; } = new();
         public List<HeaderDto> Headers { get; set; } = new();
-        public BodyDto? Body { get; set; }
+
+         public BodyDto? Body { get; set; }
     }
 
     public class ParamDto
@@ -117,7 +135,7 @@
 
     public class BodyDto
     {
-        public int Id { get; set; } 
+        public int Id { get; set; }
         public string BodyType { get; set; } = "raw";
         public string Content { get; set; } = string.Empty;
     }
@@ -129,5 +147,4 @@
         public int RequestId { get; set; }
         public bool IsNew { get; set; } // true = created, false = updated
     }
-
 }

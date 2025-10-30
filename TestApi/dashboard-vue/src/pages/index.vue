@@ -10,6 +10,9 @@ interface Tab {
   method: string
   url: string
   body: string
+  bodyId?: number
+    bodies?: Array<any>   
+
   collectionId?: number
   requestId?: number
   params?: Array<{ key: string; value: string; enabled: boolean }>
@@ -19,99 +22,126 @@ interface Tab {
   dataBaseTest?: string | null
 }
 
-// State
-const tabs = ref<Tab[]>([
-  {
-    id: 'default',
-    title: 'New Request',
-    method: 'POST',
-    url: '',
-    body: '{}',
-    collectionId: undefined,
-    requestId: undefined,
-    params: [],
-    headers: [],
-    auth: null,
-    activeSubTab: 'Body'
-  }
-])
+// Constants
+const DEFAULT_TAB: Tab = {
+  id: 'default',
+  title: 'New Request',
+  method: 'POST',
+  url: '',
+  body: '{}',
+  collectionId: undefined,
+  requestId: undefined,
+  params: [],
+  headers: [],
+  auth: null,
+  activeSubTab: 'Body'
+}
 
+// State
+const tabs = ref<Tab[]>([{ ...DEFAULT_TAB }])
 const activeTabId = ref('default')
 const cardRef = ref()
 const listRef = ref()
 const showExportImportModal = ref(false)
 
-const activeTab = computed(() =>
+// Computed
+const activeTab = computed(() => 
   tabs.value.find(t => t.id === activeTabId.value) || tabs.value[0]
 )
 
-// Handle state change từ Card
-const handleStateChange = (state: any) => {
-  const currentTab = tabs.value.find(t => t.id === activeTabId.value)
-  if (currentTab) {
-    currentTab.url = state.url
-    currentTab.method = state.method
-    currentTab.body = state.body
-    currentTab.activeSubTab = state.activeTab
+const currentBodyId = computed(() => activeTab.value?.bodyId || 0)
+
+// Debounce helper
+function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  return (...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
   }
 }
 
-// Handle chọn request từ sidebar
-const handleSelectRequest = (payload: any) => {
-  const currentTab = tabs.value.find(t => t.id === activeTabId.value)
-  if (currentTab) {
-    currentTab.title = payload.name
-    currentTab.method = payload.method
-    currentTab.url = payload.url
-    currentTab.headers = payload.headers || []
-    currentTab.params = payload.queryParams || []
-    currentTab.requestId = payload.requestId
-    currentTab.dataBaseTest = payload.dataBaseTest || null  
- 
-    if (payload.body?.content) {
-      try {
-        const parsed = JSON.parse(payload.body.content)
-        currentTab.body = JSON.stringify(parsed, null, 2)
-      } catch {
-        currentTab.body = payload.body.content
-      }
-    } else {
-      currentTab.body = '{}'
-    }
+// Save tabs to localStorage
+const saveTabsToLocalStorage = debounce((tabsData: Tab[], activeId: string) => {
+  try {
+    localStorage.setItem('api-tabs', JSON.stringify({
+      tabs: tabsData,
+      activeTabId: activeId
+    }))
+  } catch (error) {
+    console.error('Error saving tabs:', error)
+  }
+}, 500)
 
-    // Tự động chọn tab base-data nếu có dataBaseTest
-    if (payload.dataBaseTest) {
-      currentTab.activeSubTab = 'Body'
-      nextTick(() => {
-        cardRef.value?.setActiveTab?.('Body')
-      })
-    }
+// Parse body content
+function parseBodyContent(content: string): string {
+  try {
+    const parsed = JSON.parse(content)
+    return JSON.stringify(parsed, null, 2)
+  } catch {
+    return content
   }
 }
 
-// Thêm tab mới
-const handleAddNewTab = (collectionId: number) => {
+// ✅ FIX: Không mutate tabs trực tiếp trong handleStateChange
+function handleStateChange(state: any) {
+  const currentTab = tabs.value.find(t => t.id === activeTabId.value)
+  if (!currentTab) return
+
+  // ✅ Chỉ update nếu giá trị thực sự thay đổi
+  if (currentTab.url !== state.url) currentTab.url = state.url
+  if (currentTab.method !== state.method) currentTab.method = state.method
+  if (currentTab.body !== state.body) currentTab.body = state.body
+  if (currentTab.activeSubTab !== state.activeTab) currentTab.activeSubTab = state.activeTab
+}
+
+// Handle select request
+function handleSelectRequest(payload: any) {
+  console.log('🟢 [index.vue] Received payload:', payload)
+  
+  const currentTab = tabs.value.find(t => t.id === activeTabId.value)
+  if (!currentTab) return
+
+  currentTab.title = payload.name
+  currentTab.method = payload.method
+  currentTab.url = payload.url
+  currentTab.headers = payload.headers || []
+  currentTab.params = payload.queryParams || []
+  currentTab.requestId = payload.requestId
+  currentTab.dataBaseTest = payload.dataBaseTest || null
+  currentTab.bodies = payload.bodies || []  // ✅ Lưu tất cả bodies
+
+  // Handle body (lấy body đầu tiên)
+  if (payload.body) {
+    currentTab.bodyId = payload.body.id || 0
+    currentTab.body = payload.body.content 
+      ? parseBodyContent(payload.body.content)
+      : '{}'
+    
+    console.log('🟢 [index.vue] Set currentTab.bodyId:', currentTab.bodyId)
+    console.log('🟢 [index.vue] All bodies count:', currentTab.bodies?.length)
+  } else {
+    currentTab.body = '{}'
+    currentTab.bodyId = 0
+  }
+}
+// Add new tab
+function handleAddNewTab(collectionId: number) {
   const newId = `tab-${Date.now()}`
 
   tabs.value.push({
+    ...DEFAULT_TAB,
     id: newId,
-    title: 'New Request',
-    method: 'POST',
-    url: '',
-    body: '{}',
-    collectionId,
-    requestId: undefined,
-    params: [],
-    headers: [],
-    auth: null,
-    activeSubTab: 'Body'
+    collectionId
   })
 
   activeTabId.value = newId
 }
 
-// Đóng tab
-const closeTab = (tabId: string) => {
+// Close tab
+function closeTab(tabId: string) {
   const index = tabs.value.findIndex(t => t.id === tabId)
 
   if (index > -1) {
@@ -123,47 +153,33 @@ const closeTab = (tabId: string) => {
   }
 
   if (tabs.value.length === 0) {
-    tabs.value.push({
-      id: 'default',
-      title: 'New Request',
-      method: 'POST',
-      url: '',
-      body: '{}',
-      collectionId: undefined,
-      requestId: undefined,
-      params: [],
-      headers: [],
-      auth: null,
-      activeSubTab: 'Body'
-    })
+    tabs.value.push({ ...DEFAULT_TAB })
     activeTabId.value = 'default'
   }
 }
 
 // Switch tab
-const switchTab = (tabId: string) => {
+function switchTab(tabId: string) {
   if (activeTabId.value === tabId) return
   activeTabId.value = tabId
 }
 
 // Export/Import handlers
-const handleOpenExportImport = () => {
+function handleOpenExportImport() {
   showExportImportModal.value = true
 }
 
-const handleCloseExportImport = () => {
+function handleCloseExportImport() {
   showExportImportModal.value = false
 }
 
-const handleImported = async () => {
+async function handleImported() {
   if (listRef.value?.refreshData) {
     await listRef.value.refreshData()
   }
 }
 
-const handleRequestSaved = async (requestId: number) => {
-
-  // Refresh list
+async function handleRequestSaved(requestId: number) {
   if (listRef.value?.refreshData) {
     await listRef.value.refreshData()
   }
@@ -174,46 +190,50 @@ const handleRequestSaved = async (requestId: number) => {
   }
 }
 
-// Save/Load từ localStorage
-onMounted(() => {
+// Load saved tabs from localStorage
+function loadSavedTabs() {
   const savedTabs = localStorage.getItem('api-tabs')
-  if (savedTabs) {
-    try {
-      const parsed = JSON.parse(savedTabs)
-      if (parsed.tabs && parsed.tabs.length > 0) {
-        tabs.value = parsed.tabs
-        activeTabId.value = parsed.activeTabId || tabs.value[0].id
-      }
-    } catch (error) {
-      console.error('Error loading saved tabs:', error)
+  if (!savedTabs) return
+
+  try {
+    const parsed = JSON.parse(savedTabs)
+    if (parsed.tabs && parsed.tabs.length > 0) {
+      tabs.value = parsed.tabs
+      activeTabId.value = parsed.activeTabId || tabs.value[0].id
     }
+  } catch (error) {
+    console.error('Error loading saved tabs:', error)
   }
+}
+
+// Lifecycle
+onMounted(() => {
+  loadSavedTabs()
 })
 
-// Watch tabs và lưu vào localStorage
+// ✅ FIX: Watch riêng từng field thay vì deep watch
 watch(
-  tabs,
+  () => tabs.value.map(t => ({
+    id: t.id,
+    title: t.title,
+    url: t.url,
+    method: t.method,
+    body: t.body
+  })),
   (newTabs) => {
-    localStorage.setItem('api-tabs', JSON.stringify({
-      tabs: newTabs,
-      activeTabId: activeTabId.value
-    }))
-  },
-  { deep: true }
+    saveTabsToLocalStorage(tabs.value, activeTabId.value)
+  }
 )
 </script>
 
 <template>
-
   <div class="flex h-screen" style="width: 95%;">
-
-
-
-
-
     <!-- Sidebar -->
     <div class="w-80 border-r border-gray-200 flex-shrink-0">
-      <List ref="listRef" @selectRequest="handleSelectRequest" @addNewTab="handleAddNewTab"
+      <List 
+        ref="listRef" 
+        @selectRequest="handleSelectRequest" 
+        @addNewTab="handleAddNewTab"
         @openExportImport="handleOpenExportImport" />
     </div>
 
@@ -223,13 +243,9 @@ watch(
       <div class="border-b border-gray-200 bg-gray-50 flex items-center overflow-x-auto flex-shrink-0">
         <div v-for="tab in tabs" :key="tab.id"
           class="flex items-center gap-2 px-4 py-2.5 border-r border-gray-200 cursor-pointer hover:bg-white transition-colors min-w-0 max-w-xs group"
-          :class="activeTabId === tab.id ? 'bg-white border-b-2 border-blue-600' : ''" @click="switchTab(tab.id)">
-
-
+          :class="activeTabId === tab.id ? 'bg-white border-b-2 border-blue-600' : ''" 
+          @click="switchTab(tab.id)">
           <span class="text-sm truncate flex-1">{{ tab.title }}</span>
-
-
-
           <button v-if="tabs.length > 1" @click.stop="closeTab(tab.id)"
             class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded p-0.5 flex-shrink-0 transition-opacity"
             title="Close tab">
@@ -250,15 +266,25 @@ watch(
 
       <!-- Card Component -->
       <div class="flex-1 overflow-hidden">
-        <!-- Truyền dataBaseTest vào Card -->
-        <Card ref="cardRef" :key="activeTab.id" :title="activeTab.title" :defaultUrl="activeTab.url"
-          :defaultMethod="activeTab.method" :defaultBody="activeTab.body" :requestId="activeTab.requestId"
-          :dataBaseTest="activeTab.dataBaseTest || null" @stateChange="handleStateChange"
+        <Card 
+          ref="cardRef" 
+          :key="activeTab.id" 
+          :title="activeTab.title" 
+          :defaultUrl="activeTab.url"
+          :defaultMethod="activeTab.method" 
+          :defaultBody="activeTab.body" 
+          :requestId="activeTab.requestId"
+          :bodyId="currentBodyId"
+          :dataBaseTest="activeTab.dataBaseTest || null" 
+          @stateChange="handleStateChange"
           @requestSaved="handleRequestSaved" />
       </div>
     </div>
 
     <!-- Export/Import Modal -->
-    <ExportImportModal v-if="showExportImportModal" @close="handleCloseExportImport" @imported="handleImported" />
+    <ExportImportModal 
+      v-if="showExportImportModal" 
+      @close="handleCloseExportImport" 
+      @imported="handleImported" />
   </div>
 </template>
