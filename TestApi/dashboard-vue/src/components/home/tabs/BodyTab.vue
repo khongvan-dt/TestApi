@@ -33,21 +33,15 @@ const rawEditorRef = ref<any>(null)
 const formRef = ref<any>(null)
 const paramsRef = ref<any>(null)
 
-// ✅ FIX: Watch bodyId TRƯỚC - để set currentBodyId ngay lập tức
 watch(() => props.bodyId, (val) => {
-  console.log('🟡 [BodyTab.vue] Received bodyId prop:', val)
   currentBodyId.value = val || 0
-  console.log('🟡 [BodyTab.vue] Set currentBodyId to:', currentBodyId.value)
-}, { immediate: true, flush: 'sync' })  // ✅ Thêm flush: 'sync'
+}, { immediate: true, flush: 'sync' })  
 
 // Watch dataBaseTest
 watch(() => props.dataBaseTest, (val) => {
-  console.log('🟡 [BodyTab.vue] Received dataBaseTest:', val)
   currentDataBaseTest.value = val || ''
   
-  // ✅ CHỈ tự động chuyển sang base-data nếu có dataBaseTest VÀ đang ở raw/none
   if (val && (bodyType.value === 'raw' || bodyType.value === 'none')) {
-    console.log('🟡 [BodyTab.vue] Auto switching to base-data')
     bodyType.value = 'base-data'
   }
 }, { immediate: true })
@@ -71,15 +65,11 @@ function normalizeBodyOutput(content: any, type: string) {
     bodyType: type,
     content
   }
-  console.log('🟡 [BodyTab.vue] normalizeBodyOutput:', result)
   return result
 }
 
 function getBody() {
-  console.log('🟡 [BodyTab.vue] getBody called')
-  console.log('🟡 [BodyTab.vue] currentBodyId:', currentBodyId.value)
-  console.log('🟡 [BodyTab.vue] bodyType:', bodyType.value)
-  
+ 
   let result = null
   
   switch (bodyType.value) {
@@ -102,7 +92,6 @@ function getBody() {
       result = null
   }
   
-  console.log('🟡 [BodyTab.vue] getBody returning:', result)
   return result
 }
 
@@ -117,9 +106,7 @@ function setDataBaseTest(value: string | null) {
 }
 
 function setBodyId(id: number) {
-  console.log('🟡 [BodyTab.vue] setBodyId called with:', id)
   currentBodyId.value = id
-  console.log('🟡 [BodyTab.vue] currentBodyId updated to:', currentBodyId.value)
 }
 function getDataBaseTest() {
   return currentDataBaseTest.value

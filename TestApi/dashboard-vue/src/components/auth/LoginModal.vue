@@ -51,8 +51,7 @@ const handleLogin = async () => {
     const result = await login(usernameOrEmail.value, password.value)
 
     if (result.success) {
-      // ✅ Fetch user data
-      await fetchUserData(true)
+       await fetchUserData()
       
       emit('loginSuccess')
       emit('update:modelValue', false)
@@ -71,8 +70,7 @@ const handleLogin = async () => {
   }
 }
 
-// ✅ Prevent close on Escape nếu chưa login
-watch(() => props.modelValue, (value) => {
+ watch(() => props.modelValue, (value) => {
   if (value) {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && canClose.value) {

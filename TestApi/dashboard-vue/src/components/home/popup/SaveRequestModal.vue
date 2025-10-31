@@ -240,7 +240,6 @@ async function handleSave() {
   }
 
   error.value = null
-  console.log('🔴 [SaveRequestModal] ========== SAVE START ==========')
 
   const { requestBody, queryParams, headers } = getCardData()
 
@@ -258,47 +257,33 @@ async function handleSave() {
 
   const requestDataArray = buildRequestDataArray(baseRequest, requestBody)
 
-  console.log('🔴 [SaveRequestModal] Final requestDataArray:', requestDataArray)
 
   try {
     const result = await saveRequest(requestDataArray)
 
-    console.log('🔴 [SaveRequestModal] API Response:', result)
 
-    // ✅ FIX: Xử lý cả array và object
     let response
     if (Array.isArray(result)) {
-      response = result[0]  // Lấy phần tử đầu tiên
-      console.log('🔴 [SaveRequestModal] Response is array, taking first element:', response)
+      response = result[0]  
     } else {
       response = result
-      console.log('🔴 [SaveRequestModal] Response is object:', response)
     }
 
-    console.log('🔴 [SaveRequestModal] response.success:', response?.success)
 
     if (response && response.success) {
-      console.log('🔴 [SaveRequestModal] Save SUCCESS!')
       saveResult.value = response.isNew ? 'created' : 'updated'
 
-      console.log('🔴 [SaveRequestModal] Waiting 1.5s before closing...')
-
-      // ✅ Dùng setTimeout đơn giản
       setTimeout(() => {
-        console.log('🔴 [SaveRequestModal] Emitting saved & close...')
         emit('saved', response.requestId)
         emit('close')
       }, 1500)
     } else {
-      console.log('❌ [SaveRequestModal] Save FAILED!')
       error.value = response?.message || 'Failed to save request'
     }
   } catch (err: any) {
-    console.error('❌ [SaveRequestModal] Exception:', err)
     error.value = err.message || 'Failed to save request'
   }
 
-  console.log('🔴 [SaveRequestModal] ========== SAVE END ==========')
 }
 
 </script>

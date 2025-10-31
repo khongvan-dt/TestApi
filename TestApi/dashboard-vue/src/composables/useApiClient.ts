@@ -34,19 +34,14 @@ export const useApiClient = () => {
         finalUrl = 'http://localhost:3001/proxy'
       }
 
-      // ✅ Body đã được xử lý ở Card.vue rồi
       let requestBody = params.body
 
-      console.log('🔵 [useApiClient] requestBody:', requestBody)
 
-      // ✅ Nếu là array → test nhiều cases
       if (Array.isArray(requestBody)) {
-        console.log('🔵 [useApiClient] Testing', requestBody.length, 'cases')
         
         const results = []
         for (let i = 0; i < requestBody.length; i++) {
           const testCase = requestBody[i]
-          console.log(`🔵 [useApiClient] Test case ${i + 1}:`, testCase)
           
           try {
             const response = await axios({
@@ -82,8 +77,6 @@ export const useApiClient = () => {
         return results
       }
 
-      // ✅ Single request
-      console.log('🔵 [useApiClient] Single request:', requestBody)
       
       const response = await axios({
         method: params.method,

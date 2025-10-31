@@ -220,7 +220,7 @@ export const useUserData = () => {
       reader.readAsText(file)
     })
   } 
-  const saveRequest = async (requestData: SaveRequestData): Promise<SaveRequestResult | null> => {
+  const saveRequest = async (requestData: SaveRequestData[]): Promise<SaveRequestResult | null> => {
     loading.value = true
     error.value = null
 

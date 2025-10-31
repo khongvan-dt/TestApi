@@ -98,7 +98,6 @@ function handleStateChange(state: any) {
 
 // Handle select request
 function handleSelectRequest(payload: any) {
-  console.log('Received payload:', payload)
 
   const currentTab = tabs.value.find(t => t.id === activeTabId.value)
   if (!currentTab) return
@@ -120,8 +119,7 @@ function handleSelectRequest(payload: any) {
       ? parseBodyContent(payload.body.value)
       : '{}'
 
-    console.log('Set currentTab.bodyId:', currentTab.bodyId)
-    console.log('All bodies count:', currentTab.bodies?.length)
+   
   } else {
     currentTab.body = '{}'
     currentTab.bodyId = 0

@@ -347,8 +347,7 @@ async function handleSend() {
   }
 }
 
-// ✅ Hàm merge baseData với overrides
-function mergeTestData(baseDataStr: string | null, rawBodyStr: string): any {
+ function mergeTestData(baseDataStr: string | null, rawBodyStr: string): any {
   if (!baseDataStr) {
     // Không có baseData → chỉ parse rawBody
     return parseRawBody(rawBodyStr)
@@ -371,17 +370,14 @@ function mergeTestData(baseDataStr: string | null, rawBodyStr: string): any {
       ...override
     }))
 
-    console.log('🟢 [Card.vue] mergeTestData result:', mergedTestCases)
-
+ 
     return mergedTestCases
   } catch (error) {
-    console.error('❌ [Card.vue] mergeTestData error:', error)
-    return parseRawBody(rawBodyStr)
+     return parseRawBody(rawBodyStr)
   }
 }
 
-// ✅ Parse rawBody (hỗ trợ cả comma-separated format)
-function parseRawBody(rawStr: string): any {
+ function parseRawBody(rawStr: string): any {
   const trimmed = rawStr.trim()
 
   // Case 1: Đã có [] bao quanh
@@ -415,9 +411,7 @@ function handleOpenSaveModal() {
   showSaveModal.value = true
 }
 
-function handleCloseSaveModal() {
-  showSaveModal.value = false
-}
+ 
 
 function handleRequestSaved(requestId: number) {
   emit('requestSaved', requestId)
@@ -485,8 +479,7 @@ defineExpose({
             <option value="DELETE">DELETE</option>
           </select>
 
-          <!-- ✅ BỎ @input="emitStateChange" -->
-          <input v-model="url" type="text" placeholder="Enter request URL (e.g., https://api.example.com/users)"
+           <input v-model="url" type="text" placeholder="Enter request URL (e.g., https://api.example.com/users)"
             class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
           <button @click="handleOpenSaveModal"
