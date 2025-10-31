@@ -46,46 +46,45 @@ function toggleRequest(id: number, request: RequestItem) {
   selectedRequest.value = selectedRequest.value === id ? null : id
 
   if (selectedRequest.value === id) {
-    console.log('🔵 [List.vue] Request raw data:', request)
-    console.log('🔵 [List.vue] All Bodies:', request.bodies)
-
-    // ✅ FIX: Merge tất cả bodies thành comma-separated format
+     
     let mergedBody = null
-
+    
     if (request.bodies && request.bodies.length > 0) {
       if (request.bodies.length === 1) {
-        // Chỉ có 1 body → hiển thị bình thường
-        mergedBody = request.bodies[0]
-      } else {
-        // Nhiều bodies → merge thành comma-separated format
-        const mergedContent = request.bodies
-          .map(b => b.content)
-          .join(',')
-
         mergedBody = {
-          id: request.bodies[0].id,  // Lấy ID của body đầu tiên
-          bodyType: 'raw',
-          content: mergedContent
+          id: request.bodies[0].id,
+          bodyType: request.bodies[0].bodyType || 'raw',
+          value: request.bodies[0].value || ''  
         }
-
-        console.log('🔵 [List.vue] Merged multiple bodies:', mergedBody)
-      }
+       } else {
+         const mergedContent = request.bodies
+          .map(b => b.value || '')  
+          .join(',')
+        
+        mergedBody = {
+          id: request.bodies[0].id,
+          bodyType: 'raw',
+          value: mergedContent
+        }
+       }
     }
-
+    
     emit('selectRequest', {
       url: request.url,
       method: request.method,
       name: request.name,
       body: mergedBody,
-      bodies: request.bodies,  // Gửi thêm tất cả bodies
+      bodies: request.bodies,
       headers: request.headers,
       queryParams: request.queryParams,
       requestId: request.id,
+      collectionId: request.collectionId,
       dataBaseTest: request.dataBaseTest
     })
+    
+   
   }
 }
-
 // Delete Request
 async function handleDeleteRequest(requestId: number, requestName: string, event: Event) {
   event.stopPropagation()

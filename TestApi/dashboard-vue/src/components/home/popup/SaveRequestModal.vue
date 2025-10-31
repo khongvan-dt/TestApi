@@ -18,7 +18,9 @@ interface Props {
   currentBody: any
   requestId?: number | null
   requestName?: string
-  cardRef?: any 
+  cardRef?: any
+  collectionId?: number | null
+
 }
 
 const props = defineProps<Props>()
@@ -41,6 +43,12 @@ const newCollectionName = ref('')
 const newCollectionDescription = ref('')
 const creatingCollection = ref(false)
 
+watch(() => props.collectionId, (newVal) => {
+   if (newVal && newVal > 0) {
+    selectedCollectionId.value = newVal
+   }
+}, { immediate: true })
+
 // Watch props
 watch(() => props.requestName, (newVal) => {
   requestName.value = newVal || ''
@@ -54,6 +62,10 @@ async function loadCollections() {
   loadingCollections.value = true
   try {
     collections.value = await getMyCollections() || []
+
+    if (props.collectionId && selectedCollectionId.value === 0) {
+      selectedCollectionId.value = props.collectionId
+     }
   } catch (err) {
     error.value = 'Failed to load collections'
   } finally {
@@ -101,21 +113,10 @@ async function handleCreateCollection() {
   }
 }
 
-// ✅ FIX: Normalize body structure - GIỮ NGUYÊN ID
-function normalizeBody(body: any) {
-  // ✅ Lấy id từ body hiện tại, nếu không có mới set 0
-  const bodyId = body?.id || 0
-  
-  return {
-    id: bodyId,  // ✅ Giữ nguyên ID
-    bodyType: body?.bodyType || 'raw',
-    content: body?.content || ''
-  }
-}
 
 function parseMultipleJsonObjects(content: string): any[] | null {
   const trimmed = content.trim()
-  
+
   // Case 1: Đã có [] bao quanh
   if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
     try {
@@ -124,17 +125,14 @@ function parseMultipleJsonObjects(content: string): any[] | null {
       return null
     }
   }
-  
+
   // Case 2: Nhiều JSON objects cách nhau bởi dấu phẩy
   if (/\}\s*,\s*\{/.test(trimmed)) {
     try {
-      // Wrap trong []
       const wrapped = `[${trimmed}]`
       const parsed = JSON.parse(wrapped)
-      
-      // Chỉ return nếu parse thành công VÀ là array có > 1 phần tử
+
       if (Array.isArray(parsed) && parsed.length > 1) {
-        console.log('🔴 [SaveRequestModal] Parsed multiple JSON:', parsed)
         return parsed
       }
     } catch (e) {
@@ -142,60 +140,64 @@ function parseMultipleJsonObjects(content: string): any[] | null {
       return null
     }
   }
-  
+
   return null
 }
 
-// ✅ FIX: Build request data array - Split thành nhiều requests
 function buildRequestDataArray(baseRequest: any, requestBody: any): any[] {
-  console.log('🔴 [SaveRequestModal] buildRequestDataArray called')
-  console.log('🔴 [SaveRequestModal] requestBody:', requestBody)
-  
+
   const bodyId = requestBody?.id || 0
-  console.log('🔴 [SaveRequestModal] Extracted bodyId:', bodyId)
-  
-  // Nếu không phải raw body hoặc không có content
+
   if (requestBody?.bodyType !== 'raw' || !requestBody.content) {
-    console.log('🔴 [SaveRequestModal] Not raw or no content, returning single request')
     return [{
       ...baseRequest,
-      body: {
+      body: requestBody ? {
         id: bodyId,
-        bodyType: requestBody?.bodyType || 'raw',
-        content: requestBody?.content || ''
-      }
+        bodyType: requestBody.bodyType || 'raw',
+        value: requestBody.content || '',
+        type: requestBody.type || 'raw'
+      } : null
     }]
   }
 
   const content = requestBody.content.trim()
+
+  if (content === '{}' || content === '') {
+    return [{
+      ...baseRequest,
+      body: {
+        id: bodyId,
+        bodyType: 'raw',
+        value: content,
+        type: 'raw'
+      }
+    }]
+  }
+
   const parsedArray = parseMultipleJsonObjects(content)
 
-  // ✅ Nếu detect được nhiều JSON objects
   if (parsedArray && parsedArray.length > 1) {
-    console.log('🔴 [SaveRequestModal] Multiple JSON detected, count:', parsedArray.length)
-    
-    // ✅ Tạo nhiều requests, mỗi request có 1 body
+
     const requests = parsedArray.map((obj: any, index: number) => ({
       ...baseRequest,
       body: {
-        id: index === 0 ? bodyId : 0,  // Request đầu giữ bodyId, còn lại là 0 (insert mới)
+        id: index === 0 ? bodyId : 0,
         bodyType: 'raw',
-        content: JSON.stringify(obj, null, 2)
+        value: JSON.stringify(obj, null, 2),
+        type: 'raw'
       }
     }))
-    
-    console.log('🔴 [SaveRequestModal] Multiple requests created:', requests)
+
     return requests
   }
 
-  // ✅ Chỉ có 1 JSON object
-  console.log('🔴 [SaveRequestModal] Single JSON, returning single request')
   return [{
     ...baseRequest,
     body: {
       id: bodyId,
       bodyType: 'raw',
-      content: content
+      value: content,
+      type: 'raw'
     }
   }]
 }
@@ -237,9 +239,10 @@ async function handleSave() {
     return
   }
 
-  const { requestBody, queryParams, headers } = getCardData()
+  error.value = null
+  console.log('🔴 [SaveRequestModal] ========== SAVE START ==========')
 
-  console.log('🟢 SaveRequestModal - requestBody:', requestBody)  // Debug
+  const { requestBody, queryParams, headers } = getCardData()
 
   const baseRequest = {
     requestId: props.requestId || 0,
@@ -254,22 +257,50 @@ async function handleSave() {
   }
 
   const requestDataArray = buildRequestDataArray(baseRequest, requestBody)
-  
-  console.log('🟡 SaveRequestModal - requestDataArray:', requestDataArray)  // Debug
+
+  console.log('🔴 [SaveRequestModal] Final requestDataArray:', requestDataArray)
 
   try {
     const result = await saveRequest(requestDataArray)
-    if (result?.success) {
-      saveResult.value = result.isNew ? 'created' : 'updated'
+
+    console.log('🔴 [SaveRequestModal] API Response:', result)
+
+    // ✅ FIX: Xử lý cả array và object
+    let response
+    if (Array.isArray(result)) {
+      response = result[0]  // Lấy phần tử đầu tiên
+      console.log('🔴 [SaveRequestModal] Response is array, taking first element:', response)
+    } else {
+      response = result
+      console.log('🔴 [SaveRequestModal] Response is object:', response)
+    }
+
+    console.log('🔴 [SaveRequestModal] response.success:', response?.success)
+
+    if (response && response.success) {
+      console.log('🔴 [SaveRequestModal] Save SUCCESS!')
+      saveResult.value = response.isNew ? 'created' : 'updated'
+
+      console.log('🔴 [SaveRequestModal] Waiting 1.5s before closing...')
+
+      // ✅ Dùng setTimeout đơn giản
       setTimeout(() => {
-        emit('saved', result.requestId)
+        console.log('🔴 [SaveRequestModal] Emitting saved & close...')
+        emit('saved', response.requestId)
         emit('close')
       }, 1500)
+    } else {
+      console.log('❌ [SaveRequestModal] Save FAILED!')
+      error.value = response?.message || 'Failed to save request'
     }
   } catch (err: any) {
+    console.error('❌ [SaveRequestModal] Exception:', err)
     error.value = err.message || 'Failed to save request'
   }
+
+  console.log('🔴 [SaveRequestModal] ========== SAVE END ==========')
 }
+
 </script>
 
 <template>
@@ -305,7 +336,8 @@ async function handleSave() {
         <div v-if="saveResult" class="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div class="flex items-center gap-2">
             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p class="text-sm text-green-600 font-medium">
               Request {{ saveResult === 'created' ? 'created' : 'updated' }} successfully!
@@ -318,12 +350,8 @@ async function handleSave() {
           <label class="block text-sm font-medium text-gray-700 mb-2">
             Request Name <span class="text-red-500">*</span>
           </label>
-          <input
-            v-model="requestName"
-            type="text"
-            placeholder="e.g., Get Users, Create Post..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input v-model="requestName" type="text" placeholder="e.g., Get Users, Create Post..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
 
         <!-- Collection Select -->
@@ -332,10 +360,8 @@ async function handleSave() {
             <label class="block text-sm font-medium text-gray-700">
               Collection <span class="text-red-500">*</span>
             </label>
-            <button
-              @click="toggleCreateCollection"
-              class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-            >
+            <button @click="toggleCreateCollection"
+              class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
@@ -345,29 +371,20 @@ async function handleSave() {
 
           <!-- New Collection Form -->
           <div v-if="showCreateCollection" class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
-            <input
-              v-model="newCollectionName"
-              type="text"
-              placeholder="Collection name *"
+            <input v-model="newCollectionName" type="text" placeholder="Collection name *"
               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              @keydown.enter="handleCreateCollection"
-            />
-            <input
-              v-model="newCollectionDescription"
-              type="text"
-              placeholder="Description (optional)"
+              @keydown.enter="handleCreateCollection" />
+            <input v-model="newCollectionDescription" type="text" placeholder="Description (optional)"
               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              @keydown.enter="handleCreateCollection"
-            />
-            <button
-              @click="handleCreateCollection"
-              :disabled="creatingCollection || !newCollectionName.trim()"
-              class="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
-            >
+              @keydown.enter="handleCreateCollection" />
+            <button @click="handleCreateCollection" :disabled="creatingCollection || !newCollectionName.trim()"
+              class="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium">
               <span v-if="creatingCollection" class="flex items-center justify-center gap-2">
                 <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                  </path>
                 </svg>
                 Creating...
               </span>
@@ -380,19 +397,18 @@ async function handleSave() {
             <div class="flex items-center gap-2 text-gray-500">
               <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
               </svg>
               <span class="text-sm">Loading collections...</span>
             </div>
           </div>
 
           <!-- Select Dropdown -->
-          <select
-            v-else
-            v-model="selectedCollectionId"
+          <select v-else v-model="selectedCollectionId"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            :disabled="collections.length === 0"
-          >
+            :disabled="collections.length === 0">
             <option :value="0" disabled>
               {{ collections.length === 0 ? 'No collections available' : 'Select a collection' }}
             </option>
@@ -406,16 +422,13 @@ async function handleSave() {
         <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
           <p class="text-xs font-medium text-gray-500 mb-2">Preview:</p>
           <div class="flex items-center gap-2 mb-1">
-            <span 
-              class="text-xs font-bold px-2 py-0.5 rounded"
-              :class="{
-                'bg-green-100 text-green-700': props.currentMethod === 'POST',
-                'bg-blue-100 text-blue-700': props.currentMethod === 'GET',
-                'bg-orange-100 text-orange-700': props.currentMethod === 'PUT',
-                'bg-purple-100 text-purple-700': props.currentMethod === 'PATCH',
-                'bg-red-100 text-red-700': props.currentMethod === 'DELETE'
-              }"
-            >
+            <span class="text-xs font-bold px-2 py-0.5 rounded" :class="{
+              'bg-green-100 text-green-700': props.currentMethod === 'POST',
+              'bg-blue-100 text-blue-700': props.currentMethod === 'GET',
+              'bg-orange-100 text-orange-700': props.currentMethod === 'PUT',
+              'bg-purple-100 text-purple-700': props.currentMethod === 'PATCH',
+              'bg-red-100 text-red-700': props.currentMethod === 'DELETE'
+            }">
               {{ props.currentMethod }}
             </span>
             <span class="text-sm text-gray-900 font-medium truncate">{{ requestName || 'Untitled' }}</span>
@@ -426,21 +439,18 @@ async function handleSave() {
 
       <!-- Footer -->
       <div class="flex gap-3 p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0">
-        <button
-          @click="emit('close')"
-          class="flex-1 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-        >
+        <button @click="emit('close')"
+          class="flex-1 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
           Cancel
         </button>
-        <button
-          @click="handleSave"
-          :disabled="loading || !!saveResult || loadingCollections"
-          class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
-        >
+        <button @click="handleSave" :disabled="loading || !!saveResult || loadingCollections"
+          class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium">
           <span v-if="loading" class="flex items-center justify-center gap-2">
             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+              </path>
             </svg>
             Saving...
           </span>

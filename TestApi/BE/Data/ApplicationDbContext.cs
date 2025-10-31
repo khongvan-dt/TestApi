@@ -139,7 +139,7 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.BodyType).HasMaxLength(50);
-            entity.Property(e => e.Content).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Value).HasColumnType("nvarchar(max)");
 
             entity.HasOne(e => e.Request)
                 .WithMany(r => r.RequestBodies)

@@ -55,7 +55,9 @@
     {
         public int Id { get; set; }
         public string? BodyType { get; set; }
-        public string? Content { get; set; }
+        public string? Value { get; set; }
+        public string? Type { get; set; }
+
     }
 
     // ====================================
@@ -137,7 +139,9 @@
     {
         public int Id { get; set; }
         public string BodyType { get; set; } = "raw";
-        public string Content { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+
     }
 
     public class SaveRequestResultDto

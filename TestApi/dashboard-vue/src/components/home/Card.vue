@@ -16,12 +16,14 @@ interface Props {
   requestId?: number | null
   dataBaseTest?: string | null
   bodyId?: number
+  collectionId?: number | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   title: 'API Request',
   defaultMethod: 'POST',
   defaultUrl: '',
+  collectionId: null,
   defaultBody: '{}',
   requestId: null,
   dataBaseTest: null,
@@ -67,7 +69,7 @@ const { sendRequest } = useApiClient()
 const tabs = ['Params', 'Authorization', 'Headers', 'Body']
 
 // Watch props with internal update flag
- 
+
 
 watch(() => props.defaultUrl, (newUrl) => {
   if (newUrl === url.value) return
@@ -105,21 +107,21 @@ watch(() => props.requestId, (newId) => {
 })
 
 // Watch state changes
-watch(url, (newVal) => { 
+watch(url, (newVal) => {
   if (!isInternalUpdate.value) {
     emit('update:url', newVal)
     emitStateChange()
   }
 })
 
-watch(method, (newVal) => { 
+watch(method, (newVal) => {
   if (!isInternalUpdate.value) {
     emit('update:method', newVal)
     emitStateChange()
   }
 })
 
-watch(body, (newVal) => { 
+watch(body, (newVal) => {
   if (!isInternalUpdate.value) {
     emit('update:body', newVal)
     emitStateChange()
@@ -145,12 +147,12 @@ function startResize(e: MouseEvent) {
 
 function handleResize(e: MouseEvent) {
   if (!isResizing.value || !containerRef.value) return
-  
+
   const containerRect = containerRef.value.getBoundingClientRect()
   const newHeight = e.clientY - containerRect.top
   const minHeight = 200
   const maxHeight = containerRect.height * 0.8
-  
+
   requestHeight.value = Math.max(minHeight, Math.min(newHeight, maxHeight))
 }
 
@@ -162,14 +164,12 @@ function stopResize() {
 
 // Get request data
 watch(() => props.bodyId, (newId) => {
-  console.log('🟠 [Card.vue] Received bodyId prop:', newId)
-  
+
   nextTick(() => {
     if (bodyTabRef.value?.setBodyId) {
       bodyTabRef.value.setBodyId(newId || 0)
-      console.log('🟠 [Card.vue] Called setBodyId on BodyTab:', newId)
     } else {
-      console.log('❌ [Card.vue] bodyTabRef not ready')
+      console.log(' [Card.vue] bodyTabRef not ready')
     }
   })
 }, { immediate: true })
@@ -185,23 +185,18 @@ function getRequestData() {
     const result = bodyTabRef.value.getBody?.()
     const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
 
-    console.log('🟠 [Card.vue] getRequestData - raw body result:', result)
-    console.log('🟠 [Card.vue] getRequestData - bodyType:', bodyType)
 
     if (result && typeof result === 'object' && 'bodyType' in result && 'content' in result) {
       bodyData = result
-      console.log('🟠 [Card.vue] getRequestData - using result directly:', bodyData)
     } else if (bodyType !== 'none') {
-      bodyData = { 
+      bodyData = {
         id: 0,
-        bodyType, 
-        content: result || '' 
+        bodyType,
+        content: result || ''
       }
-      console.log('🟠 [Card.vue] getRequestData - created new body:', bodyData)
     }
   }
 
-  console.log('🟠 [Card.vue] getRequestData - final bodyData:', bodyData)
 
   return {
     url: url.value,
@@ -217,7 +212,7 @@ function getRequestData() {
 function loadRequestData(requestData: any) {
   url.value = requestData.url
   method.value = requestData.method
-  
+
   if (requestData.body) {
     body.value = requestData.body.content || '{}'
     nextTick(() => {
@@ -229,7 +224,7 @@ function loadRequestData(requestData: any) {
 // Format request body
 function formatRequestBody() {
   let requestBody: any = null
-  
+
   if (bodyTabRef.value) {
     const rawBody = bodyTabRef.value.getBody?.()
     const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
@@ -240,7 +235,7 @@ function formatRequestBody() {
         : { bodyType, content: typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody) }
     }
   }
-  
+
   return requestBody
 }
 
@@ -265,7 +260,7 @@ function buildHeaders() {
 // Save history
 async function saveHistory(result: any, requestBody: any, params: any[], headers: any[]) {
   const historyPayload = {
-    requestId: currentRequestId.value,
+    requestId: currentRequestId.value ?? 0,
     collectionId: 1,
     name: props.title || 'New Request',
     method: method.value,
@@ -291,7 +286,7 @@ async function saveHistory(result: any, requestBody: any, params: any[], headers
 }
 
 // Send request
- 
+
 async function handleSend() {
   if (!url.value) {
     alert('Please enter a URL')
@@ -307,22 +302,18 @@ async function handleSend() {
   try {
     const params = paramsTabRef.value?.getParams() || []
     const headers = buildHeaders()
-    
+
     // ✅ FIX: Lấy cả baseData và rawBody
     const bodyData = bodyTabRef.value?.getBody?.()
     const bodyType = bodyTabRef.value?.getBodyType?.() || 'none'
     const baseData = bodyTabRef.value?.getDataBaseTest?.() || null
 
-    console.log('🟠 [Card.vue] baseData:', baseData)
-    console.log('🟠 [Card.vue] bodyData:', bodyData)
-    console.log('🟠 [Card.vue] bodyType:', bodyType)
 
     let requestBody: any = null
 
     // ✅ Logic merge baseData + rawBody
     if (bodyType === 'raw' && bodyData?.content) {
       requestBody = mergeTestData(baseData, bodyData.content)
-      console.log('🟠 [Card.vue] Merged requestBody:', requestBody)
     } else if (bodyType === 'base-data' && baseData) {
       // Nếu chọn tab base-data → chỉ dùng baseData
       requestBody = baseData
@@ -342,13 +333,10 @@ async function handleSend() {
       body: requestBody
     }
 
-    console.log('🟠 [Card.vue] Final requestPayload:', requestPayload)
 
     const result = await sendRequest(requestPayload)
 
-    console.log('🟠 [Card.vue] API Result:', result)
 
-    // ✅ Xử lý array results
     if (Array.isArray(result)) {
       const allResults = result.map((r, index) => ({
         testCase: index + 1,
@@ -477,11 +465,11 @@ defineExpose({
   setActiveTab: (tab: string) => { activeTab.value = tab },
   focusBody: () => { nextTick(() => { bodyTabRef.value?.focus?.() }) },
   clearResponse,
-  getState: () => ({ 
-    url: url.value, 
-    method: method.value, 
-    body: body.value, 
-    activeTab: activeTab.value 
+  getState: () => ({
+    url: url.value,
+    method: method.value,
+    body: body.value,
+    activeTab: activeTab.value
   }),
   getRequestData,
   loadRequestData,
@@ -501,30 +489,24 @@ defineExpose({
     <!-- Tabs -->
     <div class="px-4 border-b border-gray-200 bg-white flex-shrink-0">
       <div class="flex gap-6 -mb-px">
-        <button 
-          v-for="tab in tabs" 
-          :key="tab" 
-          @click="activeTab = tab" 
-          :class="[
-            'px-1 py-3 text-sm font-medium border-b-2 transition-colors',
-            activeTab === tab
-              ? 'border-blue-600 text-blue-600'
-              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-          ]">
+        <button v-for="tab in tabs" :key="tab" @click="activeTab = tab" :class="[
+          'px-1 py-3 text-sm font-medium border-b-2 transition-colors',
+          activeTab === tab
+            ? 'border-blue-600 text-blue-600'
+            : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+        ]">
           {{ tab }}
         </button>
       </div>
     </div>
 
     <!-- Request Section - Resizable -->
-    <div 
-      class="bg-white flex-shrink-0 border-b border-gray-200 overflow-hidden flex flex-col"
+    <div class="bg-white flex-shrink-0 border-b border-gray-200 overflow-hidden flex flex-col"
       :style="{ height: `${requestHeight}px` }">
       <div class="p-4 flex-shrink-0">
         <!-- Method & URL Bar -->
         <div class="flex items-stretch gap-2 mb-4">
-          <select 
-            v-model="method"
+          <select v-model="method"
             class="px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
             <option value="GET">GET</option>
             <option value="POST">POST</option>
@@ -534,14 +516,10 @@ defineExpose({
           </select>
 
           <!-- ✅ BỎ @input="emitStateChange" -->
-          <input 
-            v-model="url"
-            type="text"
-            placeholder="Enter request URL (e.g., https://api.example.com/users)"
+          <input v-model="url" type="text" placeholder="Enter request URL (e.g., https://api.example.com/users)"
             class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
-          <button 
-            @click="handleOpenSaveModal"
+          <button @click="handleOpenSaveModal"
             class="px-4 py-2 text-sm font-semibold bg-green-50 text-green-600 border border-green-300 rounded-md hover:bg-green-100 transition-colors flex items-center gap-2"
             title="Save request">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -551,15 +529,12 @@ defineExpose({
             <span class="hidden sm:inline">Save</span>
           </button>
 
-          <button 
-            @click="handleSend" 
-            :disabled="loading || !url" 
-            :class="[
-              'px-6 py-2 text-sm font-semibold rounded-md transition-all',
-              loading || !url
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
-            ]">
+          <button @click="handleSend" :disabled="loading || !url" :class="[
+            'px-6 py-2 text-sm font-semibold rounded-md transition-all',
+            loading || !url
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+          ]">
             {{ loading ? 'Sending...' : 'Send' }}
           </button>
         </div>
@@ -567,38 +542,23 @@ defineExpose({
 
       <!-- Tab Content -->
       <div class="flex-1 overflow-y-auto px-4 pb-4">
-        <ParamsTab 
-          v-show="activeTab === 'Params'" 
-          ref="paramsTabRef" 
-          :paramsData="getRequestData()?.params || []" />
+        <ParamsTab v-show="activeTab === 'Params'" ref="paramsTabRef" :paramsData="getRequestData()?.params || []" />
 
-        <HeadersTab 
-          v-show="activeTab === 'Headers'" 
-          ref="headersTabRef"
+        <HeadersTab v-show="activeTab === 'Headers'" ref="headersTabRef"
           :headersData="getRequestData()?.headers || []" />
 
-        <AuthorizationTab 
-          v-show="activeTab === 'Authorization'" 
-          ref="authTabRef" />
+        <AuthorizationTab v-show="activeTab === 'Authorization'" ref="authTabRef" />
 
-        <BodyTab 
-          v-show="activeTab === 'Body'" 
-          ref="bodyTabRef" 
-          :key="bodyKey" 
-          :modelValue="body"
-          :bodyId="props.bodyId"  
-          :dataBaseTest="props.dataBaseTest" 
-          :requestId="currentRequestId" />
+        <BodyTab v-show="activeTab === 'Body'" ref="bodyTabRef" :key="bodyKey" :modelValue="body" :bodyId="props.bodyId"
+          :dataBaseTest="props.dataBaseTest" :requestId="currentRequestId" />
       </div>
     </div>
 
     <!-- Resize Handle -->
-    <div 
-      @mousedown="startResize" 
-      :class="[
-        'h-1 bg-gray-200 hover:bg-blue-400 cursor-row-resize transition-colors flex-shrink-0 relative group',
-        isResizing ? 'bg-blue-500' : ''
-      ]">
+    <div @mousedown="startResize" :class="[
+      'h-1 bg-gray-200 hover:bg-blue-400 cursor-row-resize transition-colors flex-shrink-0 relative group',
+      isResizing ? 'bg-blue-500' : ''
+    ]">
       <div class="absolute inset-x-0 -top-1 -bottom-1 flex items-center justify-center">
         <div class="w-12 h-1 rounded-full bg-gray-400 group-hover:bg-blue-500 transition-colors"></div>
       </div>
@@ -619,22 +579,21 @@ defineExpose({
                 ? 'text-orange-700 bg-orange-50'
                 : 'text-red-700 bg-red-50'
           ]">
-            {{ responseStatus }} {{ responseStatus >= 200 && responseStatus < 300 ? '✓' : '✗' }}
-          </span>
-          <span class="text-gray-600 flex items-center gap-1">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {{ responseDuration }}ms
-          </span>
-          <span class="text-gray-600 flex items-center gap-1">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            {{ (responseSize || 0) }} B
-          </span>
+            {{ responseStatus }} {{ responseStatus >= 200 && responseStatus < 300 ? '✓' : '✗' }} </span>
+              <span class="text-gray-600 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {{ responseDuration }}ms
+              </span>
+              <span class="text-gray-600 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                {{ (responseSize || 0) }} B
+              </span>
         </div>
       </div>
 
@@ -671,7 +630,7 @@ defineExpose({
       </div>
     </div>
 
-    <SaveRequestModal 
+    <!-- <SaveRequestModal 
       v-if="showSaveModal" 
       :current-url="url" 
       :current-method="method" 
@@ -680,6 +639,11 @@ defineExpose({
       :request-name="title" 
       :card-ref="{ getRequestData }" 
       @close="handleCloseSaveModal" 
+      @saved="handleRequestSaved" />
+  -->
+    <SaveRequestModal v-if="showSaveModal" :currentUrl="url" :currentMethod="method"
+      :currentBody="bodyTabRef?.getBody?.()" :requestId="currentRequestId" :requestName="props.title"
+      :collectionId="props.collectionId" :cardRef="{ getRequestData }" @close="showSaveModal = false"
       @saved="handleRequestSaved" />
   </div>
 </template>

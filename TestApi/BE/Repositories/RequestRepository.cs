@@ -36,7 +36,7 @@ namespace AutoApiTester.Repositories
                 CreatedAt = r.CreatedAt,
                 Headers = r.RequestHeaders?.Select(h => new KeyValuePairDto { Key = h.Key, Value = h.Value }).ToList(),
                 QueryParams = r.RequestParams?.Select(p => new KeyValuePairDto { Key = p.Key, Value = p.Value }).ToList(),
-                Bodies = r.RequestBodies?.Select(b => new RequestBodyDto { BodyType = b.BodyType, Content = b.Content }).ToList(),
+                Bodies = r.RequestBodies?.Select(b => new RequestBodyDto { BodyType = b.BodyType, Value = b.Value }).ToList(),
                 TestDataName = r.TestDataName,
                 TestDataContent = r.TestDataContent
             });
@@ -64,7 +64,7 @@ namespace AutoApiTester.Repositories
                 CreatedAt = r.CreatedAt,
                 Headers = r.RequestHeaders?.Select(h => new KeyValuePairDto { Key = h.Key, Value = h.Value }).ToList(),
                 QueryParams = r.RequestParams?.Select(p => new KeyValuePairDto { Key = p.Key, Value = p.Value }).ToList(),
-                Bodies = r.RequestBodies?.Select(b => new RequestBodyDto { BodyType = b.BodyType, Content = b.Content }).ToList()
+                Bodies = r.RequestBodies?.Select(b => new RequestBodyDto { BodyType = b.BodyType, Value = b.Value }).ToList()
             };
         }
 
@@ -115,7 +115,7 @@ namespace AutoApiTester.Repositories
                 {
                     RequestId = request.Id,
                     BodyType = b.BodyType,
-                    Content = b.Content
+                    Value = b.Value
                 });
                 await _db.RequestBodies.AddRangeAsync(bodies);
             }
@@ -193,7 +193,7 @@ namespace AutoApiTester.Repositories
                 {
                     RequestId = request.Id,
                     BodyType = b.BodyType,
-                    Content = b.Content
+                    Value = b.Value
                 });
                 await _db.RequestBodies.AddRangeAsync(bodies);
             }

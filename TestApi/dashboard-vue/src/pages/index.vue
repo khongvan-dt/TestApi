@@ -11,8 +11,7 @@ interface Tab {
   url: string
   body: string
   bodyId?: number
-    bodies?: Array<any>   
-
+  bodies?: Array<any>
   collectionId?: number
   requestId?: number
   params?: Array<{ key: string; value: string; enabled: boolean }>
@@ -45,7 +44,7 @@ const listRef = ref()
 const showExportImportModal = ref(false)
 
 // Computed
-const activeTab = computed(() => 
+const activeTab = computed(() =>
   tabs.value.find(t => t.id === activeTabId.value) || tabs.value[0]
 )
 
@@ -100,7 +99,7 @@ function handleStateChange(state: any) {
 // Handle select request
 function handleSelectRequest(payload: any) {
   console.log('🟢 [index.vue] Received payload:', payload)
-  
+
   const currentTab = tabs.value.find(t => t.id === activeTabId.value)
   if (!currentTab) return
 
@@ -111,15 +110,17 @@ function handleSelectRequest(payload: any) {
   currentTab.params = payload.queryParams || []
   currentTab.requestId = payload.requestId
   currentTab.dataBaseTest = payload.dataBaseTest || null
+  currentTab.collectionId = payload.collectionId  // ✅ Lưu collectionId
+
   currentTab.bodies = payload.bodies || []  // ✅ Lưu tất cả bodies
 
   // Handle body (lấy body đầu tiên)
   if (payload.body) {
     currentTab.bodyId = payload.body.id || 0
-    currentTab.body = payload.body.content 
+    currentTab.body = payload.body.content
       ? parseBodyContent(payload.body.content)
       : '{}'
-    
+
     console.log('🟢 [index.vue] Set currentTab.bodyId:', currentTab.bodyId)
     console.log('🟢 [index.vue] All bodies count:', currentTab.bodies?.length)
   } else {
@@ -230,10 +231,7 @@ watch(
   <div class="flex h-screen" style="width: 95%;">
     <!-- Sidebar -->
     <div class="w-80 border-r border-gray-200 flex-shrink-0">
-      <List 
-        ref="listRef" 
-        @selectRequest="handleSelectRequest" 
-        @addNewTab="handleAddNewTab"
+      <List ref="listRef" @selectRequest="handleSelectRequest" @addNewTab="handleAddNewTab"
         @openExportImport="handleOpenExportImport" />
     </div>
 
@@ -243,8 +241,7 @@ watch(
       <div class="border-b border-gray-200 bg-gray-50 flex items-center overflow-x-auto flex-shrink-0">
         <div v-for="tab in tabs" :key="tab.id"
           class="flex items-center gap-2 px-4 py-2.5 border-r border-gray-200 cursor-pointer hover:bg-white transition-colors min-w-0 max-w-xs group"
-          :class="activeTabId === tab.id ? 'bg-white border-b-2 border-blue-600' : ''" 
-          @click="switchTab(tab.id)">
+          :class="activeTabId === tab.id ? 'bg-white border-b-2 border-blue-600' : ''" @click="switchTab(tab.id)">
           <span class="text-sm truncate flex-1">{{ tab.title }}</span>
           <button v-if="tabs.length > 1" @click.stop="closeTab(tab.id)"
             class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded p-0.5 flex-shrink-0 transition-opacity"
@@ -266,25 +263,19 @@ watch(
 
       <!-- Card Component -->
       <div class="flex-1 overflow-hidden">
-        <Card 
-          ref="cardRef" 
-          :key="activeTab.id" 
-          :title="activeTab.title" 
-          :defaultUrl="activeTab.url"
-          :defaultMethod="activeTab.method" 
-          :defaultBody="activeTab.body" 
-          :requestId="activeTab.requestId"
-          :bodyId="currentBodyId"
-          :dataBaseTest="activeTab.dataBaseTest || null" 
-          @stateChange="handleStateChange"
+        <!-- <Card ref="cardRef" :key="activeTab.id" :title="activeTab.title" :defaultUrl="activeTab.url"
+          :defaultMethod="activeTab.method" :defaultBody="activeTab.body" :requestId="activeTab.requestId"
+          :bodyId="currentBodyId" :dataBaseTest="activeTab.dataBaseTest || null" @stateChange="handleStateChange"
+          @requestSaved="handleRequestSaved" /> -->
+        <Card ref="cardRef" :key="activeTab.id" :title="activeTab.title" :defaultUrl="activeTab.url"
+          :defaultMethod="activeTab.method" :defaultBody="activeTab.body" :requestId="activeTab.requestId"
+          :collectionId="activeTab.collectionId" :bodyId="currentBodyId" :bodies="activeTab.bodies || []"
+          :dataBaseTest="activeTab.dataBaseTest || null" @stateChange="handleStateChange"
           @requestSaved="handleRequestSaved" />
       </div>
     </div>
 
     <!-- Export/Import Modal -->
-    <ExportImportModal 
-      v-if="showExportImportModal" 
-      @close="handleCloseExportImport" 
-      @imported="handleImported" />
+    <ExportImportModal v-if="showExportImportModal" @close="handleCloseExportImport" @imported="handleImported" />
   </div>
 </template>

@@ -3,6 +3,8 @@ using AutoApiTester.Data;
 using AutoApiTester.Models;
 using AutoApiTester.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace AutoApiTester.Repositories;
 
@@ -40,7 +42,7 @@ public class DataExportRepository : IDataExportRepository
 
     public async Task<UserDataExportDto> GetUserDataAsync(int userId)
     {
-        // 1️⃣ User info
+        // 1️ User info
         var user = await _context.Users
             .Where(u => u.Id == userId)
             .Select(u => new UserDataDto
@@ -54,7 +56,7 @@ public class DataExportRepository : IDataExportRepository
             })
             .FirstOrDefaultAsync();
 
-        // 2️⃣ Collections + nested requests
+        // 2️ Collections + nested requests
         var collections = await _context.Collections
             .AsNoTracking()
             .Where(c => c.UserId == userId)
@@ -84,13 +86,13 @@ public class DataExportRepository : IDataExportRepository
                             .Select(p => new RequestParamDto { Key = p.Key, Value = p.Value })
                             .ToList(),
 
-                        // ✅ Trả về TẤT CẢ bodies
                         Bodies = r.RequestBodies
                             .Select(b => new RequestBodyDto
                             {
                                 Id = b.Id,
                                 BodyType = b.BodyType,
-                                Content = b.Content
+                                Value = b.Value,
+                                Type=b.Type
                             })
                             .ToList(),
 
@@ -115,7 +117,6 @@ public class DataExportRepository : IDataExportRepository
         };
     }
 
-    // ✅ FIX: Lấy tất cả collections với nested data - THAY Body → Bodies
     private async Task<List<CollectionDataDto>> GetAllCollectionsWithNestedDataAsync()
     {
         return await _context.Collections
@@ -156,13 +157,13 @@ public class DataExportRepository : IDataExportRepository
                             })
                             .ToList(),
 
-                        // ✅ FIX: THAY Body → Bodies (ToList)
+                      
                         Bodies = r.RequestBodies
                             .Select(b => new RequestBodyDto
                             {
                                 Id = b.Id,
                                 BodyType = b.BodyType,
-                                Content = b.Content
+                                Value = b.Value
                             })
                             .ToList(),
 
@@ -173,7 +174,7 @@ public class DataExportRepository : IDataExportRepository
             .ToListAsync();
     }
 
-    // ✅ FIX: Import - Xử lý Bodies thay vì Body
+    // Import - Xử lý Bodies thay vì Body
     public async Task<ImportResultDto> ImportUserDataAsync(int userId, UserDataExportDto importData)
     {
         var result = new ImportResultDto();
@@ -182,7 +183,7 @@ public class DataExportRepository : IDataExportRepository
 
         try
         {
-            // 1️⃣ Validate user exists
+            // 1️ Validate user exists
             var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
             if (!userExists)
             {
@@ -191,7 +192,7 @@ public class DataExportRepository : IDataExportRepository
                 return result;
             }
 
-            // 2️⃣ Import Collections
+            // 2️ Import Collections
             foreach (var collectionDto in importData.Collections)
             {
                 var existingCollection = await _context.Collections
@@ -220,7 +221,7 @@ public class DataExportRepository : IDataExportRepository
                     result.ImportedCollections++;
                 }
 
-                // 3️⃣ Import Requests
+                // 3️ Import Requests
                 foreach (var requestDto in collectionDto.Requests)
                 {
                     var existingRequest = await _context.Requests
@@ -268,7 +269,7 @@ public class DataExportRepository : IDataExportRepository
                         result.ImportedRequests++;
                     }
 
-                    // 4️⃣ Import Query Params
+                    // 4️ Import Query Params
                     if (requestDto.QueryParams?.Any() == true)
                     {
                         foreach (var paramDto in requestDto.QueryParams)
@@ -282,7 +283,7 @@ public class DataExportRepository : IDataExportRepository
                         }
                     }
 
-                    // 5️⃣ Import Headers
+                    // 5️ Import Headers
                     if (requestDto.Headers?.Any() == true)
                     {
                         foreach (var headerDto in requestDto.Headers)
@@ -296,19 +297,19 @@ public class DataExportRepository : IDataExportRepository
                         }
                     }
 
-                    // 6️⃣ ✅ FIX: Import NHIỀU Bodies thay vì chỉ 1
+                    // 6 Import NHIỀU Bodies thay vì chỉ 1
                     if (requestDto.Bodies?.Any() == true)
                     {
                         foreach (var bodyDto in requestDto.Bodies)
                         {
-                            if (string.IsNullOrWhiteSpace(bodyDto.Content))
+                            if (string.IsNullOrWhiteSpace(bodyDto.Value))
                                 continue;
 
                             _context.RequestBodies.Add(new RequestBody
                             {
                                 RequestId = request.Id,
                                 BodyType = bodyDto.BodyType,
-                                Content = bodyDto.Content
+                                Value = bodyDto.Value
                             });
                         }
                     }
@@ -436,8 +437,7 @@ public class DataExportRepository : IDataExportRepository
                     }
                 }
 
-                // 5️⃣ Xử lý body
-                if (dto.Body != null && !string.IsNullOrWhiteSpace(dto.Body.Content))
+                if (dto.Body != null && !string.IsNullOrWhiteSpace(dto.Body.Value))
                 {
                     if (dto.Body.Id > 0)
                     {
@@ -448,18 +448,17 @@ public class DataExportRepository : IDataExportRepository
                         if (existingBody != null)
                         {
                             existingBody.BodyType = dto.Body.BodyType;
-                            existingBody.Content = dto.Body.Content;
+                            existingBody.Value = dto.Body.Value;
                             _context.RequestBodies.Update(existingBody);
                         }
                         else
                         {
-                            Console.WriteLine($"⚠️ Body ID {dto.Body.Id} not found, creating new body instead");
 
                             _context.RequestBodies.Add(new RequestBody
                             {
                                 RequestId = request.Id,
                                 BodyType = dto.Body.BodyType,
-                                Content = dto.Body.Content
+                                Value = dto.Body.Value
                             });
                         }
                     }
@@ -470,20 +469,53 @@ public class DataExportRepository : IDataExportRepository
                         {
                             RequestId = request.Id,
                             BodyType = dto.Body.BodyType,
-                            Content = dto.Body.Content
+                            Value = dto.Body.Value
                         });
                     }
                 }
+            }
 
-                await _context.SaveChangesAsync();
+            var requestIds = dtos
+                .Where(d => d.RequestId.HasValue && d.RequestId.Value > 0)
+                .Select(d => d.RequestId.Value)
+                .Distinct()
+                .ToList();
 
-                results.Add(new SaveRequestResultDto
+            foreach (var requestId in requestIds)
+            {
+                var bodyIdsInDto = dtos
+                    .Where(d => d.RequestId == requestId
+                        && d.Body != null
+                        && d.Body.Id > 0
+                        && !string.IsNullOrWhiteSpace(d.Body.Value))  
+                    .Select(d => d.Body.Id)
+                    .ToList();
+
+            
+                var bodiesToDelete = await _context.RequestBodies
+                    .Where(b => b.RequestId == requestId && !bodyIdsInDto.Contains(b.Id))
+                    .ToListAsync();
+
+                if (bodiesToDelete.Any())
                 {
-                    Success = true,
-                    RequestId = request.Id,
-                    IsNew = isNew,
-                    Message = isNew ? "Request created successfully" : "Request updated successfully"
-                });
+                    _context.RequestBodies.RemoveRange(bodiesToDelete);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            foreach (var dto in dtos)
+            {
+                if (dto.RequestId.HasValue && dto.RequestId.Value > 0)
+                {
+                    results.Add(new SaveRequestResultDto
+                    {
+                        Success = true,
+                        RequestId = dto.RequestId.Value,
+                        IsNew = false,
+                        Message = "Request updated successfully"
+                    });
+                }
             }
 
             await transaction.CommitAsync();
@@ -501,6 +533,8 @@ public class DataExportRepository : IDataExportRepository
 
         return results;
     }
+
+
 
     public async Task<SaveRequestResultDto> DeleteRequestAsync(int userId, int requestId)
     {

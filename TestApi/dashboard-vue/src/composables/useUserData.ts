@@ -28,6 +28,8 @@ export interface RequestItem {
   headers: RequestHeader[]
   body: RequestBody | null
   dataBaseTest: string | null
+  bodies: RequestBody[] 
+  collectionId: number
 }
 
 export interface Collection {
