@@ -98,7 +98,7 @@ function handleStateChange(state: any) {
 
 // Handle select request
 function handleSelectRequest(payload: any) {
-  console.log('🟢 [index.vue] Received payload:', payload)
+  console.log('Received payload:', payload)
 
   const currentTab = tabs.value.find(t => t.id === activeTabId.value)
   if (!currentTab) return
@@ -110,23 +110,26 @@ function handleSelectRequest(payload: any) {
   currentTab.params = payload.queryParams || []
   currentTab.requestId = payload.requestId
   currentTab.dataBaseTest = payload.dataBaseTest || null
-  currentTab.collectionId = payload.collectionId  // ✅ Lưu collectionId
+  currentTab.collectionId = payload.collectionId
+  currentTab.bodies = payload.bodies || []
 
-  currentTab.bodies = payload.bodies || []  // ✅ Lưu tất cả bodies
-
-  // Handle body (lấy body đầu tiên)
+  // Handle body
   if (payload.body) {
     currentTab.bodyId = payload.body.id || 0
-    currentTab.body = payload.body.content
-      ? parseBodyContent(payload.body.content)
+    currentTab.body = payload.body.value
+      ? parseBodyContent(payload.body.value)
       : '{}'
 
-    console.log('🟢 [index.vue] Set currentTab.bodyId:', currentTab.bodyId)
-    console.log('🟢 [index.vue] All bodies count:', currentTab.bodies?.length)
+    console.log('Set currentTab.bodyId:', currentTab.bodyId)
+    console.log('All bodies count:', currentTab.bodies?.length)
   } else {
     currentTab.body = '{}'
     currentTab.bodyId = 0
   }
+
+  nextTick(() => {
+    saveTabsToLocalStorage(tabs.value, activeTabId.value)
+  })
 }
 // Add new tab
 function handleAddNewTab(collectionId: number) {

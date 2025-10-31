@@ -214,30 +214,14 @@ function loadRequestData(requestData: any) {
   method.value = requestData.method
 
   if (requestData.body) {
-    body.value = requestData.body.content || '{}'
+    body.value = requestData.body.value || '{}'
     nextTick(() => {
       bodyTabRef.value?.setBodyId?.(requestData.body.id || 0)
     })
   }
 }
 
-// Format request body
-function formatRequestBody() {
-  let requestBody: any = null
-
-  if (bodyTabRef.value) {
-    const rawBody = bodyTabRef.value.getBody?.()
-    const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
-
-    if (bodyType !== 'none' && rawBody != null) {
-      requestBody = typeof rawBody === 'object' && 'bodyType' in rawBody && 'content' in rawBody
-        ? rawBody
-        : { bodyType, content: typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody) }
-    }
-  }
-
-  return requestBody
-}
+ 
 
 // Build headers with auth
 function buildHeaders() {
@@ -353,21 +337,7 @@ async function handleSend() {
       responseSize.value = result[0]?.size ?? null
 
       response.value = JSON.stringify(allResults, null, 2)
-    } else {
-      responseStatus.value = result.status ?? null
-      responseDuration.value = result.duration ?? null
-      responseSize.value = result.size ?? null
-
-      response.value = result.success
-        ? JSON.stringify(result.data, null, 2)
-        : JSON.stringify({
-          error: result.error || 'Request failed',
-          status: result.status,
-          statusText: result.statusText,
-          data: result.data
-        }, null, 2)
     }
-
     // Save history với requestBody gốc
     await saveHistory(result, requestBody, params, headers)
   } catch (error: any) {
