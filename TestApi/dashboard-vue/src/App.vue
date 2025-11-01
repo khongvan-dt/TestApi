@@ -3,6 +3,7 @@ import { ref, watch, onMounted } from 'vue'
 import { useAuth } from './composables/useAuth'
 import { useStorage } from '@vueuse/core'
 import type { NavigationMenuItem } from '@nuxt/ui'
+import Toast from 'primevue/toast'
 
 const { isAuthenticated } = useAuth()
 const toast = useToast()
@@ -45,18 +46,13 @@ const links = [[{
       open.value = false
     }
   }, {
-    label: 'Notifications',
-    to: '/settingjob/notifications',
+    label: 'DB Connection',
+    to: '/settingjob/databases',
     onSelect: () => {
       open.value = false
     }
-  }, {
-    label: 'Security',
-    to: '/settingjob/security',
-    onSelect: () => {
-      open.value = false
-    }
-  }]
+  }
+]
 }]] satisfies NavigationMenuItem[][]
 
 const handleLoginSuccess = () => {

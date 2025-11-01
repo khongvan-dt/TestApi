@@ -160,10 +160,13 @@ builder.Services.AddScoped<IRequestRepository, RequestRepository>();
 //builder.Services.AddScoped<IExecutionRepository, ExecutionRepository>();
 builder.Services.AddScoped<IDataExportRepository, DataExportRepository>();
 builder.Services.AddScoped<IExecutionHistoryRepository, ExecutionHistoryRepository>();
+builder.Services.AddScoped<ISQLConnectionDBRepository, SQLConnectionDBRepository>();
 
 builder.Services.AddScoped<IJobApiTestSuiteRepository, JobApiTestSuiteRepository>();
 
 builder.Services.AddScoped<IDataExportService, DataExportService>();
+builder.Services.AddScoped<ISQLConnectionDBService, SQLConnectionDBService>();
+
 
 //  Register Services
 builder.Services.AddScoped<IAuthService, AuthService>();

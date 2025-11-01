@@ -16,6 +16,8 @@
     "date-fns": "^4.1.0",
     "express": "^5.1.0",
     "http-proxy-middleware": "^3.0.5",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.4.1",
     "splitpanes": "^4.0.4",
     "vue": "^3.5.22",
     "vue-router": "^4.6.3",

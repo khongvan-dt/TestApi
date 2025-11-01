@@ -53,6 +53,10 @@ const requestHeight = ref(400)
 const isResizing = ref(false)
 const bodyKey = ref(0)
 
+// ✅ State cho tabs data
+const paramsData = ref<Array<{ key: string; value: string }> | null>(null)
+const headersData = ref<Array<{ key: string; value: string }> | null>(null)
+
 // ==================== REFS ====================
 const bodyTabRef = ref<any>(null)
 const paramsTabRef = ref<any>(null)
@@ -77,12 +81,23 @@ function updateFromParent(data: {
   dataBaseTest?: string | null
   requestId?: number | null
   collectionId?: number | null
+  params?: Array<{ key: string; value: string; enabled: boolean }>
+  headers?: Array<{ key: string; value: string; enabled: boolean }>
 }) {
   console.log('🔵 [Card] updateFromParent:', data)
   
   if (data.url !== undefined) url.value = data.url
   if (data.method !== undefined) method.value = data.method
   if (data.requestId !== undefined) currentRequestId.value = data.requestId
+  
+  // ✅ Update params và headers
+  if (data.params !== undefined) {
+    paramsData.value = data.params.map(p => ({ key: p.key, value: p.value }))
+  }
+  
+  if (data.headers !== undefined) {
+    headersData.value = data.headers.map(h => ({ key: h.key, value: h.value }))
+  }
   
   if (data.body !== undefined) {
     body.value = data.body
@@ -419,7 +434,6 @@ defineExpose({
   }
 })
 </script>
-
 <template>
   <div ref="containerRef" class="h-full flex flex-col bg-white">
     
@@ -485,20 +499,26 @@ defineExpose({
         </button>
       </div>
 
-      <!-- Tabs Content -->
+      <!-- ✅ TABS CONTENT - Truyền props đầy đủ -->
       <div class="flex-1 overflow-auto" style="height: calc(100% - 100px);">
+        <!-- Params Tab -->
         <ParamsTab 
           v-show="activeTab === 'Params'"
-          ref="paramsTabRef" />
+          ref="paramsTabRef"
+          :paramsData="paramsData" />
         
+        <!-- Authorization Tab -->
         <AuthorizationTab 
           v-show="activeTab === 'Authorization'"
           ref="authTabRef" />
         
+        <!-- Headers Tab -->
         <HeadersTab 
           v-show="activeTab === 'Headers'"
-          ref="headersTabRef" />
+          ref="headersTabRef"
+          :headersData="headersData" />
         
+        <!-- Body Tab -->
         <BodyTab 
           v-show="activeTab === 'Body'"
           ref="bodyTabRef"

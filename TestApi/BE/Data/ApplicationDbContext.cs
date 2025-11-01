@@ -21,6 +21,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<JobApiTestCase> JobApiTestCases { get; set; }
     public DbSet<JobApiTestHistory> JobApiTestHistories { get; set; }
     public DbSet<JobScheduleApiTest> JobScheduleApiTests => Set<JobScheduleApiTest>();
+    public DbSet<SQLConnectionDB> SQLConnectionDBs => Set<SQLConnectionDB>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -73,7 +74,7 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.CollectionId);
         });
 
-
+        // ExecutionHistory
         modelBuilder.Entity<ExecutionHistory>(entity =>
         {
             entity.ToTable("ExecutionHistory");
@@ -87,7 +88,7 @@ public class ApplicationDbContext : DbContext
 
             // User relationship
             entity.HasOne(e => e.User)
-                .WithMany(u => u.ExecutionHistories) 
+                .WithMany(u => u.ExecutionHistories)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -102,7 +103,6 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.RequestId);
             entity.HasIndex(e => e.ExecutedAt);
         });
-
 
         // RequestHeader
         modelBuilder.Entity<RequestHeader>(entity =>
@@ -149,37 +149,45 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.RequestId);
         });
 
+        // JobApiTestSuite
         modelBuilder.Entity<JobApiTestSuite>()
-               .HasMany(s => s.TestCases)
-               .WithOne(c => c.ApiTestSuite)
-               .HasForeignKey(c => c.ApiTestSuiteId)
-               .OnDelete(DeleteBehavior.Cascade);
+            .HasMany(s => s.TestCases)
+            .WithOne(c => c.ApiTestSuite)
+            .HasForeignKey(c => c.ApiTestSuiteId)
+            .OnDelete(DeleteBehavior.Cascade);
 
+        // JobApiTestCase
         modelBuilder.Entity<JobApiTestCase>()
             .HasMany(c => c.Histories)
             .WithOne(h => h.ApiTestCase)
             .HasForeignKey(h => h.ApiTestCaseId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // JobScheduleApiTest
         modelBuilder.Entity<JobScheduleApiTest>()
-              .HasOne(j => j.User)
-              .WithMany()
-              .HasForeignKey(j => j.UserId)
-              .OnDelete(DeleteBehavior.Cascade);
+            .HasOne(j => j.User)
+            .WithMany()
+            .HasForeignKey(j => j.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<SQLConnectionDB>(entity =>
-        {
-            entity.ToTable("SQLConnectionDB");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
-            entity.Property(e => e.ConnectString).HasMaxLength(1000).IsRequired();
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
-            entity.HasOne(e => e.User)
-                  .WithMany(u => u.SQLConnectionDBs)
-                  .HasForeignKey(e => e.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
-        });
-    }
+       {
+           entity.ToTable("SQLConnectionDB");
+           entity.HasKey(e => e.Id);
 
+           entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+           entity.Property(e => e.ConnectString).HasMaxLength(1000).IsRequired();
+           entity.Property(e => e.IsActive).HasDefaultValue(true);
+           entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+           entity.HasOne(e => e.User)
+          .WithMany(u => u.SQLConnectionDBs)
+          .HasForeignKey(e => e.UserId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+           entity.HasIndex(e => e.UserId);
+       });
+
+
+    }
 }

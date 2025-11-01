@@ -94,7 +94,7 @@ function handleSelectRequest(payload: any) {
   const currentTab = tabs.value.find(t => t.id === activeTabId.value)
   if (!currentTab) return
 
-  // Update tab data (for localStorage)
+  // Update tab data
   currentTab.title = payload.name
   currentTab.method = payload.method
   currentTab.url = payload.url
@@ -105,7 +105,6 @@ function handleSelectRequest(payload: any) {
   currentTab.collectionId = payload.collectionId
   currentTab.bodies = payload.bodies || []
 
-  // ✅ Handle body - Sử dụng "value" từ API
   if (payload.body) {
     currentTab.bodyId = payload.body.id || 0
     currentTab.body = payload.body.value
@@ -116,9 +115,7 @@ function handleSelectRequest(payload: any) {
     currentTab.bodyId = 0
   }
 
-  console.log('🟢 [index] Updated tab:', currentTab)
-
-  // ✅ Update Card via method call (after refs ready)
+  // ✅ Update Card với params và headers
   nextTick(() => {
     setTimeout(() => {
       if (cardRef.value?.updateFromParent) {
@@ -130,7 +127,9 @@ function handleSelectRequest(payload: any) {
           bodyId: currentTab.bodyId,
           dataBaseTest: currentTab.dataBaseTest,
           requestId: currentTab.requestId,
-          collectionId: currentTab.collectionId
+          collectionId: currentTab.collectionId,
+          params: currentTab.params,      // ✅ Thêm
+          headers: currentTab.headers      // ✅ Thêm
         })
       }
     }, 100)
@@ -241,7 +240,7 @@ onMounted(() => {
   loadSavedTabs()
 })
 
-// ✅ Watch activeTabId - Update Card when switching tabs
+
 watch(activeTabId, (newId, oldId) => {
   if (newId === oldId) return
 
@@ -250,7 +249,6 @@ watch(activeTabId, (newId, oldId) => {
   nextTick(() => {
     const currentTab = activeTab.value
 
-    // ✅ Delay to ensure Card is mounted
     setTimeout(() => {
       if (cardRef.value?.updateFromParent && currentTab) {
         console.log('🟢 [index] Updating Card after tab switch')
@@ -261,7 +259,9 @@ watch(activeTabId, (newId, oldId) => {
           bodyId: currentTab.bodyId,
           dataBaseTest: currentTab.dataBaseTest,
           requestId: currentTab.requestId,
-          collectionId: currentTab.collectionId
+          collectionId: currentTab.collectionId,
+          params: currentTab.params,      // ✅ Thêm
+          headers: currentTab.headers      // ✅ Thêm
         })
       }
     }, 100)
@@ -276,10 +276,7 @@ watch(activeTabId, (newId, oldId) => {
   <div class="flex h-screen" style="width: 95%;">
     <!-- ==================== SIDEBAR ==================== -->
     <div class="w-80 border-r border-gray-200 flex-shrink-0">
-      <List
-        ref="listRef"
-        @selectRequest="handleSelectRequest"
-        @addNewTab="handleAddNewTab"
+      <List ref="listRef" @selectRequest="handleSelectRequest" @addNewTab="handleAddNewTab"
         @openExportImport="handleOpenExportImport" />
     </div>
 
@@ -289,19 +286,14 @@ watch(activeTabId, (newId, oldId) => {
       <!-- ==================== TAB BAR ==================== -->
       <div class="border-b border-gray-200 bg-gray-50 flex items-center overflow-x-auto flex-shrink-0">
         <!-- Tabs -->
-        <div
-          v-for="tab in tabs"
-          :key="tab.id"
+        <div v-for="tab in tabs" :key="tab.id"
           class="flex items-center gap-2 px-4 py-2.5 border-r border-gray-200 cursor-pointer hover:bg-white transition-colors min-w-0 max-w-xs group"
-          :class="activeTabId === tab.id ? 'bg-white border-b-2 border-blue-600' : ''"
-          @click="switchTab(tab.id)">
+          :class="activeTabId === tab.id ? 'bg-white border-b-2 border-blue-600' : ''" @click="switchTab(tab.id)">
 
           <span class="text-sm truncate flex-1">{{ tab.title }}</span>
 
           <!-- Close button -->
-          <button
-            v-if="tabs.length > 1"
-            @click.stop="closeTab(tab.id)"
+          <button v-if="tabs.length > 1" @click.stop="closeTab(tab.id)"
             class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded p-0.5 flex-shrink-0 transition-opacity"
             title="Close tab">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,8 +303,7 @@ watch(activeTabId, (newId, oldId) => {
         </div>
 
         <!-- Add new tab button -->
-        <button
-          @click="handleAddNewTab(0)"
+        <button @click="handleAddNewTab(0)"
           class="px-3 py-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex-shrink-0"
           title="New tab">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,26 +313,14 @@ watch(activeTabId, (newId, oldId) => {
       </div>
 
       <!-- ==================== CARD COMPONENT ==================== -->
-      <!-- <div class="flex-1 overflow-hidden">
-        <Card
-          ref="cardRef"
-          :key="activeTab.id"
-          :title="activeTab.title"
-          :defaultUrl="activeTab.url"
-          :defaultMethod="activeTab.method"
-          :defaultBody="activeTab.body"
-          :requestId="activeTab.requestId"
-          :collectionId="activeTab.collectionId"
-          :bodyId="currentBodyId"
-          :bodies="activeTab.bodies || []"
-          :dataBaseTest="activeTab.dataBaseTest || null"
-          @requestSaved="handleRequestSaved" />
-       </div> -->
+      <div class="flex-1 overflow-hidden">
+        <Card ref="cardRef" :key="activeTab.id" :title="activeTab.title" :defaultUrl="activeTab.url"
+          :defaultMethod="activeTab.method" :defaultBody="activeTab.body" :requestId="activeTab.requestId"
+          :collectionId="activeTab.collectionId" :bodyId="currentBodyId" :bodies="activeTab.bodies || []"
+          :dataBaseTest="activeTab.dataBaseTest || null" @requestSaved="handleRequestSaved" />
+      </div>
     </div>
 
-     <ExportImportModal
-      v-if="showExportImportModal"
-      @close="handleCloseExportImport"
-      @imported="handleImported" />
+    <ExportImportModal v-if="showExportImportModal" @close="handleCloseExportImport" @imported="handleImported" />
   </div>
 </template>
