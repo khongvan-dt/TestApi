@@ -166,6 +166,20 @@ public class ApplicationDbContext : DbContext
               .WithMany()
               .HasForeignKey(j => j.UserId)
               .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SQLConnectionDB>(entity =>
+        {
+            entity.ToTable("SQLConnectionDB");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.ConnectString).HasMaxLength(1000).IsRequired();
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.SQLConnectionDBs)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
 }

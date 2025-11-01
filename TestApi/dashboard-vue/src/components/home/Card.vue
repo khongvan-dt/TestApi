@@ -54,7 +54,8 @@ const requestHeight = ref(400)
 const isResizing = ref(false)
 const bodyKey = ref(0)
 const isInternalUpdate = ref(false)
-
+// Card.vue <script setup>
+const currentBodyId = ref(0)
 // Refs
 const bodyTabRef = ref<any>(null)
 const paramsTabRef = ref<any>(null)
@@ -70,7 +71,9 @@ const tabs = ['Params', 'Authorization', 'Headers', 'Body']
 
 // Watch props with internal update flag
 
-
+watch(() => props.bodyId, (newId) => {
+  currentBodyId.value = newId || 0
+}, { immediate: true })
 watch(() => props.defaultUrl, (newUrl) => {
   if (newUrl === url.value) return
   isInternalUpdate.value = true
@@ -176,11 +179,27 @@ watch(() => props.bodyId, (newId) => {
 
 // Get request data
 function getRequestData() {
+
+
+
+
   const params = paramsTabRef.value?.getParams?.() || []
   const headers = headersTabRef.value?.getHeaders?.() || []
   const auth = authTabRef.value?.getAuthData?.() || null
-
+  const bodyTypeResult = bodyTabRef.value?.getBodyType?.()
+  let bodyType = 'none'
   let bodyData: any = null
+
+  if (bodyTypeResult) {
+    bodyType = bodyTypeResult.bodyType
+    const itemType = bodyTypeResult.type || 'text'  // ← LẤY type từ FormData
+    bodyData = {
+      id: currentBodyId.value,
+      bodyType,
+      value: [],  // FormData sẽ xử lý sau
+      type: itemType  // ← ĐÚNG: text hoặc sql
+    }
+  }
   if (bodyTabRef.value) {
     const result = bodyTabRef.value.getBody?.()
     const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
@@ -221,7 +240,7 @@ function loadRequestData(requestData: any) {
   }
 }
 
- 
+
 
 // Build headers with auth
 function buildHeaders() {
@@ -287,7 +306,6 @@ async function handleSend() {
     const params = paramsTabRef.value?.getParams() || []
     const headers = buildHeaders()
 
-    // ✅ FIX: Lấy cả baseData và rawBody
     const bodyData = bodyTabRef.value?.getBody?.()
     const bodyType = bodyTabRef.value?.getBodyType?.() || 'none'
     const baseData = bodyTabRef.value?.getDataBaseTest?.() || null
@@ -295,11 +313,9 @@ async function handleSend() {
 
     let requestBody: any = null
 
-    // ✅ Logic merge baseData + rawBody
     if (bodyType === 'raw' && bodyData?.content) {
       requestBody = mergeTestData(baseData, bodyData.content)
     } else if (bodyType === 'base-data' && baseData) {
-      // Nếu chọn tab base-data → chỉ dùng baseData
       requestBody = baseData
     } else if (bodyData?.content) {
       // Các trường hợp khác
@@ -347,7 +363,7 @@ async function handleSend() {
   }
 }
 
- function mergeTestData(baseDataStr: string | null, rawBodyStr: string): any {
+function mergeTestData(baseDataStr: string | null, rawBodyStr: string): any {
   if (!baseDataStr) {
     // Không có baseData → chỉ parse rawBody
     return parseRawBody(rawBodyStr)
@@ -370,14 +386,14 @@ async function handleSend() {
       ...override
     }))
 
- 
+
     return mergedTestCases
   } catch (error) {
-     return parseRawBody(rawBodyStr)
+    return parseRawBody(rawBodyStr)
   }
 }
 
- function parseRawBody(rawStr: string): any {
+function parseRawBody(rawStr: string): any {
   const trimmed = rawStr.trim()
 
   // Case 1: Đã có [] bao quanh
@@ -411,7 +427,7 @@ function handleOpenSaveModal() {
   showSaveModal.value = true
 }
 
- 
+
 
 function handleRequestSaved(requestId: number) {
   emit('requestSaved', requestId)
@@ -479,7 +495,7 @@ defineExpose({
             <option value="DELETE">DELETE</option>
           </select>
 
-           <input v-model="url" type="text" placeholder="Enter request URL (e.g., https://api.example.com/users)"
+          <input v-model="url" type="text" placeholder="Enter request URL (e.g., https://api.example.com/users)"
             class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
           <button @click="handleOpenSaveModal"
