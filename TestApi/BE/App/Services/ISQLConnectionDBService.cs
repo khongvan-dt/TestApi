@@ -1,4 +1,5 @@
-﻿using AutoApiTester.Models;
+﻿using AutoApiTester.DTOs.SQLDto;
+using AutoApiTester.Models;
 using AutoApiTester.Models.DTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -12,5 +13,6 @@ namespace AutoApiTester.App.Services
         Task<SQLConnectionDB> GetByIdAsync(int id, int userId);
         Task<bool> DeleteAsync(int id, int userId);
         Task<bool> TestConnectionAsync(string connectionString);
+        Task<SQLQueryResponse> ExecuteQueryAsync(string connectionString, string query, int userId, int timeout = 30);
     }
 }

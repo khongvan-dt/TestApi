@@ -68,10 +68,10 @@ const containerRef = ref<HTMLDivElement>()
 const { sendRequest } = useApiClient()
 
 // ==================== CONSTANTS ====================
-const tabs = ['Params', 'Authorization', 'Headers', 'Body']
+// const tabs = ['Params', 'Authorization', 'Headers', 'Body']
+const tabs = ['Authorization',  'Body']
 
-console.log('🟢 [Card] Mounted')
-
+ 
 // ==================== UPDATE FROM PARENT ====================
 function updateFromParent(data: {
   url?: string
@@ -499,13 +499,12 @@ defineExpose({
         </button>
       </div>
 
-      <!-- ✅ TABS CONTENT - Truyền props đầy đủ -->
-      <div class="flex-1 overflow-auto" style="height: calc(100% - 100px);">
+       <div class="flex-1 overflow-auto" style="height: calc(100% - 100px);">
         <!-- Params Tab -->
-        <ParamsTab 
+        <!-- <ParamsTab 
           v-show="activeTab === 'Params'"
           ref="paramsTabRef"
-          :paramsData="paramsData" />
+          :paramsData="paramsData" /> -->
         
         <!-- Authorization Tab -->
         <AuthorizationTab 
@@ -513,10 +512,10 @@ defineExpose({
           ref="authTabRef" />
         
         <!-- Headers Tab -->
-        <HeadersTab 
+        <!-- <HeadersTab 
           v-show="activeTab === 'Headers'"
           ref="headersTabRef"
-          :headersData="headersData" />
+          :headersData="headersData" /> -->
         
         <!-- Body Tab -->
         <BodyTab 

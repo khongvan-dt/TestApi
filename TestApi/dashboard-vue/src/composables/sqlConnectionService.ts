@@ -42,23 +42,84 @@ export interface DeleteConnectionResult {
   success: boolean
   message: string
 }
+ 
 
+export interface SQLQueryRequest {
+  connectionString: string
+  query: string
+  timeout?: number
+}
+
+export interface SQLQueryResponse {
+  success: boolean
+  message: string
+  data?: Array<Record<string, any>>
+  rowsAffected: number
+  executionTimeMs: number
+}
+
+export const executeSQLQuery = async (
+  connectionString: string,
+  query: string,
+  timeout: number = 30
+): Promise<SQLQueryResponse> => {
+  try {
+    const response = await apiClient.post('/SQLQuery/execute', {
+      connectionString,
+      query,
+      timeout
+    })
+
+    return response.data
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || 'Failed to execute query',
+      rowsAffected: 0,
+      executionTimeMs: 0
+    }
+  }
+}
 // ==================== API FUNCTIONS ====================
 
 /**
  * Get all SQL connections for current user
  */
-export const getMySQLConnections = async (): Promise<SQLConnection[]> => {
-  try {
-    const response = await apiClient.get('/SQLConnectionDB')
+// export const getMySQLConnections = async (): Promise<SQLConnection[]> => {
+//   try {
+//     const response = await apiClient.get('/SQLConnectionDB')
     
-    if (response.data.success) {
-      return response.data.data
-    } else {
-      throw new Error(response.data.message || 'Failed to get SQL connections')
+//     if (response.data.success) {
+//       return response.data.data
+//     } else {
+//       throw new Error(response.data.message || 'Failed to get SQL connections')
+//     }
+//   } catch (error: any) {
+//     throw error
+//   }
+// }
+export const getMySQLConnections = async (): Promise<SQLConnectionsResult> => {
+  try {
+    console.log("📡 Calling API: GET /SQLConnectionDB")
+
+    const response = await apiClient.get('/SQLConnectionDB')
+
+    console.log("✅ Response:", response.data)
+
+    return {
+      success: response.data.success,
+      message: response.data.message,
+      data: response.data.data || []
     }
+
   } catch (error: any) {
-    throw error
+    console.error("❌ Error getMySQLConnections:", error)
+
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || "Error calling API",
+      data: []
+    }
   }
 }
 

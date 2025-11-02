@@ -22,7 +22,9 @@ const props = withDefaults(defineProps<Props>(), {
 // State
 const currentDataBaseTest = ref('')
 const currentBodyId = ref(0)
-const bodyType = ref<'base-data' | 'raw' | 'form-data' | 'none' | 'x-www-form-urlencoded' | 'binary'>('raw')
+// const bodyType = ref<'base-data' | 'raw' | 'form-data' | 'none' | 'x-www-form-urlencoded' | 'binary'>('raw')
+const bodyType = ref<'base-data' | 'raw' | 'form-data' | 'none' | 'binary'>('raw')
+
 const rawContent = ref('')
 const formData = ref<any[]>([])
 const formUrlEncoded = ref<any[]>([])
@@ -35,12 +37,12 @@ const paramsRef = ref<any>(null)
 
 watch(() => props.bodyId, (val) => {
   currentBodyId.value = val || 0
-}, { immediate: true, flush: 'sync' })  
+}, { immediate: true, flush: 'sync' })
 
 // Watch dataBaseTest
 watch(() => props.dataBaseTest, (val) => {
   currentDataBaseTest.value = val || ''
-  
+
   if (val && (bodyType.value === 'raw' || bodyType.value === 'none')) {
     bodyType.value = 'base-data'
   }
@@ -69,9 +71,9 @@ function normalizeBodyOutput(content: any, type: string) {
 }
 
 function getBody() {
- 
+
   let result = null
-  
+
   switch (bodyType.value) {
     case 'base-data':
       result = normalizeBodyOutput(currentDataBaseTest.value, 'base-data')
@@ -82,16 +84,16 @@ function getBody() {
     case 'form-data':
       result = normalizeBodyOutput(formData.value, 'form-data')
       break
-    case 'x-www-form-urlencoded':
-      result = normalizeBodyOutput(formUrlEncoded.value, 'x-www-form-urlencoded')
-      break
+    // case 'x-www-form-urlencoded':
+    //   result = normalizeBodyOutput(formUrlEncoded.value, 'x-www-form-urlencoded')
+    //   break
     case 'binary':
       result = normalizeBodyOutput(binaryFile.value, 'binary')
       break
     default:
       result = null
   }
-  
+
   return result
 }
 
@@ -118,14 +120,15 @@ defineExpose({
   updateBody,
   setDataBaseTest,
   setBodyId,
-  getDataBaseTest  
+  getDataBaseTest
 })
 </script>
 
 <template>
   <div class="bg-white">
     <div class="flex items-center gap-4 mb-4 flex-wrap">
-      <label v-for="t in ['base-data', 'none', 'form-data', 'x-www-form-urlencoded', 'raw', 'binary']" :key="t"
+      <!-- <label v-for="t in ['base-data', 'none', 'form-data', 'x-www-form-urlencoded', 'raw', 'binary']" :key="t" -->
+      <label v-for="t in ['base-data', 'none', 'form-data', 'raw', 'binary']" :key="t"
         class="flex items-center gap-2 cursor-pointer select-none"
         :class="bodyType === t ? 'text-blue-600 font-medium' : 'text-gray-600'">
         <input type="radio" :value="t" v-model="bodyType" class="w-4 h-4 text-blue-600" />
@@ -139,13 +142,12 @@ defineExpose({
       </div>
 
       <RawEditor v-if="bodyType === 'raw'" v-model="rawContent" ref="rawEditorRef" />
-      
-      <FormDataEditor v-show="bodyType === 'form-data'" ref="formRef" />
-      
-      <ParamsTab v-show="bodyType === 'x-www-form-urlencoded'" ref="paramsRef" :paramsData="formUrlEncoded" />
 
-      <DataBaseTest v-show="bodyType === 'base-data'" 
-        :dataBaseTest="currentDataBaseTest"
+      <FormDataEditor v-show="bodyType === 'form-data'" ref="formRef" />
+
+      <!-- <ParamsTab v-show="bodyType === 'x-www-form-urlencoded'" ref="paramsRef" :paramsData="formUrlEncoded" /> -->
+
+      <DataBaseTest v-show="bodyType === 'base-data'" :dataBaseTest="currentDataBaseTest"
         :requestId="props.requestId" />
 
       <div v-show="bodyType === 'binary'" class="py-6 flex flex-col items-center gap-3">

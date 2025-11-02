@@ -267,9 +267,7 @@ watch(activeTabId, (newId, oldId) => {
     }, 100)
   })
 })
-
-// ❌ BỎ WATCH TABS - Gây loop
-// watch(() => tabs.value.map(...), ...)
+ 
 </script>
 
 <template>

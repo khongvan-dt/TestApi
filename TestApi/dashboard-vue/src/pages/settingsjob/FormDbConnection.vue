@@ -29,19 +29,23 @@ const formData = ref<CreateSQLConnectionDto>({
 // ==================== API FUNCTIONS ====================
 async function fetchConnections() {
   loading.value = true
-  try {
-    connections.value = await getMySQLConnections()
-  } catch (error: any) {
+
+  const result = await getMySQLConnections()
+
+  if (result.success) {
+    connections.value = result.data
+  } else {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: error.message || 'Failed to fetch connections',
+      detail: result.message || 'Failed to fetch connections',
       life: 3000
     })
-  } finally {
-    loading.value = false
   }
+
+  loading.value = false
 }
+
 
 async function saveConnection() {
   if (!formData.value.name || !formData.value.connectString) {
