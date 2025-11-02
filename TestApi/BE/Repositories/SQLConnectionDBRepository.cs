@@ -25,7 +25,7 @@ namespace AutoApiTester.App.Repositories
                 {
                     // UPDATE
                     var existing = await _context.SQLConnectionDBs
-                        .FirstOrDefaultAsync(x => x.Id == entity.Id && x.UserId == entity.UserId);
+                        .FirstOrDefaultAsync(x => x.Id == entity.Id && x.UserId == userId);
 
                     if (existing == null)
                         throw new Exception($"SQL Connection with ID {entity.Id} not found or access denied");
@@ -34,7 +34,7 @@ namespace AutoApiTester.App.Repositories
                     existing.ConnectString = entity.ConnectString;
                     existing.IsActive = entity.IsActive;
                     existing.UpdatedAt = DateTime.UtcNow;
-                    existing.UserId-=userId;
+                    existing.UserId=userId;
                     _context.SQLConnectionDBs.Update(existing);
                 }
                 else
@@ -43,7 +43,7 @@ namespace AutoApiTester.App.Repositories
                     entity.CreatedAt = DateTime.UtcNow;
                     entity.UpdatedAt = null;
                     entity.DeleteAt = null;
-                    entity.UserId-=userId;
+                    entity.UserId=userId;
                     await _context.SQLConnectionDBs.AddAsync(entity);
                 }
 

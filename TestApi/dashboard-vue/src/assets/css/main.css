@@ -19,3 +19,148 @@
 .dark {
   --ui-primary: var(--ui-color-primary-500);
 }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==================== CUSTOM PRIMEVUE TOAST ==================== */
+.p-toast {
+  opacity: 1 !important;
+  z-index: 9999 !important;
+}
+
+.p-toast .p-toast-message {
+  margin: 0 0 1rem 0;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(10px);
+  border: none !important;
+  padding: 1rem 1.25rem !important;
+  min-width: 320px;
+  max-width: 400px;
+}
+
+/* Success Toast - Green */
+.p-toast .p-toast-message-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: white !important;
+}
+
+.p-toast .p-toast-message-success .p-toast-message-icon,
+.p-toast .p-toast-message-success .p-toast-icon-close {
+  color: white !important;
+}
+
+/* Error Toast - Red */
+.p-toast .p-toast-message-error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: white !important;
+}
+
+.p-toast .p-toast-message-error .p-toast-message-icon,
+.p-toast .p-toast-message-error .p-toast-icon-close {
+  color: white !important;
+}
+
+/* Warning Toast - Orange */
+.p-toast .p-toast-message-warn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: white !important;
+}
+
+.p-toast .p-toast-message-warn .p-toast-message-icon,
+.p-toast .p-toast-message-warn .p-toast-icon-close {
+  color: white !important;
+}
+
+/* Info Toast - Blue */
+.p-toast .p-toast-message-info {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  color: white !important;
+}
+
+.p-toast .p-toast-message-info .p-toast-message-icon,
+.p-toast .p-toast-message-info .p-toast-icon-close {
+  color: white !important;
+}
+
+/* Toast Content */
+.p-toast .p-toast-message-content {
+  padding: 0 !important;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.p-toast .p-toast-message-icon {
+  font-size: 1.5rem !important;
+  flex-shrink: 0;
+}
+
+.p-toast .p-toast-message-text {
+  margin: 0 !important;
+  flex: 1;
+}
+
+.p-toast .p-toast-summary {
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  margin: 0 0 0.25rem 0 !important;
+  line-height: 1.4;
+}
+
+.p-toast .p-toast-detail {
+  font-size: 0.875rem !important;
+  opacity: 0.95 !important;
+  margin: 0 !important;
+  line-height: 1.5;
+}
+
+/* Close Button */
+.p-toast .p-toast-icon-close {
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.p-toast .p-toast-icon-close:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Animation */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.p-toast .p-toast-message {
+  animation: toast-in 0.3s ease-out;
+}
+
+.p-toast .p-toast-message.p-toast-message-leave {
+  animation: toast-out 0.2s ease-in;
+}

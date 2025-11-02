@@ -50,7 +50,7 @@ export interface DeleteConnectionResult {
  */
 export const getMySQLConnections = async (): Promise<SQLConnection[]> => {
   try {
-    const response = await apiClient.post('/SQLConnectionDB')
+    const response = await apiClient.get('/SQLConnectionDB')
     
     if (response.data.success) {
       return response.data.data

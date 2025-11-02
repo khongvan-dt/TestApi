@@ -1,27 +1,25 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import { useAuth } from './composables/useAuth'
-import { useStorage } from '@vueuse/core'
 import type { NavigationMenuItem } from '@nuxt/ui'
-import Toast from 'primevue/toast'
+import Toast from 'primevue/toast'  // ✅ Import Toast
 
 const { isAuthenticated } = useAuth()
-const toast = useToast()
 
 const open = ref(false)
 const showLoginModal = ref(false)  
 
- onMounted(() => {
+onMounted(() => {
   if (!isAuthenticated.value) {
     showLoginModal.value = true
   }
 })
 
- watch(isAuthenticated, (newVal) => {
+watch(isAuthenticated, (newVal) => {
   if (!newVal) {
-     showLoginModal.value = true
+    showLoginModal.value = true
   } else {
-     showLoginModal.value = false
+    showLoginModal.value = false
   }
 })
 
@@ -51,8 +49,7 @@ const links = [[{
     onSelect: () => {
       open.value = false
     }
-  }
-]
+  }]
 }]] satisfies NavigationMenuItem[][]
 
 const handleLoginSuccess = () => {
@@ -64,7 +61,10 @@ const handleLoginSuccess = () => {
   <Suspense>
     <template #default>
       <UApp>
-        <!-- Chỉ hiển thị dashboard khi đã đăng nhập -->
+        <!-- ✅ THÊM Toast component ở đây -->
+        <Toast position="top-right" />
+        
+        <!-- Dashboard khi đã đăng nhập -->
         <UDashboardGroup v-if="isAuthenticated" unit="rem" storage="local">
           <UDashboardSidebar 
             id="default" 
@@ -72,24 +72,21 @@ const handleLoginSuccess = () => {
             collapsible 
             resizable 
             class="bg-elevated/25"
-            :ui="{ footer: 'lg:border-t lg:border-default' }"
-          >
+            :ui="{ footer: 'lg:border-t lg:border-default' }">
             <template #default="{ collapsed }">
               <UNavigationMenu 
                 :collapsed="collapsed" 
                 :items="links[0]" 
                 orientation="vertical" 
                 tooltip 
-                popover 
-              />
+                popover />
 
               <UNavigationMenu 
                 :collapsed="collapsed" 
                 :items="links[1]" 
                 orientation="vertical" 
                 tooltip 
-                class="mt-auto" 
-              />
+                class="mt-auto" />
             </template>
 
             <template #footer="{ collapsed }">
@@ -102,7 +99,7 @@ const handleLoginSuccess = () => {
           <NotificationsSlideover />
         </UDashboardGroup>
 
-        <!-- Nếu chưa đăng nhập - hiển thị placeholder hoặc để trống -->
+        <!-- Chưa đăng nhập -->
         <div v-else class="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
           <div class="text-center">
             <div class="animate-pulse">
@@ -112,15 +109,14 @@ const handleLoginSuccess = () => {
           </div>
         </div>
 
-        <!-- Login Modal - auto show khi chưa đăng nhập -->
+        <!-- Login Modal -->
         <LoginModal 
           v-model="showLoginModal" 
-          @login-success="handleLoginSuccess"
-        />
+          @login-success="handleLoginSuccess" />
       </UApp>
     </template>
 
-    <!-- Fallback khi Suspense loading -->
+    <!-- Fallback -->
     <template #fallback>
       <div class="flex items-center justify-center h-screen">
         <div class="text-center">

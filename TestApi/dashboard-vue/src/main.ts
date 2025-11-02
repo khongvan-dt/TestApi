@@ -3,10 +3,10 @@ import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
+// ❌ Bỏ dòng này
+// import Aura from '@primevue/themes/aura'
 import ui from '@nuxt/ui/vue-plugin'
 import App from './App.vue'
-
-// === Router ===
 
 const router = createRouter({
   history: createWebHistory(),
@@ -23,10 +23,9 @@ const router = createRouter({
   ]
 })
 
-// === App ===
 const app = createApp(App)
 app.use(router)
 app.use(ui)
-app.use(PrimeVue)          // ✅ Use PrimeVue
-app.use(ToastService)      // ✅ Use ToastService
+app.use(PrimeVue)  // ✅ Không cần config theme
+app.use(ToastService)
 app.mount('#app')
