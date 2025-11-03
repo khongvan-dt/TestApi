@@ -2,14 +2,18 @@
 import express from 'express'
 import cors from 'cors'
 import axios from 'axios'
+import https from 'https'   
 
 const app = express()
 const PORT = 3001
 
+ const httpsAgent = new https.Agent({
+  rejectUnauthorized: false  
+})
+
 // Enable CORS
 app.use(cors())
-// app.use(express.json())
-app.use(express.text({ type: '*/*' })) // nhận mọi dạng text
+app.use(express.text({ type: '*/*' }))
 
 // Health check
 app.get('/', (req, res) => {
@@ -24,14 +28,15 @@ app.all('/proxy', async (req, res) => {
     if (!targetUrl) {
       return res.status(400).json({ error: 'Missing x-target-url header' })
     }
-
+ 
 
     // Build request config
     const config = {
       method: req.method,
       url: targetUrl,
       headers: {},
-      timeout: 30000
+      timeout: 30000,
+      httpsAgent: httpsAgent   
     }
 
     // Copy headers (except proxy-specific ones)
@@ -42,18 +47,15 @@ app.all('/proxy', async (req, res) => {
     })
 
     // Add body for POST/PUT/PATCH
-    // if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-    //   config.data = req.body
-    // }
+    if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+      try {
+        config.data = JSON.parse(req.body)
+      } catch {
+        config.data = req.body
+      }
+    }
 
- if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-  try {
-    config.data = JSON.parse(req.body)
-  } catch {
-    config.data = req.body
-  }
-}
-
+ 
     // Make request
     const response = await axios(config)
 
@@ -62,7 +64,7 @@ app.all('/proxy', async (req, res) => {
     res.status(response.status).json(response.data)
 
   } catch (error) {
- 
+    
     if (error.response) {
       res.status(error.response.status).json(error.response.data)
     } else {
@@ -74,6 +76,6 @@ app.all('/proxy', async (req, res) => {
   }
 })
 
- app.listen(PORT, () => {
-  console.log(`🚀 Proxy server is running on http://localhost:${PORT}`)
+app.listen(PORT, () => {
+  console.log(` Proxy server is running on http://localhost:${PORT}`)
 })

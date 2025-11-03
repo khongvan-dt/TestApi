@@ -26,6 +26,14 @@ export const useApiClient = () => {
       const requestHeaders: Record<string, string> = {}
       requestHeaders['Content-Type'] = 'application/json'
 
+      if (params.headers && Array.isArray(params.headers)) {
+        params.headers.forEach((header: any) => {
+          if (header.enabled !== false && header.key) {
+            requestHeaders[header.key] = header.value
+          }
+        })
+      }
+
       const isExternalUrl = params.url.startsWith('http://') || params.url.startsWith('https://')
       let finalUrl = params.url
 
@@ -36,9 +44,7 @@ export const useApiClient = () => {
 
       let requestBody = params.body
 
-
       if (Array.isArray(requestBody)) {
-        
         const results = []
         for (let i = 0; i < requestBody.length; i++) {
           const testCase = requestBody[i]
@@ -47,7 +53,7 @@ export const useApiClient = () => {
             const response = await axios({
               method: params.method,
               url: finalUrl,
-              headers: requestHeaders,
+              headers: requestHeaders,  // ✅ Đã có Authorization header
               data: testCase
             })
             
@@ -77,11 +83,10 @@ export const useApiClient = () => {
         return results
       }
 
-      
       const response = await axios({
         method: params.method,
         url: finalUrl,
-        headers: requestHeaders,
+        headers: requestHeaders,  // ✅ Đã có Authorization header
         data: requestBody
       })
 
@@ -94,6 +99,7 @@ export const useApiClient = () => {
         data: response.data
       }]
     } catch (error: any) {
+      console.error('❌ [useApiClient] Error:', error.response?.data || error.message)
       return [{
         success: false,
         status: error.response?.status || 0,

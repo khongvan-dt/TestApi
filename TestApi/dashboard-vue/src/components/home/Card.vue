@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import ParamsTab from './tabs/ParamsTab.vue'
 import AuthorizationTab from './tabs/AuthorizationTab.vue'
 import HeadersTab from './tabs/HeadersTab.vue'
@@ -7,6 +7,7 @@ import BodyTab from './tabs/BodyTab.vue'
 import SaveRequestModal from '../home/popup/SaveRequestModal.vue'
 import { useApiClient } from '../../composables/useApiClient'
 import { createExecutionHistory } from '../../composables/useExecutionHistory'
+import { executeSQLQuery, getMySQLConnections } from '../../composables/sqlConnectionService'
 
 // ==================== INTERFACES ====================
 interface Props {
@@ -69,9 +70,21 @@ const { sendRequest } = useApiClient()
 
 // ==================== CONSTANTS ====================
 // const tabs = ['Params', 'Authorization', 'Headers', 'Body']
-const tabs = ['Authorization',  'Body']
+const tabs = ['Authorization', 'Body']
 
- 
+const sqlConnections = ref<any[]>([])
+
+onMounted(async () => {
+  const res = await getMySQLConnections()
+  if (res?.success) {
+    sqlConnections.value = res.data
+  }
+})
+
+function getConnectionString(connectionId: number): string | null {
+  const conn = sqlConnections.value.find(c => c.id === connectionId)
+  return conn?.connectString || null
+}
 // ==================== UPDATE FROM PARENT ====================
 function updateFromParent(data: {
   url?: string
@@ -84,42 +97,37 @@ function updateFromParent(data: {
   params?: Array<{ key: string; value: string; enabled: boolean }>
   headers?: Array<{ key: string; value: string; enabled: boolean }>
 }) {
-  console.log('🔵 [Card] updateFromParent:', data)
-  
+
   if (data.url !== undefined) url.value = data.url
   if (data.method !== undefined) method.value = data.method
   if (data.requestId !== undefined) currentRequestId.value = data.requestId
-  
-  // ✅ Update params và headers
+
   if (data.params !== undefined) {
     paramsData.value = data.params.map(p => ({ key: p.key, value: p.value }))
   }
-  
+
   if (data.headers !== undefined) {
     headersData.value = data.headers.map(h => ({ key: h.key, value: h.value }))
   }
-  
+
   if (data.body !== undefined) {
     body.value = data.body
     bodyKey.value++
     nextTick(() => {
       if (bodyTabRef.value?.updateBody) {
-        console.log('🔵 [Card] Calling updateBody')
         bodyTabRef.value.updateBody(data.body || '{}')
       }
     })
   }
-  
+
   if (data.bodyId !== undefined && bodyTabRef.value?.setBodyId) {
     nextTick(() => {
-      console.log('🔵 [Card] Calling setBodyId:', data.bodyId)
       bodyTabRef.value.setBodyId(data.bodyId || 0)
     })
   }
-  
+
   if (data.dataBaseTest !== undefined && bodyTabRef.value?.setDataBaseTest) {
     nextTick(() => {
-      console.log('🔵 [Card] Calling setDataBaseTest')
       bodyTabRef.value.setDataBaseTest(data.dataBaseTest)
     })
   }
@@ -160,8 +168,7 @@ function getRequestData() {
 
 // ==================== LOAD REQUEST DATA ====================
 function loadRequestData(requestData: any) {
-  console.log('🔵 [Card] loadRequestData:', requestData)
-  
+
   url.value = requestData.url
   method.value = requestData.method
 
@@ -217,7 +224,7 @@ async function saveHistory(result: any, requestBody: any, params: any[], headers
   try {
     await createExecutionHistory(historyPayload)
   } catch (err) {
-    console.error('❌ [Card] Save history failed:', err)
+    console.error('[Card] Save history failed:', err)
   }
 }
 
@@ -281,7 +288,6 @@ function mergeTestData(baseDataStr: string | null, rawBodyStr: string): any {
 
     return mergedTestCases
   } catch (error) {
-    console.error('❌ [Card] mergeTestData error:', error)
     return parseRawBody(rawBodyStr)
   }
 }
@@ -306,10 +312,91 @@ async function handleSend() {
     const bodyType = bodyTabRef.value?.getBodyType?.() || 'none'
     const baseData = bodyTabRef.value?.getDataBaseTest?.() || null
 
-    console.log('🔵 [Card] handleSend - bodyData:', bodyData)
-    console.log('🔵 [Card] handleSend - bodyType:', bodyType)
 
     let requestBody: any = null
+
+    if (bodyType === 'form-data' || (bodyData && bodyData.bodyType === 'form-data')) {
+      const formRef = bodyTabRef.value?.$refs?.formRef
+      const sqlItems = formRef?.getSQLItems?.() || []
+
+
+ 
+      if (sqlItems.length > 0) {
+         const allSQLData: any[] = []
+
+        for (const sqlItem of sqlItems) {
+          const connectionString = getConnectionString(sqlItem.connectionId)
+
+          if (!connectionString) {
+            alert(`Connection ID ${sqlItem.connectionId} not found`)
+            continue
+          }
+
+          console.log('🔵 [Card] Executing SQL:', sqlItem.query)
+
+          const sqlResult = await executeSQLQuery(connectionString, sqlItem.query)
+
+          if (sqlResult.success && sqlResult.data) {
+            // ✅ Lưu cả key và data
+            allSQLData.push({
+              key: sqlItem.key,        // ✅ Key từ form-data
+              values: sqlResult.data   // ✅ Array values từ SQL
+            })
+          } else {
+            alert(`SQL Error: ${sqlResult.message}`)
+            return
+          }
+        }
+
+        console.log('🔵 [Card] All SQL Data:', allSQLData)
+
+        // ✅ Build body đúng format
+        const results = []
+
+        // Lấy item đầu tiên để build
+        const firstSQLItem = allSQLData[0]
+
+        if (firstSQLItem && firstSQLItem.values.length > 0) {
+          // Loop qua từng value trong data array
+          for (let i = 0; i < firstSQLItem.values.length; i++) {
+            const sqlValue = firstSQLItem.values[i]
+
+            // ✅ Build body đúng format: { [key]: sqlValue }
+            const requestBody = {
+              [firstSQLItem.key]: sqlValue
+            }
+
+            const requestPayload = {
+              requestId: currentRequestId.value,
+              collectionId: 1,
+              name: props.title ?? 'Untitled',
+              method: method.value,
+              url: url.value,
+              queryParams: params.filter((p: any) => p.enabled !== false && p.key),
+              headers,
+              body: requestBody  // ✅ Body đúng format
+            }
+
+            console.log(`🔵 [Card] Sending request ${i + 1}/${firstSQLItem.values.length}:`, requestPayload)
+
+            const result = await sendRequest(requestPayload)
+            results.push({
+              testCase: i + 1,
+              sqlData: sqlValue,
+              requestBody: requestBody,  // ✅ Thêm để debug
+              result: result[0] || result
+            })
+          }
+        }
+
+        // Hiển thị tất cả kết quả
+        responseStatus.value = results[0]?.result?.status ?? null
+        responseDuration.value = results[0]?.result?.duration ?? null
+        response.value = JSON.stringify(results, null, 2)
+
+        return
+      }
+    }
 
     if (bodyType === 'raw' && bodyData?.content) {
       requestBody = mergeTestData(baseData, bodyData.content)
@@ -330,7 +417,6 @@ async function handleSend() {
       body: requestBody
     }
 
-    console.log('🔵 [Card] Sending request:', requestPayload)
 
     const result = await sendRequest(requestPayload)
 
@@ -341,28 +427,21 @@ async function handleSend() {
         status: r.status,
         statusText: r.statusText,
         duration: r.duration,
-        size: r.size,
-        data: r.data
+         data: r.data
       }))
 
       responseStatus.value = result[0]?.status ?? null
       responseDuration.value = result[0]?.duration ?? null
-      responseSize.value = result[0]?.size ?? null
-
+ 
       response.value = JSON.stringify(allResults, null, 2)
     } else if (result) {
-      responseStatus.value = result.status ?? null
-      responseDuration.value = result.duration ?? null
-      responseSize.value = result.size ?? null
-
       response.value = JSON.stringify(result, null, 2)
     }
 
     await saveHistory(result, requestBody, params, headers)
   } catch (error: any) {
-    console.error('❌ [Card] handleSend error:', error)
-    response.value = JSON.stringify({ 
-      error: error.message || 'Unknown error occurred' 
+    response.value = JSON.stringify({
+      error: error.message || 'Unknown error occurred'
     }, null, 2)
   } finally {
     loading.value = false
@@ -436,14 +515,13 @@ defineExpose({
 </script>
 <template>
   <div ref="containerRef" class="h-full flex flex-col bg-white">
-    
+
     <!-- ==================== HEADER ==================== -->
     <div class="border-b bg-gray-50 px-4 py-3">
       <div class="flex items-center justify-between">
         <h2 class="text-base font-semibold text-gray-800">{{ title }}</h2>
         <div class="flex gap-2">
-          <button 
-            @click="clearResponse"
+          <button @click="clearResponse"
             class="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors">
             Clear
           </button>
@@ -453,11 +531,10 @@ defineExpose({
 
     <!-- ==================== REQUEST SECTION ==================== -->
     <div class="border-b bg-white" :style="{ height: requestHeight + 'px' }">
-      
+
       <!-- Method & URL Row -->
       <div class="flex gap-2 p-3 border-b">
-        <select 
-          v-model="method" 
+        <select v-model="method"
           class="border border-gray-300 rounded px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option>GET</option>
           <option>POST</option>
@@ -465,21 +542,16 @@ defineExpose({
           <option>DELETE</option>
           <option>PATCH</option>
         </select>
-        
-        <input 
-          v-model="url" 
-          placeholder="Enter request URL"
+
+        <input v-model="url" placeholder="Enter request URL"
           class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        
-        <button 
-          @click="handleSend"
-          :disabled="loading"
+
+        <button @click="handleSend" :disabled="loading"
           class="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           {{ loading ? 'Sending...' : 'Send' }}
         </button>
-        
-        <button 
-          @click="handleOpenSaveModal"
+
+        <button @click="handleOpenSaveModal"
           class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors">
           Save
         </button>
@@ -487,48 +559,37 @@ defineExpose({
 
       <!-- Tabs Header -->
       <div class="flex border-b bg-gray-50">
-        <button
-          v-for="tab in tabs"
-          :key="tab"
-          @click="activeTab = tab"
-          class="px-4 py-2.5 text-sm font-medium transition-colors relative"
-          :class="activeTab === tab 
-            ? 'text-blue-600 bg-white border-b-2 border-blue-600' 
+        <button v-for="tab in tabs" :key="tab" @click="activeTab = tab"
+          class="px-4 py-2.5 text-sm font-medium transition-colors relative" :class="activeTab === tab
+            ? 'text-blue-600 bg-white border-b-2 border-blue-600'
             : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'">
           {{ tab }}
         </button>
       </div>
 
-       <div class="flex-1 overflow-auto" style="height: calc(100% - 100px);">
+      <div class="flex-1 overflow-auto" style="height: calc(100% - 100px);">
         <!-- Params Tab -->
         <!-- <ParamsTab 
           v-show="activeTab === 'Params'"
           ref="paramsTabRef"
           :paramsData="paramsData" /> -->
-        
+
         <!-- Authorization Tab -->
-        <AuthorizationTab 
-          v-show="activeTab === 'Authorization'"
-          ref="authTabRef" />
-        
+        <AuthorizationTab v-show="activeTab === 'Authorization'" ref="authTabRef" />
+
         <!-- Headers Tab -->
         <!-- <HeadersTab 
           v-show="activeTab === 'Headers'"
           ref="headersTabRef"
           :headersData="headersData" /> -->
-        
+
         <!-- Body Tab -->
-        <BodyTab 
-          v-show="activeTab === 'Body'"
-          ref="bodyTabRef"
-          :key="bodyKey" />
+        <BodyTab v-show="activeTab === 'Body'" ref="bodyTabRef" :key="bodyKey" />
       </div>
     </div>
 
     <!-- ==================== RESIZE HANDLE ==================== -->
-    <div 
-      @mousedown="startResize"
-      class="h-1 bg-gray-200 hover:bg-blue-400 cursor-row-resize transition-colors">
+    <div @mousedown="startResize" class="h-1 bg-gray-200 hover:bg-blue-400 cursor-row-resize transition-colors">
     </div>
 
     <!-- ==================== RESPONSE SECTION ==================== -->
@@ -537,7 +598,7 @@ defineExpose({
         <div class="flex items-center gap-4">
           <span class="text-sm font-medium text-gray-700">Response</span>
           <div v-if="responseStatus" class="flex items-center gap-3 text-xs">
-            <span class="px-2 py-1 rounded" 
+            <span class="px-2 py-1 rounded"
               :class="responseStatus >= 200 && responseStatus < 300 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
               Status: {{ responseStatus }}
             </span>
@@ -550,7 +611,7 @@ defineExpose({
           </div>
         </div>
       </div>
-      
+
       <div class="flex-1 overflow-auto p-4">
         <pre v-if="response" class="text-xs font-mono text-gray-800 whitespace-pre-wrap">{{ response }}</pre>
         <div v-else class="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -560,16 +621,9 @@ defineExpose({
     </div>
 
     <!-- ==================== SAVE MODAL ==================== -->
-    <SaveRequestModal 
-      v-if="showSaveModal"
-      :currentUrl="url"
-      :currentMethod="method"
-      :currentBody="{ bodyType: 'raw', content: body }"
-      :requestId="requestId"
-      :requestName="title"
-      :collectionId="collectionId"
-      :cardRef="{ getRequestData }"
-      @close="showSaveModal = false"
+    <SaveRequestModal v-if="showSaveModal" :currentUrl="url" :currentMethod="method"
+      :currentBody="{ bodyType: 'raw', content: body }" :requestId="requestId" :requestName="title"
+      :collectionId="collectionId" :cardRef="{ getRequestData }" @close="showSaveModal = false"
       @saved="handleRequestSaved" />
   </div>
 </template>
