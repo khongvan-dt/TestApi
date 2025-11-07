@@ -82,30 +82,13 @@ export const executeSQLQuery = async (
 }
 // ==================== API FUNCTIONS ====================
 
-/**
- * Get all SQL connections for current user
- */
-// export const getMySQLConnections = async (): Promise<SQLConnection[]> => {
-//   try {
-//     const response = await apiClient.get('/SQLConnectionDB')
-    
-//     if (response.data.success) {
-//       return response.data.data
-//     } else {
-//       throw new Error(response.data.message || 'Failed to get SQL connections')
-//     }
-//   } catch (error: any) {
-//     throw error
-//   }
-// }
+ 
 export const getMySQLConnections = async (): Promise<SQLConnectionsResult> => {
   try {
-    console.log("📡 Calling API: GET /SQLConnectionDB")
-
+ 
     const response = await apiClient.get('/SQLConnectionDB')
 
-    console.log("✅ Response:", response.data)
-
+ 
     return {
       success: response.data.success,
       message: response.data.message,
@@ -113,8 +96,7 @@ export const getMySQLConnections = async (): Promise<SQLConnectionsResult> => {
     }
 
   } catch (error: any) {
-    console.error("❌ Error getMySQLConnections:", error)
-
+ 
     return {
       success: false,
       message: error.response?.data?.message || error.message || "Error calling API",

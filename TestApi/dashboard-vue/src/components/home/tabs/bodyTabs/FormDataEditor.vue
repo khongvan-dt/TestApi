@@ -2,22 +2,43 @@
 import { ref, onMounted } from 'vue'
 import { getMySQLConnections } from '../../../../composables/sqlConnectionService'
 
+// ==================== INTERFACE ====================
 interface FormDataItem {
   id: string
   key: string
   type: 'text' | 'sql'
-  sqlConnectionId?: number | null   // ✅ Thêm để lưu ID connection
+  sqlConnectionId?: number | null
   value: string | File | null
   description: string
   enabled: boolean
 }
 
-const formDataItems = ref<FormDataItem[]>([
-  { id: '1', key: '', type: 'text', value: '', description: '', enabled: true }
-])
+interface Props {
+  initialData?: FormDataItem[]
+}
+
+// ==================== PROPS ====================
+const props = withDefaults(defineProps<Props>(), {
+  initialData: () => []
+})
+
+// ==================== REACTIVE STATE ====================
+const formDataItems = ref<FormDataItem[]>(
+  props.initialData && props.initialData.length > 0
+    ? [...props.initialData]
+    : [{
+      id: '1',
+      key: '',
+      type: 'text' as const,
+      value: '',
+      description: '',
+      enabled: true
+    }]
+)
 
 const sqlConnections = ref<any[]>([])
 
+// ==================== LIFECYCLE ====================
 onMounted(async () => {
   const res = await getMySQLConnections()
   if (res?.success) {
@@ -25,12 +46,13 @@ onMounted(async () => {
   }
 })
 
+// ==================== METHODS ====================
 function addFormData() {
   formDataItems.value.push({
     id: Date.now().toString(),
     key: '',
-    type: 'text',
-    sqlConnectionId: null, // ✅ default
+    type: 'text' as const,
+    sqlConnectionId: null,
     value: '',
     description: '',
     enabled: true
@@ -38,7 +60,7 @@ function addFormData() {
 }
 
 function removeFormData(id: string) {
-  formDataItems.value = formDataItems.value.filter(i => i.id !== id)
+  formDataItems.value = formDataItems.value.filter((i: FormDataItem) => i.id !== id)
   if (formDataItems.value.length === 0) addFormData()
 }
 
@@ -51,21 +73,29 @@ function onKeyInput(item: FormDataItem) {
 
 function compactEmptyRows() {
   const last = formDataItems.value[formDataItems.value.length - 1]
-  formDataItems.value = formDataItems.value.filter(i => {
+  formDataItems.value = formDataItems.value.filter((i: FormDataItem) => {
     if (i === last) return true
     return !(i.key.trim() === '' && String(i.value || '').trim() === '')
   })
   if (formDataItems.value.length === 0) addFormData()
 }
 
-function getBody() {
+function getBody(): FormData {
   const fd = new FormData()
   formDataItems.value
-    .filter(i => i.enabled && i.key)
-    .forEach(i => {
-      fd.append(i.key, String(i.value ?? ''))
+    .filter((i: FormDataItem) => i.enabled && i.key)
+    .forEach((i: FormDataItem) => {
+      if (i.value != null) {
+        fd.append(i.key, i.value)
+      }
     })
   return fd
+}
+
+function getFormDataItems() {
+  console.log(' [FormDataEditor] getFormDataItems called')
+  console.log('[FormDataEditor] formDataItems.value:', JSON.stringify(formDataItems.value, null, 2))
+  return formDataItems.value
 }
 
 function getBodyTypeWithType() {
@@ -74,30 +104,40 @@ function getBodyTypeWithType() {
     type: formDataItems.value[0]?.type
   }
 }
-// ✅ Thêm key vào SQL items
+
 function getSQLItems() {
   return formDataItems.value
-    .filter(i => i.enabled && i.type === 'sql' && i.sqlConnectionId && i.value)
-    .map(i => ({
-      key: i.key,              // ✅ THÊM key
-      connectionId: i.sqlConnectionId,
-      query: i.value
+    .filter((i: FormDataItem) => i.enabled && i.type === 'sql' && i.sqlConnectionId && i.value)
+    .map((i: FormDataItem) => ({
+      key: i.key,
+      connectionId: i.sqlConnectionId!,
+      query: i.value as string
     }))
 }
 
+function updateFormData(newData: FormDataItem[]) {
+  if (newData && newData.length > 0) {
+    formDataItems.value = [...newData]
+  }
+}
+
+// ==================== EXPOSE ====================
 defineExpose({
   getBody,
   getBodyType: getBodyTypeWithType,
   addFormData,
   removeFormData,
   compactEmptyRows,
-  getSQLItems
+  getSQLItems,
+  getFormDataItems,
+  updateFormData
 })
 </script>
 
 <template>
   <div class="min-h-[310px]">
     <div class="border border-gray-300 rounded-lg overflow-hidden shadow-sm">
+      <!-- Header -->
       <div
         class="grid grid-cols-12 gap-2 text-xs font-medium text-gray-600 bg-gray-50 px-2 py-2 border-b border-gray-200">
         <div class="col-span-1"></div>
@@ -108,6 +148,7 @@ defineExpose({
         <div class="col-span-1"></div>
       </div>
 
+      <!-- Body -->
       <div class="max-h-[250px] overflow-y-auto divide-y divide-gray-200">
         <div v-for="item in formDataItems" :key="item.id"
           class="grid grid-cols-12 gap-2 items-center group hover:bg-gray-50 p-2 transition-colors">
@@ -134,7 +175,6 @@ defineExpose({
 
           <!-- Value -->
           <div class="col-span-4 flex gap-1">
-            <!-- ✅ Nếu type = sql → dropdown + input -->
             <template v-if="item.type === 'sql'">
               <select v-model="item.sqlConnectionId"
                 class="w-1/2 px-2 py-1.5 text-sm border border-gray-300 rounded bg-white">
@@ -143,12 +183,9 @@ defineExpose({
                   {{ conn.name }}
                 </option>
               </select>
-
-              <input v-model="item.value" placeholder="SQL Value" type="text"
+              <input v-model="item.value" placeholder="SQL Query" type="text"
                 class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
             </template>
-
-            <!-- Nếu type = text → input bình thường -->
             <input v-else v-model="item.value" type="text" placeholder="Value"
               class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 placeholder-gray-400" />
           </div>

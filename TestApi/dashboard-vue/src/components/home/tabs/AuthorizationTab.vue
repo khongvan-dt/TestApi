@@ -1,15 +1,39 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const authType = ref('bearer-token')
+ interface Props {
+  initialAuthType?: string
+  initialBearerToken?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  initialAuthType: 'bearer-token',
+  initialBearerToken: ''
+})
+
+ const authType = ref(props.initialAuthType)
+const bearerToken = ref(props.initialBearerToken)
 
 const authTypes = [
   { value: 'no-auth', label: 'No Auth' },
   { value: 'bearer-token', label: 'Bearer Token' }
 ]
 
-const bearerToken = ref('')
- 
+function getAuthData() {
+  console.log('🟨 [AuthorizationTab] getAuthData called')
+  console.log('🟨 [AuthorizationTab] authType:', authType.value)
+  console.log('🟨 [AuthorizationTab] bearerToken:', bearerToken.value)
+  
+  return {
+    authType: authType.value,
+    bearerToken: bearerToken.value
+  }
+}
+
+ function updateAuthData(newAuthType: string, newBearerToken: string) {
+  authType.value = newAuthType || 'bearer-token'
+  bearerToken.value = newBearerToken || ''
+}
 
 defineExpose({
   getAuth: () => {
@@ -19,7 +43,9 @@ defineExpose({
       default:
         return null
     }
-  }
+  },
+  getAuthData,      
+  updateAuthData
 })
 </script>
 

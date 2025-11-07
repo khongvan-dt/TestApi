@@ -20,7 +20,6 @@ interface Props {
   requestName?: string
   cardRef?: any
   collectionId?: number | null
-
 }
 
 const props = defineProps<Props>()
@@ -29,13 +28,12 @@ const emit = defineEmits<{
   (e: 'saved', requestId: number): void
 }>()
 
-// Composables
 const { saveRequest, loading, error } = useUserData()
+const saveResult = ref<string | null>(null)
 
 // State
 const selectedCollectionId = ref<number>(0)
 const requestName = ref('')
-const saveResult = ref<string | null>(null)
 const collections = ref<Collection[]>([])
 const loadingCollections = ref(false)
 const showCreateCollection = ref(false)
@@ -44,28 +42,22 @@ const newCollectionDescription = ref('')
 const creatingCollection = ref(false)
 
 watch(() => props.collectionId, (newVal) => {
-   if (newVal && newVal > 0) {
-    selectedCollectionId.value = newVal
-   }
+  if (newVal && newVal > 0) selectedCollectionId.value = newVal
 }, { immediate: true })
 
-// Watch props
 watch(() => props.requestName, (newVal) => {
   requestName.value = newVal || ''
 }, { immediate: true })
 
-// Lifecycle
 onMounted(loadCollections)
 
-// Load Collections
 async function loadCollections() {
   loadingCollections.value = true
   try {
     collections.value = await getMyCollections() || []
-
     if (props.collectionId && selectedCollectionId.value === 0) {
       selectedCollectionId.value = props.collectionId
-     }
+    }
   } catch (err) {
     error.value = 'Failed to load collections'
   } finally {
@@ -73,7 +65,6 @@ async function loadCollections() {
   }
 }
 
-// Toggle Create Collection
 function toggleCreateCollection() {
   showCreateCollection.value = !showCreateCollection.value
   if (showCreateCollection.value) {
@@ -82,7 +73,6 @@ function toggleCreateCollection() {
   }
 }
 
-// Create Collection
 async function handleCreateCollection() {
   const name = newCollectionName.value.trim()
   if (!name) {
@@ -94,11 +84,7 @@ async function handleCreateCollection() {
   error.value = null
 
   try {
-    const result = await createCollection({
-      name,
-      description: newCollectionDescription.value
-    })
-
+    const result = await createCollection({ name, description: newCollectionDescription.value })
     if (result?.id) {
       await loadCollections()
       selectedCollectionId.value = result.id
@@ -112,127 +98,76 @@ async function handleCreateCollection() {
     creatingCollection.value = false
   }
 }
-
-
-function parseMultipleJsonObjects(content: string): any[] | null {
-  const trimmed = content.trim()
-
-  // Case 1: Đã có [] bao quanh
-  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-    try {
-      return JSON.parse(trimmed)
-    } catch {
-      return null
-    }
-  }
-
-  // Case 2: Nhiều JSON objects cách nhau bởi dấu phẩy
-  if (/\}\s*,\s*\{/.test(trimmed)) {
-    try {
-      const wrapped = `[${trimmed}]`
-      const parsed = JSON.parse(wrapped)
-
-      if (Array.isArray(parsed) && parsed.length > 1) {
-        return parsed
-      }
-    } catch (e) {
-      console.error('🔴 [SaveRequestModal] Failed to parse multiple JSON:', e)
-      return null
-    }
-  }
-
-  return null
-}
-
-function buildRequestDataArray(baseRequest: any, requestBody: any): any[] {
-
-  const bodyId = requestBody?.id || 0
-
-  if (requestBody?.bodyType !== 'raw' || !requestBody.content) {
-    return [{
-      ...baseRequest,
-      body: requestBody ? {
-        id: bodyId,
-        bodyType: requestBody.bodyType || 'raw',
-        value: requestBody.content || '',
-        type: requestBody.type || 'raw'
-      } : null
-    }]
-  }
-
-  const content = requestBody.content.trim()
-
-  if (content === '{}' || content === '') {
-    return [{
-      ...baseRequest,
-      body: {
-        id: bodyId,
-        bodyType: 'raw',
-        value: content,
-        type: 'raw'
-      }
-    }]
-  }
-
-  const parsedArray = parseMultipleJsonObjects(content)
-
-  if (parsedArray && parsedArray.length > 1) {
-
-    const requests = parsedArray.map((obj: any, index: number) => ({
-      ...baseRequest,
-      body: {
-        id: index === 0 ? bodyId : 0,
-        bodyType: 'raw',
-        value: JSON.stringify(obj, null, 2),
-        type: 'raw'
-      }
-    }))
-
-    return requests
-  }
-
-  return [{
-    ...baseRequest,
-    body: {
-      id: bodyId,
-      bodyType: 'raw',
-      value: content,
-      type: 'raw'
-    }
-  }]
-}
-
-
-// Validate save request
-function validateSaveRequest(): string | null {
-  if (!requestName.value.trim()) return 'Please enter a request name'
-  if (selectedCollectionId.value === 0) return 'Please select a collection'
-  if (!props.currentUrl.trim()) return 'URL cannot be empty'
-  return null
-}
-
-// Get request data from card
 function getCardData() {
-  let requestBody = props.currentBody
-  let queryParams: any[] = []
-  let headers: any[] = []
-
-  if (props.cardRef?.getRequestData) {
-    const cardData = props.cardRef.getRequestData()
-    requestBody = cardData.body || props.currentBody
-    queryParams = (cardData.params || [])
-      .filter((p: any) => p.enabled !== false && p.key)
-      .map((p: any) => ({ key: p.key, value: p.value }))
-    headers = (cardData.headers || [])
-      .filter((h: any) => h.enabled !== false && h.key)
-      .map((h: any) => ({ key: h.key, value: h.value }))
+  console.log('🟧 [SaveRequestModal] ========== getCardData START ==========')
+  console.log('🟧 [SaveRequestModal] props.cardRef:', props.cardRef)
+  console.log('🟧 [SaveRequestModal] cardRef type:', typeof props.cardRef)
+  
+  // ✅ CHECK: cardRef có tồn tại không
+  if (!props.cardRef) {
+    console.error('❌ [SaveRequestModal] cardRef is null/undefined!')
+    return {
+      formDataItems: [],
+      authData: null,
+      queryParams: [],
+      headers: [],
+      currentBodyType: 'raw',
+      currentBodyContent: props.currentBody?.content || '{}',
+      dataBaseTest: null
+    }
+  }
+  
+  // ✅ CHECK: Có những method nào
+  console.log('🟧 [SaveRequestModal] Available methods:', Object.keys(props.cardRef))
+  console.log('🟧 [SaveRequestModal] Has getCurrentData?:', !!props.cardRef.getCurrentData)
+  console.log('🟧 [SaveRequestModal] Has getRequestData?:', !!props.cardRef.getRequestData)
+  
+  // ✅ CHECK: getCurrentData có tồn tại không
+  if (!props.cardRef.getCurrentData) {
+    console.error('❌ [SaveRequestModal] getCurrentData method NOT FOUND!')
+    return {
+      formDataItems: [],
+      authData: null,
+      queryParams: [],
+      headers: [],
+      currentBodyType: 'raw',
+      currentBodyContent: props.currentBody?.content || '{}',
+      dataBaseTest: null
+    }
   }
 
-  return { requestBody, queryParams, headers }
+  // ✅ GỌI getCurrentData
+  console.log('🟧 [SaveRequestModal] ✅ Calling getCurrentData...')
+  const currentData = props.cardRef.getCurrentData()
+  console.log('🟧 [SaveRequestModal] getCurrentData raw result:', currentData)
+
+  // Lấy dữ liệu từ Card.vue/getCurrentData()
+  const formDataItems = currentData.formDataItems || []
+  const authData = currentData.authData || null
+  const queryParams = (currentData.params || []).filter((p: any) => p.enabled !== false && p.key)
+  const headers = (currentData.headers || []).filter((h: any) => h.enabled !== false && h.key)
+
+  // Lấy Body Data chính xác từ Card
+  const currentBodyType = currentData.bodyType || 'none'
+  const currentBodyContent = currentData.body || '{}'
+  const dataBaseTest = currentData.dataBaseTest || null
+
+  console.log('🟧 [SaveRequestModal] ========== PARSED DATA ==========')
+  console.log('🟧 [SaveRequestModal]   - currentBodyType:', currentBodyType)
+  console.log('🟧 [SaveRequestModal]   - formDataItems:', formDataItems)
+  console.log('🟧 [SaveRequestModal]   - formDataItems.length:', formDataItems.length)
+  console.log('🟧 [SaveRequestModal]   - authData:', authData)
+  console.log('🟧 [SaveRequestModal]   - queryParams:', queryParams)
+  console.log('🟧 [SaveRequestModal]   - headers:', headers)
+  console.log('🟧 [SaveRequestModal] ========== getCardData END ==========')
+
+  return { formDataItems, authData, queryParams, headers, currentBodyType, currentBodyContent, dataBaseTest }
 }
 
-// Save Request
+
 async function handleSave() {
+  console.log('🟧 [SaveRequestModal] ========== handleSave START ==========')
+  
   const validationError = validateSaveRequest()
   if (validationError) {
     error.value = validationError
@@ -241,52 +176,118 @@ async function handleSave() {
 
   error.value = null
 
-  const { requestBody, queryParams, headers } = getCardData()
+  // ✅ LẤY TẤT CẢ DỮ LIỆU HIỆN TẠI TỪ CARD
+  const cardData = getCardData()
+  console.log('🟧 [SaveRequestModal] Card data returned:', cardData)
+  
+  const { formDataItems, authData, queryParams, headers, currentBodyType, currentBodyContent, dataBaseTest } = cardData
 
+  // BASE REQUEST
   const baseRequest = {
     requestId: props.requestId || 0,
     collectionId: selectedCollectionId.value,
     name: requestName.value,
     method: props.currentMethod,
     url: props.currentUrl,
-    authType: '',
-    authValue: '',
-    queryParams,
-    headers
+    queryParams: queryParams.map(p => ({ key: p.key, value: p.value })),
+    headers: headers.map(h => ({ key: h.key, value: h.value }))
   }
 
-  const requestDataArray = buildRequestDataArray(baseRequest, requestBody)
+  let bodyForSave: any = null
+  let dataBaseTestForSave: string | null = null
 
+  console.log('🟧 [SaveRequestModal] Processing body type:', currentBodyType)
+  console.log('🟧 [SaveRequestModal] formDataItems.length:', formDataItems.length)
+
+  // 1. XỬ LÝ FORM-DATA
+  if (currentBodyType === 'form-data' && formDataItems.length > 0) {
+    console.log('🟧 [SaveRequestModal] ✅ Processing FORM-DATA')
+    
+    const filtered = formDataItems
+      .filter((item: any) => item.enabled && item.key)
+      .map((item: any) => ({
+        key: item.key,
+        type: item.type,
+        value: item.value,
+        sqlConnectionId: item.sqlConnectionId || null,
+        description: item.description || '',
+        enabled: item.enabled !== false
+      }))
+
+    console.log('🟧 [SaveRequestModal] Filtered items:', filtered)
+
+    if (filtered.length > 0) {
+      const bodyTypeValue = filtered[0]?.type || 'text'
+
+      bodyForSave = {
+        id: 0,
+        bodyType: 'form-data',
+        value: JSON.stringify(filtered),
+        type: bodyTypeValue
+      }
+      
+      console.log('🟧 [SaveRequestModal] ✅ Body for save:', bodyForSave)
+    }
+  }
+  // 2. XỬ LÝ BASE-DATA
+  else if (currentBodyType === 'base-data' && dataBaseTest?.trim()) {
+    console.log('🟧 [SaveRequestModal] ✅ Processing BASE-DATA')
+    dataBaseTestForSave = dataBaseTest
+    bodyForSave = null
+  }
+  // 3. XỬ LÝ RAW
+  else if (currentBodyType === 'raw' && currentBodyContent?.trim() && currentBodyContent.trim() !== '{}') {
+    console.log('🟧 [SaveRequestModal] ✅ Processing RAW')
+    bodyForSave = {
+      id: 0,
+      bodyType: 'raw',
+      value: currentBodyContent,
+      type: 'raw'
+    }
+  } else {
+    console.log('🟧 [SaveRequestModal] ⚠️ No body to save (type:', currentBodyType, ')')
+  }
+
+  const requestData = {
+    ...baseRequest,
+    authType: authData?.authType || '',
+    authValue: authData?.bearerToken || '',
+    dataBaseTest: dataBaseTestForSave,
+    body: bodyForSave
+  }
+
+  const payload = [requestData]
+
+  console.log('🟧 [SaveRequestModal] ========== FINAL PAYLOAD ==========')
+  console.log('🟧 [SaveRequestModal] FINAL PAYLOAD:', JSON.stringify(payload, null, 2))
 
   try {
-    const result = await saveRequest(requestDataArray)
+    const result = await saveRequest(payload)
 
-
-    let response
-    if (Array.isArray(result)) {
-      response = result[0]  
-    } else {
-      response = result
-    }
-
-
-    if (response && response.success) {
-      saveResult.value = response.isNew ? 'created' : 'updated'
+    if (result?.[0]?.success) {
+      saveResult.value = result[0].isNew ? 'created' : 'updated'
 
       setTimeout(() => {
-        emit('saved', response.requestId)
+        emit('saved', result[0].requestId)
         emit('close')
       }, 1500)
     } else {
-      error.value = response?.message || 'Failed to save request'
+      error.value = result?.[0]?.message || 'Save failed'
     }
   } catch (err: any) {
-    error.value = err.message || 'Failed to save request'
+    console.error('❌ [SaveRequestModal] Error:', err)
+    error.value = err.message || 'Error'
   }
-
 }
-
+function validateSaveRequest(): string | null {
+  if (!requestName.value.trim()) return 'Please enter a request name'
+  if (selectedCollectionId.value === 0) return 'Please select a collection'
+  if (!props.currentUrl.trim()) return 'URL cannot be empty'
+  return null
+}
 </script>
+
+
 
 <template>
   <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

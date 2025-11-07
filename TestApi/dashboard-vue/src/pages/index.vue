@@ -5,22 +5,7 @@ import Card from '../components/home/Card.vue'
 import ExportImportModal from '../components/home/popup/ExportImportModal.vue'
 
 // ==================== INTERFACES ====================
-interface Tab {
-  id: string
-  title: string
-  method: string
-  url: string
-  body: string
-  bodyId?: number
-  bodies?: Array<any>
-  collectionId?: number
-  requestId?: number
-  params?: Array<{ key: string; value: string; enabled: boolean }>
-  headers?: Array<{ key: string; value: string; enabled: boolean }>
-  auth?: any
-  activeSubTab?: string
-  dataBaseTest?: string | null
-}
+ 
 
 // ==================== CONSTANTS ====================
 const DEFAULT_TAB: Tab = {
@@ -70,9 +55,8 @@ const saveTabsToLocalStorage = debounce((tabsData: Tab[], activeId: string) => {
       tabs: tabsData,
       activeTabId: activeId
     }))
-    console.log('💾 [index] Saved to localStorage')
   } catch (error) {
-    console.error('❌ [index] Error saving tabs:', error)
+    console.error(' [index] Error saving tabs:', error)
   }
 }, 500)
 
@@ -87,7 +71,26 @@ function parseBodyContent(content: string): string {
 
 // ==================== EVENT HANDLERS ====================
 
-// ✅ Handle select request from List
+ interface Tab {
+  id: string
+  title: string
+  method: string
+  url: string
+  body: string
+  bodyId?: number
+  bodies?: Array<any>
+  collectionId?: number
+  requestId?: number
+  params?: Array<{ key: string; value: string; enabled: boolean }>
+  headers?: Array<{ key: string; value: string; enabled: boolean }>
+  auth?: any
+  activeSubTab?: string
+  dataBaseTest?: string | null
+  formDataItems?: Array<any>    // ✅ THÊM
+  authData?: { authType: string; bearerToken: string }  // ✅ THÊM
+}
+
+// ✅ UPDATE handleSelectRequest
 function handleSelectRequest(payload: any) {
   console.log('🟢 [index] handleSelectRequest:', payload)
 
@@ -104,6 +107,8 @@ function handleSelectRequest(payload: any) {
   currentTab.dataBaseTest = payload.dataBaseTest || null
   currentTab.collectionId = payload.collectionId
   currentTab.bodies = payload.bodies || []
+  currentTab.formDataItems = payload.formDataItems || []      // ✅ THÊM
+  currentTab.authData = payload.authData || { authType: 'bearer-token', bearerToken: '' }  // ✅ THÊM
 
   if (payload.body) {
     currentTab.bodyId = payload.body.id || 0
@@ -115,7 +120,7 @@ function handleSelectRequest(payload: any) {
     currentTab.bodyId = 0
   }
 
-  // ✅ Update Card với params và headers
+  // ✅ Update Card với đầy đủ data
   nextTick(() => {
     setTimeout(() => {
       if (cardRef.value?.updateFromParent) {
@@ -128,8 +133,10 @@ function handleSelectRequest(payload: any) {
           dataBaseTest: currentTab.dataBaseTest,
           requestId: currentTab.requestId,
           collectionId: currentTab.collectionId,
-          params: currentTab.params,      // ✅ Thêm
-          headers: currentTab.headers      // ✅ Thêm
+          params: currentTab.params,
+          headers: currentTab.headers,
+          formDataItems: currentTab.formDataItems,    // ✅ THÊM
+          authData: currentTab.authData                // ✅ THÊM
         })
       }
     }, 100)
@@ -138,8 +145,10 @@ function handleSelectRequest(payload: any) {
   })
 }
 
-// ✅ Add new tab
 function handleAddNewTab(collectionId: number) {
+  // ✅ Lưu dữ liệu tab hiện tại trước
+  saveCurrentTabData()
+
   const newId = `tab-${Date.now()}`
 
   tabs.value.push({
@@ -155,8 +164,13 @@ function handleAddNewTab(collectionId: number) {
   })
 }
 
-// ✅ Close tab
+
 function closeTab(tabId: string) {
+  // ✅ Nếu đang đóng tab đang active, lưu nó trước
+  if (activeTabId.value === tabId) {
+    saveCurrentTabData()
+  }
+
   const index = tabs.value.findIndex(t => t.id === tabId)
 
   if (index > -1) {
@@ -177,9 +191,12 @@ function closeTab(tabId: string) {
   })
 }
 
-// ✅ Switch tab
 function switchTab(tabId: string) {
   if (activeTabId.value === tabId) return
+
+  // ✅ Lưu dữ liệu tab hiện tại trước khi chuyển
+  saveCurrentTabData()
+
   activeTabId.value = tabId
   saveTabsToLocalStorage(tabs.value, activeTabId.value)
 }
@@ -199,9 +216,7 @@ async function handleImported() {
   }
 }
 
-// ✅ Request saved handler
 async function handleRequestSaved(requestId: number) {
-  console.log('🟢 [index] Request saved:', requestId)
 
   if (listRef.value?.refreshData) {
     await listRef.value.refreshData()
@@ -219,7 +234,6 @@ async function handleRequestSaved(requestId: number) {
 
 // ==================== LIFECYCLE ====================
 
-// ✅ Load saved tabs from localStorage
 function loadSavedTabs() {
   const savedTabs = localStorage.getItem('api-tabs')
   if (!savedTabs) return
@@ -229,11 +243,33 @@ function loadSavedTabs() {
     if (parsed.tabs && parsed.tabs.length > 0) {
       tabs.value = parsed.tabs
       activeTabId.value = parsed.activeTabId || tabs.value[0].id
-      console.log('✅ [index] Loaded tabs from localStorage:', tabs.value.length)
     }
   } catch (error) {
-    console.error('❌ [index] Error loading saved tabs:', error)
+    console.error(' [index] Error loading saved tabs:', error)
   }
+}
+function saveCurrentTabData() {
+  if (!cardRef.value?.getCurrentData) return
+
+  const currentTab = tabs.value.find(t => t.id === activeTabId.value)
+  if (!currentTab) return
+
+  const currentData = cardRef.value.getCurrentData()
+
+  // ✅ Cập nhật dữ liệu vào tab
+  Object.assign(currentTab, {
+    url: currentData.url,
+    method: currentData.method,
+    body: currentData.body,
+    bodyId: currentData.bodyId,
+    params: currentData.params,
+    headers: currentData.headers,
+    dataBaseTest: currentData.dataBaseTest,
+    requestId: currentData.requestId,
+    collectionId: currentData.collectionId
+  })
+
+  console.log('💾 [index] Saved current tab data:', currentTab)
 }
 
 onMounted(() => {
@@ -244,14 +280,12 @@ onMounted(() => {
 watch(activeTabId, (newId, oldId) => {
   if (newId === oldId) return
 
-  console.log('🟢 [index] Tab switched:', newId)
 
   nextTick(() => {
     const currentTab = activeTab.value
 
     setTimeout(() => {
       if (cardRef.value?.updateFromParent && currentTab) {
-        console.log('🟢 [index] Updating Card after tab switch')
         cardRef.value.updateFromParent({
           url: currentTab.url,
           method: currentTab.method,
@@ -260,14 +294,14 @@ watch(activeTabId, (newId, oldId) => {
           dataBaseTest: currentTab.dataBaseTest,
           requestId: currentTab.requestId,
           collectionId: currentTab.collectionId,
-          params: currentTab.params,      // ✅ Thêm
-          headers: currentTab.headers      // ✅ Thêm
+          params: currentTab.params,
+          headers: currentTab.headers
         })
       }
     }, 100)
   })
 })
- 
+
 </script>
 
 <template>

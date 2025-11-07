@@ -9,11 +9,22 @@ const emit = defineEmits<{
     url: string
     method: string
     name: string
-    body: RequestBody | null
+    body: {                           // ✅ SỬA: Thêm id và value
+      id: number
+      bodyType: string
+      value: string
+    } | null
+    bodies: Array<any>                // ✅ THÊM
     headers: Array<{ key: string; value: string }>
     queryParams: Array<{ key: string; value: string }>
     requestId: number
+    collectionId: number              // ✅ THÊM
     dataBaseTest: string | null
+    formDataItems: Array<any>         // ✅ THÊM
+    authData: {                       // ✅ THÊM
+      authType: string
+      bearerToken: string
+    }
   }): void
   (e: 'addNewTab', collectionId: number): void
   (e: 'openExportImport'): void
@@ -47,27 +58,62 @@ function toggleRequest(id: number, request: RequestItem) {
   selectedRequest.value = selectedRequest.value === id ? null : id
 
   if (selectedRequest.value === id) {
-     
-    let mergedBody = null
+    let mergedBody: { id: number; bodyType: string; value: string } | null = null
+    let formDataItems: any[] = []
+    let authData = { authType: 'bearer-token', bearerToken: '' }
     
+    // ✅ Parse authType và authValue
+    if (request.authType && request.authValue) {
+      authData = {
+        authType: request.authType,
+        bearerToken: request.authValue
+      }
+    } else {
+      authData = {
+        authType: 'no-auth',
+        bearerToken: ''
+      }
+    }
+    
+    // ✅ Parse body
     if (request.bodies && request.bodies.length > 0) {
-      if (request.bodies.length === 1) {
-        mergedBody = {
-          id: request.bodies[0].id,
-          bodyType: request.bodies[0].bodyType || 'raw',
-          value: request.bodies[0].value || ''  
+      const firstBody = request.bodies[0]
+      
+      // ✅ Nếu là form-data, parse value thành array
+      if (firstBody.bodyType === 'form-data' && firstBody.value) {
+        try {
+          formDataItems = JSON.parse(firstBody.value)
+        } catch (e) {
+          console.error('Failed to parse form-data:', e)
+          formDataItems = []
         }
-       } else {
-         const mergedContent = request.bodies
-          .map(b => b.value || '')  
+        
+        mergedBody = {
+          id: firstBody.id,
+          bodyType: 'form-data',
+          value: firstBody.value
+        }
+      } 
+      // ✅ Raw body
+      else if (request.bodies.length === 1) {
+        mergedBody = {
+          id: firstBody.id,
+          bodyType: firstBody.bodyType || 'raw',
+          value: firstBody.value || ''
+        }
+      } 
+      // ✅ Multiple bodies
+      else {
+        const mergedContent = request.bodies
+          .map(b => b.value || '')
           .join(',')
         
         mergedBody = {
-          id: request.bodies[0].id,
+          id: firstBody.id,
           bodyType: 'raw',
           value: mergedContent
         }
-       }
+      }
     }
     
     emit('selectRequest', {
@@ -80,12 +126,13 @@ function toggleRequest(id: number, request: RequestItem) {
       queryParams: request.queryParams,
       requestId: request.id,
       collectionId: request.collectionId,
-      dataBaseTest: request.dataBaseTest
+      dataBaseTest: request.dataBaseTest,
+      formDataItems: formDataItems,
+      authData: authData
     })
-    
-   
   }
 }
+
 // Delete Request
 async function handleDeleteRequest(requestId: number, requestName: string, event: Event) {
   event.stopPropagation()

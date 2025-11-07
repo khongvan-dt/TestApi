@@ -54,10 +54,10 @@ const requestHeight = ref(400)
 const isResizing = ref(false)
 const bodyKey = ref(0)
 
-// ✅ State cho tabs data
 const paramsData = ref<Array<{ key: string; value: string }> | null>(null)
 const headersData = ref<Array<{ key: string; value: string }> | null>(null)
-
+const formDataItems = ref<any[]>([])
+const authData = ref({ authType: 'bearer-token', bearerToken: '' })
 // ==================== REFS ====================
 const bodyTabRef = ref<any>(null)
 const paramsTabRef = ref<any>(null)
@@ -86,85 +86,10 @@ function getConnectionString(connectionId: number): string | null {
   return conn?.connectString || null
 }
 // ==================== UPDATE FROM PARENT ====================
-function updateFromParent(data: {
-  url?: string
-  method?: string
-  body?: string
-  bodyId?: number
-  dataBaseTest?: string | null
-  requestId?: number | null
-  collectionId?: number | null
-  params?: Array<{ key: string; value: string; enabled: boolean }>
-  headers?: Array<{ key: string; value: string; enabled: boolean }>
-}) {
 
-  if (data.url !== undefined) url.value = data.url
-  if (data.method !== undefined) method.value = data.method
-  if (data.requestId !== undefined) currentRequestId.value = data.requestId
-
-  if (data.params !== undefined) {
-    paramsData.value = data.params.map(p => ({ key: p.key, value: p.value }))
-  }
-
-  if (data.headers !== undefined) {
-    headersData.value = data.headers.map(h => ({ key: h.key, value: h.value }))
-  }
-
-  if (data.body !== undefined) {
-    body.value = data.body
-    bodyKey.value++
-    nextTick(() => {
-      if (bodyTabRef.value?.updateBody) {
-        bodyTabRef.value.updateBody(data.body || '{}')
-      }
-    })
-  }
-
-  if (data.bodyId !== undefined && bodyTabRef.value?.setBodyId) {
-    nextTick(() => {
-      bodyTabRef.value.setBodyId(data.bodyId || 0)
-    })
-  }
-
-  if (data.dataBaseTest !== undefined && bodyTabRef.value?.setDataBaseTest) {
-    nextTick(() => {
-      bodyTabRef.value.setDataBaseTest(data.dataBaseTest)
-    })
-  }
-}
 
 // ==================== GET REQUEST DATA ====================
-function getRequestData() {
-  const params = paramsTabRef.value?.getParams?.() || []
-  const headers = headersTabRef.value?.getHeaders?.() || []
-  const auth = authTabRef.value?.getAuthData?.() || null
 
-  let bodyData: any = null
-  if (bodyTabRef.value) {
-    const result = bodyTabRef.value.getBody?.()
-    const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
-
-    if (result && typeof result === 'object' && 'bodyType' in result && 'content' in result) {
-      bodyData = result
-    } else if (bodyType !== 'none') {
-      bodyData = {
-        id: 0,
-        bodyType,
-        content: result || ''
-      }
-    }
-  }
-
-  return {
-    url: url.value,
-    method: method.value,
-    body: bodyData,
-    params,
-    headers,
-    auth,
-    dataBaseTest: bodyTabRef.value?.getDataBaseTest?.() || null
-  }
-}
 
 // ==================== LOAD REQUEST DATA ====================
 function loadRequestData(requestData: any) {
@@ -320,9 +245,9 @@ async function handleSend() {
       const sqlItems = formRef?.getSQLItems?.() || []
 
 
- 
+
       if (sqlItems.length > 0) {
-         const allSQLData: any[] = []
+        const allSQLData: any[] = []
 
         for (const sqlItem of sqlItems) {
           const connectionString = getConnectionString(sqlItem.connectionId)
@@ -332,15 +257,13 @@ async function handleSend() {
             continue
           }
 
-          console.log('🔵 [Card] Executing SQL:', sqlItem.query)
 
           const sqlResult = await executeSQLQuery(connectionString, sqlItem.query)
 
           if (sqlResult.success && sqlResult.data) {
-            // ✅ Lưu cả key và data
             allSQLData.push({
-              key: sqlItem.key,        // ✅ Key từ form-data
-              values: sqlResult.data   // ✅ Array values từ SQL
+              key: sqlItem.key,
+              values: sqlResult.data
             })
           } else {
             alert(`SQL Error: ${sqlResult.message}`)
@@ -348,9 +271,7 @@ async function handleSend() {
           }
         }
 
-        console.log('🔵 [Card] All SQL Data:', allSQLData)
 
-        // ✅ Build body đúng format
         const results = []
 
         // Lấy item đầu tiên để build
@@ -361,7 +282,6 @@ async function handleSend() {
           for (let i = 0; i < firstSQLItem.values.length; i++) {
             const sqlValue = firstSQLItem.values[i]
 
-            // ✅ Build body đúng format: { [key]: sqlValue }
             const requestBody = {
               [firstSQLItem.key]: sqlValue
             }
@@ -374,16 +294,15 @@ async function handleSend() {
               url: url.value,
               queryParams: params.filter((p: any) => p.enabled !== false && p.key),
               headers,
-              body: requestBody  // ✅ Body đúng format
+              body: requestBody
             }
 
-            console.log(`🔵 [Card] Sending request ${i + 1}/${firstSQLItem.values.length}:`, requestPayload)
 
             const result = await sendRequest(requestPayload)
             results.push({
               testCase: i + 1,
               sqlData: sqlValue,
-              requestBody: requestBody,  // ✅ Thêm để debug
+              requestBody: requestBody,
               result: result[0] || result
             })
           }
@@ -427,12 +346,12 @@ async function handleSend() {
         status: r.status,
         statusText: r.statusText,
         duration: r.duration,
-         data: r.data
+        data: r.data
       }))
 
       responseStatus.value = result[0]?.status ?? null
       responseDuration.value = result[0]?.duration ?? null
- 
+
       response.value = JSON.stringify(allResults, null, 2)
     } else if (result) {
       response.value = JSON.stringify(result, null, 2)
@@ -489,6 +408,234 @@ function clearResponse() {
   responseSize.value = null
 }
 
+
+// ✅ SỬA: getRequestData với debug logs
+function getRequestData() {
+  console.log('🟦 [Card] getRequestData called')
+
+  const params = paramsTabRef.value?.getParams?.() || []
+  const headers = headersTabRef.value?.getHeaders?.() || []
+  const auth = authTabRef.value?.getAuth?.() || null
+
+  console.log('🟦 [Card] params:', params)
+  console.log('🟦 [Card] headers:', headers)
+  console.log('🟦 [Card] auth:', auth)
+
+  let bodyData: any = null
+  if (bodyTabRef.value) {
+    const result = bodyTabRef.value.getBody?.()
+    const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
+
+    console.log('🟦 [Card] bodyType:', bodyType)
+    console.log('🟦 [Card] bodyResult:', result)
+
+    if (result && typeof result === 'object' && 'bodyType' in result && 'content' in result) {
+      bodyData = result
+    } else if (bodyType !== 'none') {
+      bodyData = {
+        id: 0,
+        bodyType,
+        content: result || ''
+      }
+    }
+  }
+
+  console.log('🟦 [Card] bodyData:', bodyData)
+
+  return {
+    url: url.value,
+    method: method.value,
+    body: bodyData,
+    params,
+    headers,
+    auth,
+    dataBaseTest: bodyTabRef.value?.getDataBaseTest?.() || null
+  }
+}
+
+function getCurrentData() {
+  console.log('🟦 [Card] ========== getCurrentData START ==========')
+
+  const params = paramsTabRef.value?.getParams?.() || []
+  const headers = headersTabRef.value?.getHeaders?.() || []
+  const bodyData = bodyTabRef.value?.getBody?.()
+  const bodyType = bodyTabRef.value?.getBodyType?.() || 'none'
+  const dataBaseTest = bodyTabRef.value?.getDataBaseTest?.() || null
+
+  console.log('🟦 [Card] Step 1 - bodyType:', bodyType)
+  console.log('🟦 [Card] Step 2 - bodyData:', bodyData)
+  console.log('🟦 [Card] Step 3 - bodyTabRef.value:', bodyTabRef.value)
+  console.log('🟦 [Card] Step 4 - bodyTabRef.value.$refs:', bodyTabRef.value?.$refs)
+
+  // ✅ Lấy form-data items
+  let formItems: any[] = []
+
+  // ✅ CHECK: bodyType phải là 'form-data'
+  if (bodyType === 'form-data' || (bodyData && bodyData.bodyType === 'form-data')) {
+    console.log('🟦 [Card] ✅ Detected form-data body type')
+
+    // ✅ FIX: Access đúng cách
+    const bodyTabRefs = bodyTabRef.value?.$refs
+    console.log('🟦 [Card] Step 5 - bodyTabRefs:', bodyTabRefs)
+
+    if (bodyTabRefs && bodyTabRefs.formRef) {
+      const formRef = bodyTabRefs.formRef
+      console.log('🟦 [Card] Step 6 - formRef:', formRef)
+      console.log('🟦 [Card] Step 7 - formRef is ref?:', !!formRef.value)
+
+      // ✅ FIX: formRef có thể là ref hoặc không
+      if (formRef.value && formRef.value.getFormDataItems) {
+        // Case 1: formRef là ref wrapper
+        formItems = formRef.value.getFormDataItems()
+        console.log('🟦 [Card] ✅ Got items from formRef.value:', formItems)
+      } else if (formRef.getFormDataItems) {
+        // Case 2: formRef là direct object
+        formItems = formRef.getFormDataItems()
+        console.log('🟦 [Card] ✅ Got items from formRef:', formItems)
+      } else {
+        console.warn('⚠️ [Card] formRef has no getFormDataItems method')
+      }
+    } else {
+      console.warn('⚠️ [Card] No formRef found in bodyTabRefs')
+    }
+  } else {
+    console.log('🟦 [Card] ⚠️ Not form-data type, skipping form items')
+  }
+
+  // ✅ Lấy auth data
+  console.log('🟦 [Card] Step 8 - Getting auth data')
+  console.log('🟦 [Card] Step 9 - authTabRef.value:', authTabRef.value)
+
+  const currentAuthData = authTabRef.value?.getAuthData?.() || {
+    authType: 'no-auth',
+    bearerToken: ''
+  }
+
+  console.log('🟦 [Card] Step 10 - authData:', currentAuthData)
+
+  const result = {
+    url: url.value,
+    method: method.value,
+    body: bodyData?.content || body.value,
+    bodyId: bodyData?.id || 0,
+    bodyType: bodyType,  // ✅ Phải là 'form-data' nếu user chọn form-data
+    params: params.filter((p: any) => p.key).map((p: any) => ({
+      key: p.key,
+      value: p.value,
+      enabled: p.enabled !== false
+    })),
+    headers: headers.filter((h: any) => h.key).map((h: any) => ({
+      key: h.key,
+      value: h.value,
+      enabled: h.enabled !== false
+    })),
+    dataBaseTest: dataBaseTest,
+    requestId: currentRequestId.value,
+    collectionId: props.collectionId,
+    formDataItems: formItems,
+    authData: currentAuthData
+  }
+
+  console.log('🟦 [Card] ========== getCurrentData RESULT ==========')
+  console.log('🟦 [Card] Final result:', JSON.stringify(result, null, 2))
+  return result
+}
+
+function updateFromParent(data: {
+  url?: string
+  method?: string
+  body?: string
+  bodyId?: number
+  bodyType?: string  // ✅ THÊM
+  dataBaseTest?: string | null
+  requestId?: number | null
+  collectionId?: number | null
+  params?: Array<{ key: string; value: string; enabled: boolean }>
+  headers?: Array<{ key: string; value: string; enabled: boolean }>
+  formDataItems?: Array<any>
+  authData?: { authType: string; bearerToken: string }
+}) {
+  console.log('🔵 [Card] updateFromParent:', data)
+
+  // ✅ GIỮ NGUYÊN: Basic fields
+  if (data.url !== undefined) url.value = data.url
+  if (data.method !== undefined) method.value = data.method
+  if (data.requestId !== undefined) currentRequestId.value = data.requestId
+
+  // ✅ GIỮ NGUYÊN: Params
+  if (data.params !== undefined) {
+    paramsData.value = data.params.map(p => ({ key: p.key, value: p.value }))
+  }
+
+  // ✅ GIỮ NGUYÊN: Headers
+  if (data.headers !== undefined) {
+    headersData.value = data.headers.map(h => ({ key: h.key, value: h.value }))
+  }
+
+  // ✅ GIỮ NGUYÊN: Body content
+  if (data.body !== undefined) {
+    body.value = data.body
+    bodyKey.value++
+    nextTick(() => {
+      if (bodyTabRef.value?.updateBody) {
+        bodyTabRef.value.updateBody(data.body || '{}')
+      }
+    })
+  }
+
+  // ✅ GIỮ NGUYÊN: Body ID
+  if (data.bodyId !== undefined && bodyTabRef.value?.setBodyId) {
+    nextTick(() => {
+      bodyTabRef.value.setBodyId(data.bodyId || 0)
+    })
+  }
+
+  // ✅ GIỮ NGUYÊN: DataBaseTest
+  if (data.dataBaseTest !== undefined && bodyTabRef.value?.setDataBaseTest) {
+    nextTick(() => {
+      bodyTabRef.value.setDataBaseTest(data.dataBaseTest)
+    })
+  }
+
+  // ✅ THAY ĐỔI: Restore bodyType trước khi restore formDataItems
+  if (data.bodyType !== undefined) {
+    nextTick(() => {
+      console.log('🔵 [Card] Setting bodyType to:', data.bodyType)
+      bodyTabRef.value?.setBodyType?.(data.bodyType as any)
+    })
+  }
+
+  // ✅ THAY ĐỔI: Form-data items với auto-set bodyType
+  if (data.formDataItems !== undefined) {
+    const formItemsToRestore = data.formDataItems
+    formDataItems.value = formItemsToRestore
+    
+    nextTick(() => {
+      // ✅ THÊM: Tự động set bodyType = 'form-data' nếu có items
+      if (formItemsToRestore.length > 0) {
+        console.log('🔵 [Card] Auto-setting bodyType to form-data (has items)')
+        bodyTabRef.value?.setBodyType?.('form-data')
+      }
+      
+      // ✅ GIỮ NGUYÊN: Update form data
+      const formRef = bodyTabRef.value?.$refs?.formRef
+      if (formRef?.value?.updateFormData) {
+        formRef.value.updateFormData(formItemsToRestore)
+      } else if (formRef?.updateFormData) {
+        formRef.updateFormData(formItemsToRestore)
+      }
+    })
+  }
+
+  // ✅ GIỮ NGUYÊN: Auth data
+  if (data.authData !== undefined) {
+    const authDataToRestore = data.authData
+    authData.value = authDataToRestore
+    nextTick(() => {
+      authTabRef.value?.updateAuthData?.(authDataToRestore.authType, authDataToRestore.bearerToken)
+    })
+  }
+}
 // ==================== EXPOSE ====================
 defineExpose({
   setActiveTab: (tab: string) => { activeTab.value = tab },
@@ -503,6 +650,7 @@ defineExpose({
   getRequestData,
   loadRequestData,
   updateFromParent,
+  getCurrentData,
   get $refs() {
     return {
       paramsTabRef: paramsTabRef.value,
@@ -516,18 +664,6 @@ defineExpose({
 <template>
   <div ref="containerRef" class="h-full flex flex-col bg-white">
 
-    <!-- ==================== HEADER ==================== -->
-    <div class="border-b bg-gray-50 px-4 py-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-base font-semibold text-gray-800">{{ title }}</h2>
-        <div class="flex gap-2">
-          <button @click="clearResponse"
-            class="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors">
-            Clear
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- ==================== REQUEST SECTION ==================== -->
     <div class="border-b bg-white" :style="{ height: requestHeight + 'px' }">
@@ -584,7 +720,7 @@ defineExpose({
           :headersData="headersData" /> -->
 
         <!-- Body Tab -->
-        <BodyTab v-show="activeTab === 'Body'" ref="bodyTabRef" :key="bodyKey" />
+        <BodyTab v-show="activeTab === 'Body'" ref="bodyTabRef" :key="bodyKey" :formDataItems="formDataItems" />
       </div>
     </div>
 
@@ -621,9 +757,19 @@ defineExpose({
     </div>
 
     <!-- ==================== SAVE MODAL ==================== -->
-    <SaveRequestModal v-if="showSaveModal" :currentUrl="url" :currentMethod="method"
-      :currentBody="{ bodyType: 'raw', content: body }" :requestId="requestId" :requestName="title"
-      :collectionId="collectionId" :cardRef="{ getRequestData }" @close="showSaveModal = false"
+   <SaveRequestModal 
+      v-if="showSaveModal"
+      :currentUrl="url"
+      :currentMethod="method"
+      :currentBody="{ bodyType: 'raw', content: body }"
+      :requestId="currentRequestId"
+      :requestName="title"
+      :collectionId="collectionId"
+      :cardRef="{ 
+        getRequestData, 
+        getCurrentData 
+      }"
+      @close="showSaveModal = false"
       @saved="handleRequestSaved" />
   </div>
 </template>
