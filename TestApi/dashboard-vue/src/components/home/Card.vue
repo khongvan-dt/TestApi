@@ -232,33 +232,58 @@ async function handleSend() {
 
   try {
     const params = paramsTabRef.value?.getParams() || []
-    const headers = buildHeaders()
+    const headers = buildHeaders()  // ✅ Đã có token trong headers
     const bodyData = bodyTabRef.value?.getBody?.()
     const bodyType = bodyTabRef.value?.getBodyType?.() || 'none'
     const baseData = bodyTabRef.value?.getDataBaseTest?.() || null
 
+    console.log('🔵 [Card] handleSend - bodyType:', bodyType)
+    console.log('🔵 [Card] handleSend - headers:', headers)  // ✅ CHECK: Có Authorization header không?
 
     let requestBody: any = null
 
+    // ✅ FIX: XỬ LÝ FORM-DATA
     if (bodyType === 'form-data' || (bodyData && bodyData.bodyType === 'form-data')) {
-      const formRef = bodyTabRef.value?.$refs?.formRef
-      const sqlItems = formRef?.getSQLItems?.() || []
+      console.log('🔵 [Card] handleSend - Processing FORM-DATA')
 
+      // ✅ THAY ĐỔI: Lấy formRef đúng cách
+      const bodyTabRefs = bodyTabRef.value?.$refs
+      const formRef = bodyTabRefs?.formRef
 
+      console.log('🔵 [Card] handleSend - formRef:', formRef)
 
+      // ✅ Lấy tất cả form items (không chỉ SQL)
+      let allFormItems: any[] = []
+      if (formRef?.value?.getFormDataItems) {
+        allFormItems = formRef.value.getFormDataItems()
+      } else if (formRef?.getFormDataItems) {
+        allFormItems = formRef.getFormDataItems()
+      }
+
+      console.log('🔵 [Card] handleSend - allFormItems:', allFormItems)
+
+      // ✅ Tách SQL items và text items
+      const sqlItems = allFormItems.filter(item => item.type === 'sql' && item.enabled)
+      const textItems = allFormItems.filter(item => item.type === 'text' && item.enabled)
+
+      console.log('🔵 [Card] handleSend - sqlItems:', sqlItems)
+      console.log('🔵 [Card] handleSend - textItems:', textItems)
+
+      // ✅ XỬ LÝ SQL ITEMS (nếu có)
       if (sqlItems.length > 0) {
+        console.log('🔵 [Card] handleSend - Processing SQL items')
+
         const allSQLData: any[] = []
 
         for (const sqlItem of sqlItems) {
-          const connectionString = getConnectionString(sqlItem.connectionId)
+          const connectionString = getConnectionString(sqlItem.sqlConnectionId)
 
           if (!connectionString) {
-            alert(`Connection ID ${sqlItem.connectionId} not found`)
+            alert(`Connection ID ${sqlItem.sqlConnectionId} not found`)
             continue
           }
 
-
-          const sqlResult = await executeSQLQuery(connectionString, sqlItem.query)
+          const sqlResult = await executeSQLQuery(connectionString, sqlItem.value)
 
           if (sqlResult.success && sqlResult.data) {
             allSQLData.push({
@@ -271,20 +296,22 @@ async function handleSend() {
           }
         }
 
-
         const results = []
-
-        // Lấy item đầu tiên để build
         const firstSQLItem = allSQLData[0]
 
         if (firstSQLItem && firstSQLItem.values.length > 0) {
-          // Loop qua từng value trong data array
           for (let i = 0; i < firstSQLItem.values.length; i++) {
             const sqlValue = firstSQLItem.values[i]
 
-            const requestBody = {
+            // ✅ Merge SQL data với text items
+            const requestBody: any = {
               [firstSQLItem.key]: sqlValue
             }
+
+            // ✅ Thêm text items vào body
+            textItems.forEach(item => {
+              requestBody[item.key] = item.value
+            })
 
             const requestPayload = {
               requestId: currentRequestId.value,
@@ -297,6 +324,7 @@ async function handleSend() {
               body: requestBody
             }
 
+            console.log('🔵 [Card] handleSend - SQL Request payload:', requestPayload)
 
             const result = await sendRequest(requestPayload)
             results.push({
@@ -308,20 +336,35 @@ async function handleSend() {
           }
         }
 
-        // Hiển thị tất cả kết quả
         responseStatus.value = results[0]?.result?.status ?? null
         responseDuration.value = results[0]?.result?.duration ?? null
         response.value = JSON.stringify(results, null, 2)
 
         return
       }
-    }
 
-    if (bodyType === 'raw' && bodyData?.content) {
+      // ✅ NẾU KHÔNG CÓ SQL ITEMS, CHỈ CÓ TEXT ITEMS
+      if (textItems.length > 0) {
+        console.log('🔵 [Card] handleSend - Processing TEXT items only')
+
+        requestBody = {}
+        textItems.forEach(item => {
+          requestBody[item.key] = item.value
+        })
+
+        console.log('🔵 [Card] handleSend - Text-only requestBody:', requestBody)
+      }
+    }
+    // ✅ XỬ LÝ RAW BODY
+    else if (bodyType === 'raw' && bodyData?.content) {
       requestBody = mergeTestData(baseData, bodyData.content)
-    } else if (bodyType === 'base-data' && baseData) {
+    }
+    // ✅ XỬ LÝ BASE-DATA
+    else if (bodyType === 'base-data' && baseData) {
       requestBody = baseData
-    } else if (bodyData?.content) {
+    }
+    // ✅ FALLBACK
+    else if (bodyData?.content) {
       requestBody = bodyData.content
     }
 
@@ -336,6 +379,7 @@ async function handleSend() {
       body: requestBody
     }
 
+    console.log('🔵 [Card] handleSend - Final request payload:', requestPayload)
 
     const result = await sendRequest(requestPayload)
 
@@ -609,14 +653,14 @@ function updateFromParent(data: {
   if (data.formDataItems !== undefined) {
     const formItemsToRestore = data.formDataItems
     formDataItems.value = formItemsToRestore
-    
+
     nextTick(() => {
       // ✅ THÊM: Tự động set bodyType = 'form-data' nếu có items
       if (formItemsToRestore.length > 0) {
         console.log('🔵 [Card] Auto-setting bodyType to form-data (has items)')
         bodyTabRef.value?.setBodyType?.('form-data')
       }
-      
+
       // ✅ GIỮ NGUYÊN: Update form data
       const formRef = bodyTabRef.value?.$refs?.formRef
       if (formRef?.value?.updateFormData) {
@@ -757,19 +801,11 @@ defineExpose({
     </div>
 
     <!-- ==================== SAVE MODAL ==================== -->
-   <SaveRequestModal 
-      v-if="showSaveModal"
-      :currentUrl="url"
-      :currentMethod="method"
-      :currentBody="{ bodyType: 'raw', content: body }"
-      :requestId="currentRequestId"
-      :requestName="title"
-      :collectionId="collectionId"
-      :cardRef="{ 
-        getRequestData, 
-        getCurrentData 
-      }"
-      @close="showSaveModal = false"
-      @saved="handleRequestSaved" />
+    <SaveRequestModal v-if="showSaveModal" :currentUrl="url" :currentMethod="method"
+      :currentBody="{ bodyType: 'raw', content: body }" :requestId="currentRequestId" :requestName="title"
+      :collectionId="collectionId" :cardRef="{
+        getRequestData,
+        getCurrentData
+      }" @close="showSaveModal = false" @saved="handleRequestSaved" />
   </div>
 </template>

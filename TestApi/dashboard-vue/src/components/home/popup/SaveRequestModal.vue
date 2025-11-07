@@ -151,15 +151,7 @@ function getCardData() {
   const currentBodyType = currentData.bodyType || 'none'
   const currentBodyContent = currentData.body || '{}'
   const dataBaseTest = currentData.dataBaseTest || null
-
-  console.log('🟧 [SaveRequestModal] ========== PARSED DATA ==========')
-  console.log('🟧 [SaveRequestModal]   - currentBodyType:', currentBodyType)
-  console.log('🟧 [SaveRequestModal]   - formDataItems:', formDataItems)
-  console.log('🟧 [SaveRequestModal]   - formDataItems.length:', formDataItems.length)
-  console.log('🟧 [SaveRequestModal]   - authData:', authData)
-  console.log('🟧 [SaveRequestModal]   - queryParams:', queryParams)
-  console.log('🟧 [SaveRequestModal]   - headers:', headers)
-  console.log('🟧 [SaveRequestModal] ========== getCardData END ==========')
+ 
 
   return { formDataItems, authData, queryParams, headers, currentBodyType, currentBodyContent, dataBaseTest }
 }
