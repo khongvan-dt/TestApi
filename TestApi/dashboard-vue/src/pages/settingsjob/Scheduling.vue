@@ -81,7 +81,12 @@ const confirmData = computed(() => ({
   collection: selectedCollection.value,
   requests: selectedRequests.filter(r => r.selected)
 }))
-
+function handleRequestSelection(request: RequestItem) {
+    // Dữ liệu này chứa tất cả thông tin bạn đã gán khi onMounted (bao gồm headers, body, dataBaseTest)
+    console.log(`[Step 2] Request selection changed: ${request.name}`);
+    console.log('Current Request Data:', request);
+    console.log('New Selection Status:', request.selected);
+}
 // === NAVIGATION ===
 const isNextDisabled = computed(() => {
   if (currentStep.value === 1) return !selectedCollectionId.value
@@ -107,8 +112,7 @@ const toast = useToast()
 
 const saveJob = async () => {
   if (!job.name.trim()) {
-    // THAY THẾ: alert('Vui lòng nhập tên job')
-    toast.add({
+     toast.add({
       severity: 'warn',
       summary: 'Validation Error',
       detail: 'Vui lòng nhập tên job',
@@ -310,7 +314,7 @@ const formatSchedule = (value: string) => {
             <label v-for="r in currentCollectionRequests" :key="r.id"
               class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:shadow-sm"
               :class="r.selected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'">
-              <input :id="'r' + r.id" type="checkbox" v-model="r.selected" class="w-5 h-5 text-blue-600 rounded" />
+              <input :id="'r' + r.id" type="checkbox" v-model="r.selected" class="w-5 h-5 text-blue-600 rounded"  @change="handleRequestSelection(r)" />
               <span :class="['px-2 py-1 rounded text-white font-bold text-xs', getMethodClasses(r.method)]">
                 {{ r.method }}
               </span>

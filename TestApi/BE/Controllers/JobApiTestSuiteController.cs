@@ -68,40 +68,40 @@ namespace AutoApiTester.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách tất cả JobApiTestSuite
-        /// </summary>
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<JobApiTestSuiteEntity>>> GetAll()
-        {
-            var result = await _service.GetAllAsync();
-            return Ok(result);
-        }
+        ///// <summary>
+        ///// Lấy danh sách tất cả JobApiTestSuite
+        ///// </summary>
+        //[HttpGet]
+        //public async Task<ActionResult<IEnumerable<JobApiTestSuiteEntity>>> GetAll()
+        //{
+        //    var result = await _service.GetAllAsync();
+        //    return Ok(result);
+        //}
 
-        /// <summary>
-        /// Lấy chi tiết theo ID
-        /// </summary>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<JobApiTestSuiteEntity>> GetById(int id)
-        {
-            var item = await _service.GetByIdAsync(id);
-            if (item == null)
-                return NotFound(new { message = "Không tìm thấy JobApiTestSuite" });
+        ///// <summary>
+        ///// Lấy chi tiết theo ID
+        ///// </summary>
+        //[HttpGet("{id}")]
+        //public async Task<ActionResult<JobApiTestSuiteEntity>> GetById(int id)
+        //{
+        //    var item = await _service.GetByIdAsync(id);
+        //    if (item == null)
+        //        return NotFound(new { message = "Không tìm thấy JobApiTestSuite" });
 
-            return Ok(item);
-        }
+        //    return Ok(item);
+        //}
 
-        /// <summary>
-        /// Xóa 1 JobApiTestSuite
-        /// </summary>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var deleted = await _service.DeleteAsync(id);
-            if (!deleted)
-                return NotFound(new { message = "Không tìm thấy để xóa" });
+        ///// <summary>
+        ///// Xóa 1 JobApiTestSuite
+        ///// </summary>
+        //[HttpDelete("{id}")]
+        //public async Task<IActionResult> Delete(int id)
+        //{
+        //    var deleted = await _service.DeleteAsync(id);
+        //    if (!deleted)
+        //        return NotFound(new { message = "Không tìm thấy để xóa" });
 
-            return Ok(new { message = "Đã xóa thành công" });
-        }
+        //    return Ok(new { message = "Đã xóa thành công" });
+        //}
     }
 }

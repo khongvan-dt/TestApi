@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { UpdateTestdataRequest } from '../../../../composables/useRequest'
+import { useToast } from "primevue/usetoast";
 
 interface Props {
   dataBaseTest?: string | null
@@ -32,7 +33,7 @@ function cancelEdit() {
   editContent.value = dbContent.value
   errorMessage.value = ''
 }
-
+const toast = useToast()
 async function saveEdit() {
   if (!props.requestId) {
     errorMessage.value = 'Missing requestId.'
@@ -51,9 +52,21 @@ async function saveEdit() {
     dbContent.value = editContent.value
     emit('update', dbContent.value)
     isEditing.value = false
+    toast.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Base Test Data updated successfully!',
+        life: 3000
+    })
   } catch (err: any) {
     console.error('Save dataBaseTest failed:', err)
     errorMessage.value = err.message || 'System error when saving Database Test.'
+    toast.add({
+        severity: 'error',
+        summary: 'Save Failed',
+        detail: errorMessage.value,
+        life: 5000
+    })
   } finally {
     isLoading.value = false
   }

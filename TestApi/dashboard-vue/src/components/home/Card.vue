@@ -701,7 +701,7 @@ defineExpose({
           :headersData="headersData" /> -->
 
         <!-- Body Tab -->
-        <BodyTab v-show="activeTab === 'Body'" ref="bodyTabRef" :key="bodyKey" :formDataItems="formDataItems" />
+        <BodyTab v-show="activeTab === 'Body'" ref="bodyTabRef" :key="bodyKey" :formDataItems="formDataItems" :requestId="currentRequestId" />
       </div>
     </div>
 
