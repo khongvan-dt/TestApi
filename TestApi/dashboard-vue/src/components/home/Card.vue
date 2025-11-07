@@ -232,27 +232,21 @@ async function handleSend() {
 
   try {
     const params = paramsTabRef.value?.getParams() || []
-    const headers = buildHeaders()  // ✅ Đã có token trong headers
+    const headers = buildHeaders()  
     const bodyData = bodyTabRef.value?.getBody?.()
     const bodyType = bodyTabRef.value?.getBodyType?.() || 'none'
     const baseData = bodyTabRef.value?.getDataBaseTest?.() || null
-
-    console.log('🔵 [Card] handleSend - bodyType:', bodyType)
-    console.log('🔵 [Card] handleSend - headers:', headers)  // ✅ CHECK: Có Authorization header không?
+ 
 
     let requestBody: any = null
 
-    // ✅ FIX: XỬ LÝ FORM-DATA
     if (bodyType === 'form-data' || (bodyData && bodyData.bodyType === 'form-data')) {
-      console.log('🔵 [Card] handleSend - Processing FORM-DATA')
-
-      // ✅ THAY ĐỔI: Lấy formRef đúng cách
+ 
       const bodyTabRefs = bodyTabRef.value?.$refs
       const formRef = bodyTabRefs?.formRef
 
-      console.log('🔵 [Card] handleSend - formRef:', formRef)
-
-      // ✅ Lấy tất cả form items (không chỉ SQL)
+ 
+      //  Lấy tất cả form items (không chỉ SQL)
       let allFormItems: any[] = []
       if (formRef?.value?.getFormDataItems) {
         allFormItems = formRef.value.getFormDataItems()
@@ -260,18 +254,13 @@ async function handleSend() {
         allFormItems = formRef.getFormDataItems()
       }
 
-      console.log('🔵 [Card] handleSend - allFormItems:', allFormItems)
-
-      // ✅ Tách SQL items và text items
+ 
       const sqlItems = allFormItems.filter(item => item.type === 'sql' && item.enabled)
       const textItems = allFormItems.filter(item => item.type === 'text' && item.enabled)
 
-      console.log('🔵 [Card] handleSend - sqlItems:', sqlItems)
-      console.log('🔵 [Card] handleSend - textItems:', textItems)
 
-      // ✅ XỬ LÝ SQL ITEMS (nếu có)
+      //  XỬ LÝ SQL ITEMS (nếu có)
       if (sqlItems.length > 0) {
-        console.log('🔵 [Card] handleSend - Processing SQL items')
 
         const allSQLData: any[] = []
 
@@ -303,12 +292,10 @@ async function handleSend() {
           for (let i = 0; i < firstSQLItem.values.length; i++) {
             const sqlValue = firstSQLItem.values[i]
 
-            // ✅ Merge SQL data với text items
             const requestBody: any = {
               [firstSQLItem.key]: sqlValue
             }
 
-            // ✅ Thêm text items vào body
             textItems.forEach(item => {
               requestBody[item.key] = item.value
             })
@@ -324,7 +311,6 @@ async function handleSend() {
               body: requestBody
             }
 
-            console.log('🔵 [Card] handleSend - SQL Request payload:', requestPayload)
 
             const result = await sendRequest(requestPayload)
             results.push({
@@ -343,27 +329,24 @@ async function handleSend() {
         return
       }
 
-      // ✅ NẾU KHÔNG CÓ SQL ITEMS, CHỈ CÓ TEXT ITEMS
       if (textItems.length > 0) {
-        console.log('🔵 [Card] handleSend - Processing TEXT items only')
 
         requestBody = {}
         textItems.forEach(item => {
           requestBody[item.key] = item.value
         })
 
-        console.log('🔵 [Card] handleSend - Text-only requestBody:', requestBody)
       }
     }
-    // ✅ XỬ LÝ RAW BODY
+    //  XỬ LÝ RAW BODY
     else if (bodyType === 'raw' && bodyData?.content) {
       requestBody = mergeTestData(baseData, bodyData.content)
     }
-    // ✅ XỬ LÝ BASE-DATA
+    //  XỬ LÝ BASE-DATA
     else if (bodyType === 'base-data' && baseData) {
       requestBody = baseData
     }
-    // ✅ FALLBACK
+    //  FALLBACK
     else if (bodyData?.content) {
       requestBody = bodyData.content
     }
@@ -379,7 +362,6 @@ async function handleSend() {
       body: requestBody
     }
 
-    console.log('🔵 [Card] handleSend - Final request payload:', requestPayload)
 
     const result = await sendRequest(requestPayload)
 
@@ -453,25 +435,18 @@ function clearResponse() {
 }
 
 
-// ✅ SỬA: getRequestData với debug logs
 function getRequestData() {
-  console.log('🟦 [Card] getRequestData called')
 
   const params = paramsTabRef.value?.getParams?.() || []
   const headers = headersTabRef.value?.getHeaders?.() || []
   const auth = authTabRef.value?.getAuth?.() || null
 
-  console.log('🟦 [Card] params:', params)
-  console.log('🟦 [Card] headers:', headers)
-  console.log('🟦 [Card] auth:', auth)
+
 
   let bodyData: any = null
   if (bodyTabRef.value) {
     const result = bodyTabRef.value.getBody?.()
     const bodyType = bodyTabRef.value.getBodyType?.() || 'none'
-
-    console.log('🟦 [Card] bodyType:', bodyType)
-    console.log('🟦 [Card] bodyResult:', result)
 
     if (result && typeof result === 'object' && 'bodyType' in result && 'content' in result) {
       bodyData = result
@@ -484,7 +459,6 @@ function getRequestData() {
     }
   }
 
-  console.log('🟦 [Card] bodyData:', bodyData)
 
   return {
     url: url.value,
@@ -498,7 +472,6 @@ function getRequestData() {
 }
 
 function getCurrentData() {
-  console.log('🟦 [Card] ========== getCurrentData START ==========')
 
   const params = paramsTabRef.value?.getParams?.() || []
   const headers = headersTabRef.value?.getHeaders?.() || []
@@ -506,63 +479,48 @@ function getCurrentData() {
   const bodyType = bodyTabRef.value?.getBodyType?.() || 'none'
   const dataBaseTest = bodyTabRef.value?.getDataBaseTest?.() || null
 
-  console.log('🟦 [Card] Step 1 - bodyType:', bodyType)
-  console.log('🟦 [Card] Step 2 - bodyData:', bodyData)
-  console.log('🟦 [Card] Step 3 - bodyTabRef.value:', bodyTabRef.value)
-  console.log('🟦 [Card] Step 4 - bodyTabRef.value.$refs:', bodyTabRef.value?.$refs)
 
-  // ✅ Lấy form-data items
+  //  Lấy form-data items
   let formItems: any[] = []
 
-  // ✅ CHECK: bodyType phải là 'form-data'
   if (bodyType === 'form-data' || (bodyData && bodyData.bodyType === 'form-data')) {
-    console.log('🟦 [Card] ✅ Detected form-data body type')
 
-    // ✅ FIX: Access đúng cách
     const bodyTabRefs = bodyTabRef.value?.$refs
-    console.log('🟦 [Card] Step 5 - bodyTabRefs:', bodyTabRefs)
 
     if (bodyTabRefs && bodyTabRefs.formRef) {
       const formRef = bodyTabRefs.formRef
-      console.log('🟦 [Card] Step 6 - formRef:', formRef)
-      console.log('🟦 [Card] Step 7 - formRef is ref?:', !!formRef.value)
+    
 
-      // ✅ FIX: formRef có thể là ref hoặc không
       if (formRef.value && formRef.value.getFormDataItems) {
         // Case 1: formRef là ref wrapper
         formItems = formRef.value.getFormDataItems()
-        console.log('🟦 [Card] ✅ Got items from formRef.value:', formItems)
       } else if (formRef.getFormDataItems) {
         // Case 2: formRef là direct object
         formItems = formRef.getFormDataItems()
-        console.log('🟦 [Card] ✅ Got items from formRef:', formItems)
       } else {
-        console.warn('⚠️ [Card] formRef has no getFormDataItems method')
+        console.warn(' [Card] formRef has no getFormDataItems method')
       }
     } else {
-      console.warn('⚠️ [Card] No formRef found in bodyTabRefs')
+      console.warn(' [Card] No formRef found in bodyTabRefs')
     }
   } else {
-    console.log('🟦 [Card] ⚠️ Not form-data type, skipping form items')
+    console.log(' [Card]  Not form-data type, skipping form items')
   }
 
-  // ✅ Lấy auth data
-  console.log('🟦 [Card] Step 8 - Getting auth data')
-  console.log('🟦 [Card] Step 9 - authTabRef.value:', authTabRef.value)
+
 
   const currentAuthData = authTabRef.value?.getAuthData?.() || {
     authType: 'no-auth',
     bearerToken: ''
   }
 
-  console.log('🟦 [Card] Step 10 - authData:', currentAuthData)
 
   const result = {
     url: url.value,
     method: method.value,
     body: bodyData?.content || body.value,
     bodyId: bodyData?.id || 0,
-    bodyType: bodyType,  // ✅ Phải là 'form-data' nếu user chọn form-data
+    bodyType: bodyType, 
     params: params.filter((p: any) => p.key).map((p: any) => ({
       key: p.key,
       value: p.value,
@@ -580,8 +538,6 @@ function getCurrentData() {
     authData: currentAuthData
   }
 
-  console.log('🟦 [Card] ========== getCurrentData RESULT ==========')
-  console.log('🟦 [Card] Final result:', JSON.stringify(result, null, 2))
   return result
 }
 
@@ -590,7 +546,7 @@ function updateFromParent(data: {
   method?: string
   body?: string
   bodyId?: number
-  bodyType?: string  // ✅ THÊM
+  bodyType?: string  
   dataBaseTest?: string | null
   requestId?: number | null
   collectionId?: number | null
@@ -599,24 +555,19 @@ function updateFromParent(data: {
   formDataItems?: Array<any>
   authData?: { authType: string; bearerToken: string }
 }) {
-  console.log('🔵 [Card] updateFromParent:', data)
 
-  // ✅ GIỮ NGUYÊN: Basic fields
   if (data.url !== undefined) url.value = data.url
   if (data.method !== undefined) method.value = data.method
   if (data.requestId !== undefined) currentRequestId.value = data.requestId
 
-  // ✅ GIỮ NGUYÊN: Params
   if (data.params !== undefined) {
     paramsData.value = data.params.map(p => ({ key: p.key, value: p.value }))
   }
 
-  // ✅ GIỮ NGUYÊN: Headers
   if (data.headers !== undefined) {
     headersData.value = data.headers.map(h => ({ key: h.key, value: h.value }))
   }
 
-  // ✅ GIỮ NGUYÊN: Body content
   if (data.body !== undefined) {
     body.value = data.body
     bodyKey.value++
@@ -627,41 +578,33 @@ function updateFromParent(data: {
     })
   }
 
-  // ✅ GIỮ NGUYÊN: Body ID
   if (data.bodyId !== undefined && bodyTabRef.value?.setBodyId) {
     nextTick(() => {
       bodyTabRef.value.setBodyId(data.bodyId || 0)
     })
   }
 
-  // ✅ GIỮ NGUYÊN: DataBaseTest
   if (data.dataBaseTest !== undefined && bodyTabRef.value?.setDataBaseTest) {
     nextTick(() => {
       bodyTabRef.value.setDataBaseTest(data.dataBaseTest)
     })
   }
 
-  // ✅ THAY ĐỔI: Restore bodyType trước khi restore formDataItems
   if (data.bodyType !== undefined) {
     nextTick(() => {
-      console.log('🔵 [Card] Setting bodyType to:', data.bodyType)
       bodyTabRef.value?.setBodyType?.(data.bodyType as any)
     })
   }
 
-  // ✅ THAY ĐỔI: Form-data items với auto-set bodyType
   if (data.formDataItems !== undefined) {
     const formItemsToRestore = data.formDataItems
     formDataItems.value = formItemsToRestore
 
     nextTick(() => {
-      // ✅ THÊM: Tự động set bodyType = 'form-data' nếu có items
       if (formItemsToRestore.length > 0) {
-        console.log('🔵 [Card] Auto-setting bodyType to form-data (has items)')
         bodyTabRef.value?.setBodyType?.('form-data')
       }
 
-      // ✅ GIỮ NGUYÊN: Update form data
       const formRef = bodyTabRef.value?.$refs?.formRef
       if (formRef?.value?.updateFormData) {
         formRef.value.updateFormData(formItemsToRestore)
@@ -671,7 +614,6 @@ function updateFromParent(data: {
     })
   }
 
-  // ✅ GIỮ NGUYÊN: Auth data
   if (data.authData !== undefined) {
     const authDataToRestore = data.authData
     authData.value = authDataToRestore

@@ -20,9 +20,7 @@ const authTypes = [
 ]
 
 function getAuthData() {
-  console.log('🟨 [AuthorizationTab] getAuthData called')
-  console.log('🟨 [AuthorizationTab] authType:', authType.value)
-  console.log('🟨 [AuthorizationTab] bearerToken:', bearerToken.value)
+
   
   return {
     authType: authType.value,

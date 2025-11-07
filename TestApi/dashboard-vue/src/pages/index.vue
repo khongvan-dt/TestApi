@@ -86,13 +86,11 @@ function parseBodyContent(content: string): string {
   auth?: any
   activeSubTab?: string
   dataBaseTest?: string | null
-  formDataItems?: Array<any>    // ✅ THÊM
-  authData?: { authType: string; bearerToken: string }  // ✅ THÊM
+  formDataItems?: Array<any>   
+  authData?: { authType: string; bearerToken: string }  
 }
 
-// ✅ UPDATE handleSelectRequest
 function handleSelectRequest(payload: any) {
-  console.log('🟢 [index] handleSelectRequest:', payload)
 
   const currentTab = tabs.value.find(t => t.id === activeTabId.value)
   if (!currentTab) return
@@ -107,8 +105,8 @@ function handleSelectRequest(payload: any) {
   currentTab.dataBaseTest = payload.dataBaseTest || null
   currentTab.collectionId = payload.collectionId
   currentTab.bodies = payload.bodies || []
-  currentTab.formDataItems = payload.formDataItems || []      // ✅ THÊM
-  currentTab.authData = payload.authData || { authType: 'bearer-token', bearerToken: '' }  // ✅ THÊM
+  currentTab.formDataItems = payload.formDataItems || []      
+  currentTab.authData = payload.authData || { authType: 'bearer-token', bearerToken: '' }  
 
   if (payload.body) {
     currentTab.bodyId = payload.body.id || 0
@@ -120,12 +118,10 @@ function handleSelectRequest(payload: any) {
     currentTab.bodyId = 0
   }
 
-  // ✅ Update Card với đầy đủ data
-  nextTick(() => {
+   nextTick(() => {
     setTimeout(() => {
       if (cardRef.value?.updateFromParent) {
-        console.log('🟢 [index] Calling Card.updateFromParent')
-        cardRef.value.updateFromParent({
+         cardRef.value.updateFromParent({
           url: currentTab.url,
           method: currentTab.method,
           body: currentTab.body,
@@ -135,8 +131,8 @@ function handleSelectRequest(payload: any) {
           collectionId: currentTab.collectionId,
           params: currentTab.params,
           headers: currentTab.headers,
-          formDataItems: currentTab.formDataItems,    // ✅ THÊM
-          authData: currentTab.authData                // ✅ THÊM
+          formDataItems: currentTab.formDataItems,   
+          authData: currentTab.authData               
         })
       }
     }, 100)
@@ -146,8 +142,7 @@ function handleSelectRequest(payload: any) {
 }
 
 function handleAddNewTab(collectionId: number) {
-  // ✅ Lưu dữ liệu tab hiện tại trước
-  saveCurrentTabData()
+   saveCurrentTabData()
 
   const newId = `tab-${Date.now()}`
 
@@ -256,8 +251,7 @@ function saveCurrentTabData() {
 
   const currentData = cardRef.value.getCurrentData()
 
-  // ✅ Cập nhật dữ liệu vào tab
-  Object.assign(currentTab, {
+   Object.assign(currentTab, {
     url: currentData.url,
     method: currentData.method,
     body: currentData.body,
@@ -269,8 +263,7 @@ function saveCurrentTabData() {
     collectionId: currentData.collectionId
   })
 
-  console.log('💾 [index] Saved current tab data:', currentTab)
-}
+ }
 
 onMounted(() => {
   loadSavedTabs()

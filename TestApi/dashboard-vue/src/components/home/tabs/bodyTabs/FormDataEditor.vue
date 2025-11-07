@@ -93,8 +93,7 @@ function getBody(): FormData {
 }
 
 function getFormDataItems() {
-  console.log(' [FormDataEditor] getFormDataItems called')
-  console.log('[FormDataEditor] formDataItems.value:', JSON.stringify(formDataItems.value, null, 2))
+
   return formDataItems.value
 }
 

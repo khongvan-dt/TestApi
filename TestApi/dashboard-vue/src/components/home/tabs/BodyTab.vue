@@ -34,12 +34,7 @@ const binaryFile = ref<File | null>(null)
 const rawEditorRef = ref<any>(null)
 const formRef = ref<any>(null)
 const paramsRef = ref<any>(null)
-onMounted(() => {
-  console.log('🟩 [BodyTab] Mounted')
-  console.log('🟩 [BodyTab] bodyType:', bodyType.value)
-  console.log('🟩 [BodyTab] formRef:', formRef.value)
-  console.log('🟩 [BodyTab] Has getFormDataItems?:', !!formRef.value?.getFormDataItems)
-})
+
 watch(() => props.bodyId, (val) => {
   currentBodyId.value = val || 0
 }, { immediate: true, flush: 'sync' })
@@ -61,11 +56,9 @@ watch(() => props.modelValue, (newValue) => {
   }
 }, { immediate: true })
 function testGetFormData() {
-  console.log('🟩 [BodyTab] testGetFormData called')
-  console.log('🟩 [BodyTab] formRef.value:', formRef.value)
+
   if (formRef.value && formRef.value.getFormDataItems) {
     const items = formRef.value.getFormDataItems()
-    console.log('🟩 [BodyTab] Form items:', items)
     return items
   }
   return []
@@ -90,7 +83,6 @@ function getBody() {
 
   switch (bodyType.value) {
     case 'form-data':
-      // ✅ DÙNG getBody() TỪ FORM REF
       result = formRef.value?.getBody?.() || null
       break
     case 'raw':
@@ -123,7 +115,6 @@ function getDataBaseTest() {
   return currentDataBaseTest.value
 }
 function setBodyType(type: 'base-data' | 'raw' | 'form-data' | 'none' | 'binary') {
-  console.log('🟩 [BodyTab] setBodyType called:', type)
   bodyType.value = type
 }
 defineExpose({
@@ -144,29 +135,23 @@ defineExpose({
 
 <template>
   <div class="bg-white">
-    <!-- ✅ THÊM: Debug display -->
-    <div class="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-      🐛 DEBUG: Current bodyType = <strong>{{ bodyType }}</strong>
-    </div>
+   
 
     <!-- Radio buttons -->
     <div class="flex items-center gap-4 mb-4 flex-wrap">
       <label v-for="t in ['base-data', 'none', 'form-data', 'raw', 'binary']" :key="t"
         class="flex items-center gap-2 cursor-pointer select-none"
         :class="bodyType === t ? 'text-blue-600 font-medium' : 'text-gray-600'">
-        <!-- ✅ THÊM: Log khi click -->
         <input 
           type="radio" 
           :value="t" 
           v-model="bodyType" 
-          @change="console.log('🟩 [BodyTab] Radio changed to:', t)"
           class="w-4 h-4 text-blue-600" />
         <span class="text-sm">{{ t }}</span>
       </label>
     </div>
 
     <div>
-      <!-- ✅ Các body types -->
       <div v-show="bodyType === 'none'" class="text-center py-6 text-gray-400">
         This request does not have a body
       </div>

@@ -19,8 +19,7 @@ export const useApiClient = () => {
   const loading = ref(false)
 
   const sendRequest = async (params: RequestParams) => {
-    console.log('🟢 [useApiClient] ========== sendRequest START ==========')
-    console.log('🟢 [useApiClient] Input params:', params)
+  
     
     const startTime = Date.now()
     loading.value = true
@@ -29,23 +28,19 @@ export const useApiClient = () => {
       const requestHeaders: Record<string, string> = {}
       requestHeaders['Content-Type'] = 'application/json'
 
-      console.log('🟢 [useApiClient] Initial headers:', requestHeaders)
-      console.log('🟢 [useApiClient] params.headers:', params.headers)
-
       if (params.headers && Array.isArray(params.headers)) {
         params.headers.forEach((header: any) => {
           if (header.enabled !== false && header.key) {
-            console.log(`🟢 [useApiClient] Adding header: ${header.key} = ${header.value}`)
             requestHeaders[header.key] = header.value
           } else {
-            console.log(`🟢 [useApiClient] Skipping header (disabled or no key):`, header)
+            console.log(` [useApiClient] Skipping header (disabled or no key):`, header)
           }
         })
       } else {
-        console.warn('⚠️ [useApiClient] No headers array found!')
+        console.warn(' [useApiClient] No headers array found!')
       }
 
-      console.log('🟢 [useApiClient] Final requestHeaders:', requestHeaders)
+      console.log(' [useApiClient] Final requestHeaders:', requestHeaders)
 
       const isExternalUrl = params.url.startsWith('http://') || params.url.startsWith('https://')
       let finalUrl = params.url
@@ -53,27 +48,19 @@ export const useApiClient = () => {
       if (isExternalUrl) {
         requestHeaders['x-target-url'] = params.url
         finalUrl = 'http://localhost:3001/proxy'
-        console.log('🟢 [useApiClient] Using proxy:', finalUrl)
       } else {
-        console.log('🟢 [useApiClient] Direct URL:', finalUrl)
+        console.log(' [useApiClient] Direct URL:', finalUrl)
       }
 
       let requestBody = params.body
 
       if (Array.isArray(requestBody)) {
-        console.log('🟢 [useApiClient] Processing array body (multiple requests)')
         
         const results = []
         for (let i = 0; i < requestBody.length; i++) {
           const testCase = requestBody[i]
           
-          console.log(`🟢 [useApiClient] Sending request ${i + 1}/${requestBody.length}`)
-          console.log(`🟢 [useApiClient] Request config:`, {
-            method: params.method,
-            url: finalUrl,
-            headers: requestHeaders,
-            data: testCase
-          })
+          
           
           try {
             const response = await axios({
@@ -83,7 +70,6 @@ export const useApiClient = () => {
               data: testCase
             })
             
-            console.log(`✅ [useApiClient] Request ${i + 1} success:`, response.status)
             
             results.push({
               success: true,
@@ -96,7 +82,7 @@ export const useApiClient = () => {
               requestData: testCase
             })
           } catch (error: any) {
-            console.error(`❌ [useApiClient] Request ${i + 1} failed:`, {
+            console.error(` [useApiClient] Request ${i + 1} failed:`, {
               status: error.response?.status,
               statusText: error.response?.statusText,
               data: error.response?.data,
@@ -118,13 +104,7 @@ export const useApiClient = () => {
         return results
       }
 
-      console.log('🟢 [useApiClient] Sending single request')
-      console.log('🟢 [useApiClient] Request config:', {
-        method: params.method,
-        url: finalUrl,
-        headers: requestHeaders,
-        data: requestBody
-      })
+     
 
       const response = await axios({
         method: params.method,
@@ -133,7 +113,6 @@ export const useApiClient = () => {
         data: requestBody
       })
 
-      console.log('✅ [useApiClient] Request success:', response.status)
 
       return [{
         success: true,
@@ -144,7 +123,7 @@ export const useApiClient = () => {
         data: response.data
       }]
     } catch (error: any) {
-      console.error('❌ [useApiClient] Error:', {
+      console.error(' [useApiClient] Error:', {
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data,

@@ -116,7 +116,7 @@ function getCardData() {
   }
    
   if (!props.cardRef.getCurrentData) {
-    console.error('❌ [SaveRequestModal] getCurrentData method NOT FOUND!')
+    console.error(' [SaveRequestModal] getCurrentData method NOT FOUND!')
     return {
       formDataItems: [],
       authData: null,
@@ -157,8 +157,7 @@ async function handleSave() {
 
   error.value = null
 
-  // ✅ LẤY TẤT CẢ DỮ LIỆU HIỆN TẠI TỪ CARD
-  const cardData = getCardData()
+   const cardData = getCardData()
    
   const { formDataItems, authData, queryParams, headers, currentBodyType, currentBodyContent, dataBaseTest } = cardData
 
