@@ -2,7 +2,11 @@
 import { ref, watch, onMounted } from 'vue'
 import { useUserData } from '../../../composables/useUserData'
 import { getMyCollections, createCollection } from '../../../composables/useCollection'
-
+interface KeyValuePair {
+  key: string
+  value: string
+  enabled?: boolean
+}
 interface Collection {
   id: number
   userId: number
@@ -168,8 +172,8 @@ async function handleSave() {
     name: requestName.value,
     method: props.currentMethod,
     url: props.currentUrl,
-    queryParams: queryParams.map(p => ({ key: p.key, value: p.value })),
-    headers: headers.map(h => ({ key: h.key, value: h.value }))
+    queryParams: queryParams.map((p: KeyValuePair) => ({ key: p.key, value: p.value })),
+    headers: headers.map((h: KeyValuePair) => ({ key: h.key, value: h.value }))
   }
 
   let bodyForSave: any = null

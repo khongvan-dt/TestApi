@@ -220,28 +220,39 @@ export const useUserData = () => {
       reader.readAsText(file)
     })
   } 
-  const saveRequest = async (requestData: SaveRequestData[]): Promise<SaveRequestResult | null> => {
-    loading.value = true
-    error.value = null
+ const saveRequest = async (requestData: SaveRequestData[]): Promise<SaveRequestResult[] | null> => {
+  loading.value = true
+  error.value = null
 
-    try {
-       
-      const response = await apiClient.post('/DataExport/save', requestData)
+  try {
+    console.log('🟢 [useUserData] Calling API with payload:', requestData)
+    
+    const response = await apiClient.post('/DataExport/save', requestData)
 
- 
-      if (response.data.success) {
-        return response.data.data
+    console.log('🟢 [useUserData] API response:', response.data)
+
+    if (response.data.success) {
+      const data = response.data.data
+      
+      // ✅ THÊM: Đảm bảo luôn trả về array
+      if (Array.isArray(data)) {
+        return data
       } else {
-        error.value = response.data.message 
-        return null
+        // Nếu API trả về object đơn, wrap thành array
+        return [data]
       }
-    } catch (err: any) {
-       error.value = err.response?.data?.message || err.message 
+    } else {
+      error.value = response.data.message 
       return null
-    } finally {
-      loading.value = false
     }
+  } catch (err: any) {
+    console.error(' [useUserData] API error:', err)
+    error.value = err.response?.data?.message || err.message 
+    return null
+  } finally {
+    loading.value = false
   }
+}
 
   return {
     loading,
