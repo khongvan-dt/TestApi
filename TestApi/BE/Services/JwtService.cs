@@ -16,7 +16,7 @@ public class JwtService : IJwtService
         _config = config;
     }
 
-    public string GenerateToken(User user, int expiresMinutes = 1440)
+    public string GenerateToken(UserEntity user, int expiresMinutes = 1440)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

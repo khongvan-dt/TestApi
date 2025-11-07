@@ -5,6 +5,6 @@ namespace AutoApiTester.App.Services
 {
     public interface IJobApiTestSuiteService
     {
-        Task<List<JobApiTestSuite>> UpsertAsync(List<JobApiTestSuiteDto> dtoList, string userName);
+        Task<List<JobApiTestSuiteEntity>> UpsertAsync(List<JobApiTestSuiteDto> dtoList, string userName);
     }
 }

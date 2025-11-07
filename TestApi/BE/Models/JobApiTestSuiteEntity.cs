@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AutoApiTester.Models
 {
     [Table("JobApiTestSuite")]
-    public class JobApiTestSuite
+    public class JobApiTestSuiteEntity
     {
         [Key]
          public int Id { get; set; }
@@ -37,6 +37,6 @@ namespace AutoApiTester.Models
         [MaxLength(100)]
         public string UpdatedBy { get; set; }
 
-        public ICollection<JobApiTestCase> TestCases { get; set; }
+        public ICollection<JobApiTestCaseEntity> TestCases { get; set; }
     }
 }

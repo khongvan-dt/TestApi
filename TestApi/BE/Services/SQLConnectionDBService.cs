@@ -17,7 +17,7 @@ namespace AutoApiTester.App.Services
         }
 
         // ✅ Save (Insert hoặc Update)
-        public async Task<SQLConnectionDB> SaveAsync(SQLConnectionDB dto, int userId)
+        public async Task<SQLConnectionDBEntity> SaveAsync(SQLConnectionDBEntity dto, int userId)
         {
             // Validate
             if (string.IsNullOrWhiteSpace(dto.Name))
@@ -38,13 +38,13 @@ namespace AutoApiTester.App.Services
         }
 
         // ✅ Lấy danh sách theo UserId
-        public async Task<List<SQLConnectionDB>> GetByUserIdAsync(int userId)
+        public async Task<List<SQLConnectionDBEntity>> GetByUserIdAsync(int userId)
         {
             return await _repository.GetByUserIdAsync(userId);
         }
 
         // ✅ Lấy chi tiết theo Id
-        public async Task<SQLConnectionDB> GetByIdAsync(int id, int userId)
+        public async Task<SQLConnectionDBEntity> GetByIdAsync(int id, int userId)
         {
             var entity = await _repository.GetByIdAsync(id, userId);
 

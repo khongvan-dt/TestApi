@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AutoApiTester.Repositories;
 
-public class CollectionRepository : Repository<Collection>, ICollectionRepository
+public class CollectionRepository : Repository<CollectionEntity>, ICollectionRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -61,7 +61,7 @@ public class CollectionRepository : Repository<Collection>, ICollectionRepositor
     //  Tạo mới collection
     public async Task<CollectionResponseDto> CreateAsync(CreateCollectionDto dto)
     {
-        var collection = new Collection
+        var collection = new CollectionEntity
         {
             UserId = dto.UserId,
             Name = dto.Name,

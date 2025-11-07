@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AutoApiTester.Models;
 
 [Table("Users")]
-public class User
+public class UserEntity
 {
     [Key]
     public int Id { get; set; }
@@ -33,8 +33,8 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation Properties
-     public virtual ICollection<ExecutionHistory> ExecutionHistories { get; set; } = new List<ExecutionHistory>();
+     public virtual ICollection<ExecutionHistoryEntity> ExecutionHistories { get; set; } = new List<ExecutionHistoryEntity>();
     public virtual ICollection<JobScheduleApiTest> JobScheduleApiTests { get; set; } = new List<JobScheduleApiTest>();
-    public virtual ICollection<SQLConnectionDB> SQLConnectionDBs { get; set; } = new List<SQLConnectionDB>();
+    public virtual ICollection<SQLConnectionDBEntity> SQLConnectionDBs { get; set; } = new List<SQLConnectionDBEntity>();
 
 }

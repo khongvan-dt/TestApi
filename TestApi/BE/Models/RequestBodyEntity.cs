@@ -1,6 +1,6 @@
 ﻿namespace AutoApiTester.Models
 {
-    public class RequestBody
+    public class RequestBodyEntity
     {
         public int Id { get; set; }
         public int RequestId { get; set; }
@@ -10,6 +10,6 @@
 
 
         // Navigation
-        public Request Request { get; set; } = null!;
+        public RequestEntity Request { get; set; } = null!;
     }
 }

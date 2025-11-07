@@ -4,6 +4,7 @@ using AutoApiTester.App.Repositories;
 using AutoApiTester.Data;
 using AutoApiTester.DTOs.SettingJob;
 using AutoApiTester.Models;
+using AutoApiTester.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -17,27 +18,39 @@ namespace AutoApiTester.Repositories
         {
             _context = context;
         }
-
-
-
-
-
-
-
-
-
-        public async Task<List<JobApiTestSuite>> UpsertAsync(List<JobApiTestSuiteDto> dtoList, string userName)
+        public async Task<List<CollectionResponseDto>> GetByUserIdAsync(int userId)
         {
-            var result = new List<JobApiTestSuite>();
+            var collections = await _context.Collections
+                .Include(c => c.Requests)
+                .Where(c => c.UserId == userId)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            var result = collections.Select(c => new CollectionResponseDto
+            {
+                Id = c.Id,
+                UserId = c.UserId,
+                Name = c.Name,
+                Description = c.Description,
+                CreatedAt = c.CreatedAt,
+                RequestsCount = c.Requests?.Count ?? 0
+            }).ToList();
+
+            return result;
+        }
+
+        public async Task<List<JobApiTestSuiteEntity>> UpsertAsync(List<JobApiTestSuiteDto> dtoList, string userName)
+        {
+            var result = new List<JobApiTestSuiteEntity>();
 
             foreach (var dto in dtoList)
             {
-                JobApiTestSuite entity;
+                JobApiTestSuiteEntity entity;
 
                 if (dto.Id == null || dto.Id == 0)
                 {
                     // INSERT mới
-                    entity = new JobApiTestSuite
+                    entity = new JobApiTestSuiteEntity
                     {
                         Name = dto.Name ?? "Unnamed Suite",
                         Endpoint = dto.Endpoint,
@@ -50,12 +63,12 @@ namespace AutoApiTester.Repositories
                         IsActive = true
                     };
 
-                    entity.TestCases = dto.TestCases?.Select(tc => new JobApiTestCase
+                    entity.TestCases = dto.TestCases?.Select(tc => new JobApiTestCaseEntity
                     {
                         CaseName = tc.CaseName ?? "Untitled Case",
                         TestData = JsonSerializer.Serialize(tc.TestData),
                         ExpectedStatus = tc.ExpectedStatus
-                    }).ToList() ?? new List<JobApiTestCase>();
+                    }).ToList() ?? new List<JobApiTestCaseEntity>();
 
                     _context.JobApiTestSuites.Add(entity);
                 }
@@ -82,7 +95,7 @@ namespace AutoApiTester.Repositories
                     {
                         if (tcDto.Id == null || tcDto.Id == 0)
                         {
-                            entity.TestCases.Add(new JobApiTestCase
+                            entity.TestCases.Add(new JobApiTestCaseEntity
                             {
                                 CaseName = tcDto.CaseName ?? "Untitled Case",
                                 TestData = JsonSerializer.Serialize(tcDto.TestData),
@@ -109,5 +122,7 @@ namespace AutoApiTester.Repositories
             return result;
         }
 
+   
+    
     }
 }

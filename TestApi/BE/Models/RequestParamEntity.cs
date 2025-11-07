@@ -1,6 +1,6 @@
 ﻿namespace AutoApiTester.Models
 {
-    public class RequestParam
+    public class RequestParamEntity
     {
         public int Id { get; set; }
         public int RequestId { get; set; }
@@ -8,6 +8,6 @@
         public string? Value { get; set; }
 
         // Navigation
-        public Request Request { get; set; } = null!;
+        public RequestEntity Request { get; set; } = null!;
     }
 }

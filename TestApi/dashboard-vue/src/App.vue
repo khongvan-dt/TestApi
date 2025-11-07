@@ -7,8 +7,8 @@ import Toast from 'primevue/toast'  // ✅ Import Toast
 const { isAuthenticated } = useAuth()
 
 const open = ref(false)
-const showLoginModal = ref(false)  
-
+const showLoginModal = ref(false)
+const routerKey = ref(0)
 onMounted(() => {
   if (!isAuthenticated.value) {
     showLoginModal.value = true
@@ -56,37 +56,37 @@ const handleLoginSuccess = () => {
   showLoginModal.value = false
 }
 </script>
-
 <template>
   <Suspense>
     <template #default>
       <UApp>
-        <!-- ✅ THÊM Toast component ở đây -->
         <Toast position="top-right" />
         
-        <!-- Dashboard khi đã đăng nhập -->
         <UDashboardGroup v-if="isAuthenticated" unit="rem" storage="local">
+          
           <UDashboardSidebar 
             id="default" 
             v-model:open="open" 
             collapsible 
             resizable 
             class="bg-elevated/25"
-            :ui="{ footer: 'lg:border-t lg:border-default' }">
+            :ui="{ footer: 'lg:border-t lg:border-default' }"
+          >
             <template #default="{ collapsed }">
               <UNavigationMenu 
                 :collapsed="collapsed" 
                 :items="links[0]" 
                 orientation="vertical" 
                 tooltip 
-                popover />
-
+                popover 
+              />
               <UNavigationMenu 
                 :collapsed="collapsed" 
                 :items="links[1]" 
                 orientation="vertical" 
                 tooltip 
-                class="mt-auto" />
+                class="mt-auto" 
+              />
             </template>
 
             <template #footer="{ collapsed }">
@@ -94,36 +94,27 @@ const handleLoginSuccess = () => {
             </template>
           </UDashboardSidebar>
 
-          <RouterView />
-
+          <RouterView :key="routerKey" />
           <NotificationsSlideover />
         </UDashboardGroup>
 
-        <!-- Chưa đăng nhập -->
         <div v-else class="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
           <div class="text-center">
             <div class="animate-pulse">
               <div class="w-16 h-16 bg-blue-600 rounded-full mx-auto mb-4"></div>
             </div>
-            <p class="text-gray-600 dark:text-gray-400">Please login to continue</p>
+            <p class="text-gray-600 dark:text-gray-400">Loading application...</p>
           </div>
         </div>
 
-        <!-- Login Modal -->
         <LoginModal 
           v-model="showLoginModal" 
-          @login-success="handleLoginSuccess" />
+          @login-success="handleLoginSuccess" 
+        />
       </UApp>
     </template>
 
-    <!-- Fallback -->
     <template #fallback>
-      <div class="flex items-center justify-center h-screen">
-        <div class="text-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p class="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    </template>
+      </template>
   </Suspense>
 </template>

@@ -2,7 +2,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useUserData } from '../../composables/useUserData'
 import { upsertSuite, JobApiTestSuiteDto } from '../../composables/userJobApiTestSuite'
-
+import { useToast } from "primevue/usetoast";
 const { data, loading, error, fetchUserData } = useUserData()
 
 // === STEP STATE ===
@@ -33,13 +33,13 @@ const stepLabels = ['Chọn collection & API', 'Chọn Requests', 'Cấu hình J
 
 // === FETCH DỮ LIỆU LẦN ĐẦU ===
 onMounted(async () => {
-   await fetchUserData()
+  await fetchUserData()
 
   if (!data.value?.collections) {
-     return
+    return
   }
 
- 
+
   // Gom toàn bộ requests
   const allRequests: RequestItem[] = []
   data.value.collections.forEach((collection: any) => {
@@ -57,15 +57,15 @@ onMounted(async () => {
     })
   })
 
- 
+
   // Gán reactive
   selectedRequests.splice(0, selectedRequests.length, ...allRequests)
- })
+})
 
 // === COMPUTED ===
 const selectedCollection = computed(() => {
   const col = data.value?.collections?.find((c: any) => c.id === selectedCollectionId.value) || null
-   return col
+  return col
 })
 
 const currentCollectionRequests = computed(() => {
@@ -73,7 +73,7 @@ const currentCollectionRequests = computed(() => {
   const list = selectedRequests.filter(r =>
     selectedCollection.value.requests.some((req: any) => req.id === r.id)
   )
-   return list
+  return list
 })
 
 const confirmData = computed(() => ({
@@ -93,41 +93,54 @@ const isNextDisabled = computed(() => {
 const nextStep = () => {
   if (isNextDisabled.value) return
   currentStep.value++
- }
+}
 
 const prevStep = () => {
   if (currentStep.value > 1) {
     currentStep.value--
-   }
+  }
 }
 
-// === SAVE JOB ===
-const submitting = ref(false)
+ 
+const toast = useToast()
+ const submitting = ref(false)
 
 const saveJob = async () => {
   if (!job.name.trim()) {
-    alert('Vui lòng nhập tên job')
+    // THAY THẾ: alert('Vui lòng nhập tên job')
+    toast.add({
+      severity: 'warn',
+      summary: 'Validation Error',
+      detail: 'Vui lòng nhập tên job',
+      life: 3000
+    })
     return
   }
 
   const selected = selectedRequests.filter(r => r.selected)
   if (selected.length === 0) {
-    alert('Vui lòng chọn ít nhất 1 API')
+     toast.add({
+      severity: 'warn',
+      summary: 'Validation Error',
+      detail: 'Vui lòng chọn ít nhất 1 API',
+      life: 3000
+    })
     return
   }
 
   submitting.value = true
   try {
     const dtos: JobApiTestSuiteDto[] = selected.map(r => {
+      // ... (Logic map DTO giữ nguyên) ...
       const headersObj = (r.headers || []).reduce((acc: Record<string, string>, h: any) => {
         if (h.key && h.value) acc[h.key] = h.value
         return acc
       }, {})
 
       let parsedDataBase = {}
-      try { parsedDataBase = r.dataBaseTest ? JSON.parse(r.dataBaseTest) : {} } catch {}
+      try { parsedDataBase = r.dataBaseTest ? JSON.parse(r.dataBaseTest) : {} } catch { }
       let parsedBody = {}
-      try { parsedBody = r.body?.content ? JSON.parse(r.body.content) : {} } catch {}
+      try { parsedBody = r.body?.content ? JSON.parse(r.body.content) : {} } catch { }
 
       const dataBase = Object.keys(parsedDataBase).length ? parsedDataBase : parsedBody
 
@@ -136,21 +149,27 @@ const saveJob = async () => {
         description: job.description ?? undefined,
         endpoint: r.url,
         method: r.method,
-        headers: headersObj,   // object
-        dataBase,              // object
+        headers: headersObj,
+        dataBase,
         testCases: [
           {
             caseName: r.name,
-            testData: parsedBody,  // object
+            testData: parsedBody,
             expectedStatus: 200
           }
         ]
       }
     })
 
-    // Gửi array DTOs
     const results = await upsertSuite(dtos)
-    alert(`Lưu thành công ${results.length} suite(s).`)
+    
+    // THAY THẾ: alert(`Lưu thành công ${results.length} suite(s).`)
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: `Lưu thành công ${results.length} suite(s).`,
+      life: 5000 // Tăng thời gian hiển thị cho thông báo quan trọng
+    })
 
     currentStep.value = 1
     selectedRequests.forEach(r => (r.selected = false))
@@ -158,7 +177,13 @@ const saveJob = async () => {
     job.description = ''
   } catch (err: any) {
     console.error('Upsert error', err)
-    alert(err?.response?.data?.message ?? 'Có lỗi khi lưu Job')
+    // THAY THẾ: alert(err?.response?.data?.message ?? 'Có lỗi khi lưu Job')
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: err?.response?.data?.message ?? 'Có lỗi khi lưu Job',
+      life: 5000
+    })
   } finally {
     submitting.value = false
   }
@@ -183,14 +208,21 @@ const formatSchedule = (value: string) => {
 
 <template>
   <div class="">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">API Job Scheduling & Configuration</h1>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage automated run schedules and database connections
+          used for API testing.</p>
+      </div>
 
+
+    </div>
     <!-- HEADER + PROGRESS BAR (4 BƯỚC) -->
     <div class="mb-10">
 
-      <!-- 4 VÒNG TRÒN -->
-      <div class="flex items-center justify-between">
-        <div v-for="(label, idx) in stepLabels" :key="idx" class="flex-1 flex flex-col items-center relative">
-          <!-- Circle -->
+      <div class="flex items-center justify-between relative">
+        <div v-for="(label, idx) in stepLabels" :key="idx" class="flex-1 flex flex-col items-center relative z-10">
+
           <div :class="[
             'w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg transition-all duration-300 shadow-md ',
             currentStep > idx + 1 ? 'bg-green-500 ' :
@@ -200,17 +232,19 @@ const formatSchedule = (value: string) => {
             <span v-else>{{ idx + 1 }}</span>
           </div>
 
-          <!-- Label -->
           <p class="mt-2 text-xs font-medium" :class="currentStep >= idx + 1 ? 'text-blue-600' : 'text-gray-400'">
             {{ label }}
           </p>
 
-          <!-- Line -->
-          <div v-if="idx < totalSteps - 1" class="absolute top-5 left-full w-full h-1 -translate-x-1/2 z-0 "
-            :class="currentStep > idx + 1 ? 'bg-green-500' : 'bg-gray-300'"></div>
         </div>
-      </div>
 
+        <div v-for="n in totalSteps - 1" :key="'line-' + n" class="absolute top-5 h-1 z-0" :style="{
+          left: `calc(${(n - 1) * (100 / totalSteps)}% + 20px)`, /* Bắt đầu sau 1/2 vòng tròn đầu */
+          width: `calc(${100 / totalSteps}% - 40px)` /* Chiều rộng là 1 phần tư trừ đi kích thước 2 vòng tròn */
+        }" :class="currentStep > n ? 'bg-green-500' : 'bg-gray-300'">
+        </div>
+
+      </div>
 
     </div>
 
@@ -290,17 +324,17 @@ const formatSchedule = (value: string) => {
 
         <!-- BƯỚC 3: Cấu hình Job -->
         <div v-else-if="currentStep === 3" class="space-y-6">
- 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Tên Job <span
-                  class="text-red-500">*</span></label>
-              <input v-model="job.name" type="text" placeholder="VD: Kiểm tra API hàng ngày"
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-              <p v-if="!job.name.trim()" class="text-xs text-red-500 mt-1">Vui lòng nhập tên job</p>
-            </div>
-            
-            
-         </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tên Job <span
+                class="text-red-500">*</span></label>
+            <input v-model="job.name" type="text" placeholder="VD: Kiểm tra API hàng ngày"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+            <p v-if="!job.name.trim()" class="text-xs text-red-500 mt-1">Vui lòng nhập tên job</p>
+          </div>
+
+
+        </div>
 
         <!-- BƯỚC 4: Xác nhận -->
         <div v-else-if="currentStep === 4" class="space-y-6">

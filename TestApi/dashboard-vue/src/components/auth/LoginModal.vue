@@ -1,87 +1,91 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useAuth } from '../../composables/useAuth'
 import { useUserData } from '../../composables/useUserData'
 
 const props = defineProps<{
-  modelValue: boolean
+  modelValue: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void
-  (e: 'switchToRegister'): void
-  (e: 'loginSuccess'): void
+  (e: 'update:modelValue', value: boolean): void
+  (e: 'switchToRegister'): void
+  (e: 'loginSuccess'): void
 }>()
 
-const { login, isAuthenticated } = useAuth() // ✅ Get isAuthenticated
-const { fetchUserData } = useUserData()
+const { login, isAuthenticated } = useAuth()
+const { fetchUserData } = useUserData() // ✅ Giữ nguyên
 
 const usernameOrEmail = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
-// ✅ Prevent đóng modal nếu chưa đăng nhập
 const canClose = computed(() => isAuthenticated.value)
 
 const closeModal = () => {
-  // ✅ Chỉ cho phép đóng nếu đã đăng nhập
-  if (!canClose.value) {
-    return
-  }
-  
-  emit('update:modelValue', false)
-  setTimeout(() => {
-    usernameOrEmail.value = ''
-    password.value = ''
-    error.value = ''
-  }, 300)
+  // ... (Giữ nguyên logic closeModal) ...
+  if (!canClose.value) {
+    return
+  }
+  
+  emit('update:modelValue', false)
+  setTimeout(() => {
+    usernameOrEmail.value = ''
+    password.value = ''
+    error.value = ''
+  }, 300)
 }
 
 const handleLogin = async () => {
-  if (!usernameOrEmail.value || !password.value) {
-    error.value = 'Please enter username/email and password'
-    return
-  }
+  if (!usernameOrEmail.value || !password.value) {
+    error.value = 'Please enter username/email and password'
+    return
+  }
 
-  loading.value = true
-  error.value = ''
+  loading.value = true
+  error.value = ''
 
-  try {
-    const result = await login(usernameOrEmail.value, password.value)
+  try {
+    const result = await login(usernameOrEmail.value, password.value)
 
-    if (result.success) {
-       await fetchUserData()
-      
-      emit('loginSuccess')
-      emit('update:modelValue', false)
-      
-      // Clear form
-      usernameOrEmail.value = ''
-      password.value = ''
-      error.value = ''
-    } else {
-      error.value = result.message || 'Login failed'
-    }
-  } catch (err: any) {
-    error.value = err.message || 'An error occurred'
-  } finally {
-    loading.value = false
-  }
+    if (result.success) {
+       
+      // ✅ THAY ĐỔI: Bỏ 'await' để không chặn luồng UI
+      fetchUserData()
+      
+      emit('loginSuccess') // Kích hoạt App.vue để tải lại RouterView
+      emit('update:modelValue', false)
+      
+      // Clear form
+      usernameOrEmail.value = ''
+      password.value = ''
+      error.value = ''
+    } else {
+      error.value = result.message || 'Login failed'
+    }
+  } catch (err: any) {
+    error.value = err.message || 'An error occurred'
+  } finally {
+    loading.value = false
+  }
 }
 
- watch(() => props.modelValue, (value) => {
-  if (value) {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && canClose.value) {
-        closeModal()
-      }
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }
+ watch(() => props.modelValue, (value) => {
+  // ... (Giữ nguyên logic watch) ...
+  if (value) {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && canClose.value) {
+        closeModal()
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }
 })
 </script>
+
+ 
 
 <template>
   <!-- Backdrop - không cho click outside nếu chưa login -->

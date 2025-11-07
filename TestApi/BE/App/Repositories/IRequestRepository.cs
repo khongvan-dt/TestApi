@@ -3,7 +3,7 @@ using AutoApiTester.Models.DTOs;
 
 namespace AutoApiTester.App.Repositories
 {
-    public interface IRequestRepository : IRepository<Request>
+    public interface IRequestRepository : IRepository<RequestEntity>
     {
         Task<IEnumerable<RequestResponseDto>> GetByCollectionIdAsync(int collectionId);
         Task<RequestResponseDto?> GetByIdAsync(int id);

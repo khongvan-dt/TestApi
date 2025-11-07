@@ -1,6 +1,6 @@
 ﻿namespace AutoApiTester.Models;
 
-public class Collection
+public class CollectionEntity
 {
     public int Id { get; set; }
     public int UserId { get; set; } // ✅ Trực tiếp thuộc User
@@ -9,6 +9,6 @@ public class Collection
     public DateTime CreatedAt { get; set; }
 
     // Navigation
-    public User? User { get; set; }
-    public ICollection<Request> Requests { get; set; } = new List<Request>();
+    public UserEntity? User { get; set; }
+    public ICollection<RequestEntity> Requests { get; set; } = new List<RequestEntity>();
 }

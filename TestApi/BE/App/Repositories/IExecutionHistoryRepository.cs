@@ -3,7 +3,7 @@ using AutoApiTester.Models.DTOs;
 
 namespace AutoApiTester.App.Repositories;
 
-public interface IExecutionHistoryRepository : IRepository<ExecutionHistory>
+public interface IExecutionHistoryRepository : IRepository<ExecutionHistoryEntity>
 {
     // Lấy lịch sử của user
     Task<IEnumerable<ExecutionHistoryResponseDto>> GetByUserIdAsync(int userId, int limit = 50);

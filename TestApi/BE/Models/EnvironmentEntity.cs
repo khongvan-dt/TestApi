@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AutoApiTester.Models;
 
 [Table("Environments")]
-public class Environmentss
+public class EnvironmentEntity
 {
     [Key]
     public int Id { get; set; } 

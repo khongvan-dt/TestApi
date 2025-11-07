@@ -18,7 +18,7 @@ namespace AutoApiTester.App.Repositories
         }
 
         // ✅ Save (Insert hoặc Update)
-        public async Task<SQLConnectionDB> SaveAsync(SQLConnectionDB entity,int userId)
+        public async Task<SQLConnectionDBEntity> SaveAsync(SQLConnectionDBEntity entity,int userId)
         {
             try {
                 if (entity.Id > 0)
@@ -59,7 +59,7 @@ namespace AutoApiTester.App.Repositories
         }
 
         // ✅ Lấy danh sách theo UserId
-        public async Task<List<SQLConnectionDB>> GetByUserIdAsync(int userId)
+        public async Task<List<SQLConnectionDBEntity>> GetByUserIdAsync(int userId)
         {
             return await _context.SQLConnectionDBs
                 .Where(x => x.UserId == userId && x.DeleteAt == null)
@@ -68,7 +68,7 @@ namespace AutoApiTester.App.Repositories
         }
 
         // ✅ Lấy chi tiết theo Id và UserId
-        public async Task<SQLConnectionDB> GetByIdAsync(int id, int userId)
+        public async Task<SQLConnectionDBEntity> GetByIdAsync(int id, int userId)
         {
             return await _context.SQLConnectionDBs
                 .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId && x.DeleteAt == null);

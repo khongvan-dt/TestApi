@@ -32,6 +32,6 @@ namespace AutoApiTester.Models
         public DateTime? UpdatedAt { get; set; }
 
          [ForeignKey(nameof(UserId))]
-        public virtual User? User { get; set; }
+        public virtual UserEntity? User { get; set; }
     }
 }

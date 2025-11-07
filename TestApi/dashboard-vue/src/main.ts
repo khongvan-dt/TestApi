@@ -3,8 +3,6 @@ import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
-// ❌ Bỏ dòng này
-// import Aura from '@primevue/themes/aura'
 import ui from '@nuxt/ui/vue-plugin'
 import App from './App.vue'
 
@@ -16,7 +14,7 @@ const router = createRouter({
       path: '/settingjob',
       component: () => import('./pages/settingJob.vue'),
       children: [
-        { path: '', component: () => import('./pages/settingsjob/index.vue') },
+        { path: '', component: () => import('./pages/settingsjob/Scheduling.vue') },
         { path: 'databases', component: () => import('./pages/settingsjob/FormDbConnection.vue') },
       ]
     }
@@ -26,6 +24,6 @@ const router = createRouter({
 const app = createApp(App)
 app.use(router)
 app.use(ui)
-app.use(PrimeVue)  // ✅ Không cần config theme
+app.use(PrimeVue)   
 app.use(ToastService)
 app.mount('#app')

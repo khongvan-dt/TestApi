@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AutoApiTester.Models
 {
     [Table("SQLConnectionDB")]
-    public class SQLConnectionDB
+    public class SQLConnectionDBEntity
     {
         [Key]
         public int Id { get; set; }
@@ -21,7 +21,7 @@ namespace AutoApiTester.Models
         public int UserId { get; set; }
 
         [ForeignKey(nameof(UserId))]
-        public User? User { get; set; }
+        public UserEntity? User { get; set; }
 
         [Required]
         public bool IsActive { get; set; } = true;

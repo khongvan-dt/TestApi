@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AutoApiTester.Models
 {
     [Table("JobApiTestCase")]
-    public class JobApiTestCase
+    public class JobApiTestCaseEntity
     {
         [Key]
          public int Id { get; set; }
@@ -19,8 +19,8 @@ namespace AutoApiTester.Models
 
         public int ExpectedStatus { get; set; }
 
-        public JobApiTestSuite ApiTestSuite { get; set; }
+        public JobApiTestSuiteEntity ApiTestSuite { get; set; }
 
-        public ICollection<JobApiTestHistory> Histories { get; set; }
+        public ICollection<JobApiTestHistoryEntity> Histories { get; set; }
     }
 }

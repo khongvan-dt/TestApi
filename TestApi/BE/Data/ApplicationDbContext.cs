@@ -10,25 +10,25 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    public DbSet<User> Users { get; set; }
-    public DbSet<Collection> Collections { get; set; }
-    public DbSet<Request> Requests { get; set; }
-    public DbSet<ExecutionHistory> ExecutionHistories { get; set; }
-    public DbSet<RequestHeader> RequestHeaders { get; set; }
-    public DbSet<RequestParam> RequestParams { get; set; }
-    public DbSet<RequestBody> RequestBodies { get; set; }
-    public DbSet<JobApiTestSuite> JobApiTestSuites { get; set; }
-    public DbSet<JobApiTestCase> JobApiTestCases { get; set; }
-    public DbSet<JobApiTestHistory> JobApiTestHistories { get; set; }
+    public DbSet<UserEntity> Users { get; set; }
+    public DbSet<CollectionEntity> Collections { get; set; }
+    public DbSet<RequestEntity> Requests { get; set; }
+    public DbSet<ExecutionHistoryEntity> ExecutionHistories { get; set; }
+    public DbSet<RequestHeaderEntity> RequestHeaders { get; set; }
+    public DbSet<RequestParamEntity> RequestParams { get; set; }
+    public DbSet<RequestBodyEntity> RequestBodies { get; set; }
+    public DbSet<JobApiTestSuiteEntity> JobApiTestSuites { get; set; }
+    public DbSet<JobApiTestCaseEntity> JobApiTestCases { get; set; }
+    public DbSet<JobApiTestHistoryEntity> JobApiTestHistories { get; set; }
     public DbSet<JobScheduleApiTest> JobScheduleApiTests => Set<JobScheduleApiTest>();
-    public DbSet<SQLConnectionDB> SQLConnectionDBs => Set<SQLConnectionDB>();
+    public DbSet<SQLConnectionDBEntity> SQLConnectionDBs => Set<SQLConnectionDBEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         // User
-        modelBuilder.Entity<User>(entity =>
+        modelBuilder.Entity<UserEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Username).HasMaxLength(100).IsRequired();
@@ -41,7 +41,7 @@ public class ApplicationDbContext : DbContext
         });
 
         // Collection - Thuộc trực tiếp về User
-        modelBuilder.Entity<Collection>(entity =>
+        modelBuilder.Entity<CollectionEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
@@ -57,7 +57,7 @@ public class ApplicationDbContext : DbContext
         });
 
         // Request
-        modelBuilder.Entity<Request>(entity =>
+        modelBuilder.Entity<RequestEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
@@ -75,7 +75,7 @@ public class ApplicationDbContext : DbContext
         });
 
         // ExecutionHistory
-        modelBuilder.Entity<ExecutionHistory>(entity =>
+        modelBuilder.Entity<ExecutionHistoryEntity>(entity =>
         {
             entity.ToTable("ExecutionHistory");
             entity.HasKey(e => e.Id);
@@ -105,7 +105,7 @@ public class ApplicationDbContext : DbContext
         });
 
         // RequestHeader
-        modelBuilder.Entity<RequestHeader>(entity =>
+        modelBuilder.Entity<RequestHeaderEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Key).HasMaxLength(200);
@@ -120,7 +120,7 @@ public class ApplicationDbContext : DbContext
         });
 
         // RequestParam
-        modelBuilder.Entity<RequestParam>(entity =>
+        modelBuilder.Entity<RequestParamEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Key).HasMaxLength(200);
@@ -135,7 +135,7 @@ public class ApplicationDbContext : DbContext
         });
 
         // RequestBody
-        modelBuilder.Entity<RequestBody>(entity =>
+        modelBuilder.Entity<RequestBodyEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.BodyType).HasMaxLength(50);
@@ -150,14 +150,14 @@ public class ApplicationDbContext : DbContext
         });
 
         // JobApiTestSuite
-        modelBuilder.Entity<JobApiTestSuite>()
+        modelBuilder.Entity<JobApiTestSuiteEntity>()
             .HasMany(s => s.TestCases)
             .WithOne(c => c.ApiTestSuite)
             .HasForeignKey(c => c.ApiTestSuiteId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // JobApiTestCase
-        modelBuilder.Entity<JobApiTestCase>()
+        modelBuilder.Entity<JobApiTestCaseEntity>()
             .HasMany(c => c.Histories)
             .WithOne(h => h.ApiTestCase)
             .HasForeignKey(h => h.ApiTestCaseId)
@@ -170,7 +170,7 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(j => j.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<SQLConnectionDB>(entity =>
+        modelBuilder.Entity<SQLConnectionDBEntity>(entity =>
        {
            entity.ToTable("SQLConnectionDB");
            entity.HasKey(e => e.Id);

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AutoApiTester.Repositories;
 
-public class ExecutionHistoryRepository : Repository<ExecutionHistory>, IExecutionHistoryRepository
+public class ExecutionHistoryRepository : Repository<ExecutionHistoryEntity>, IExecutionHistoryRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -90,7 +90,7 @@ public class ExecutionHistoryRepository : Repository<ExecutionHistory>, IExecuti
     {
         try
         {
-            var history = new ExecutionHistory
+            var history = new ExecutionHistoryEntity
             {
                 UserId = userId,
                 RequestId = dto.RequestId,

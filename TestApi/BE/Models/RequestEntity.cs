@@ -1,6 +1,6 @@
 ﻿using AutoApiTester.Models;
 
-public class Request
+public class RequestEntity
 {
     public int Id { get; set; }
     public int CollectionId { get; set; }
@@ -17,8 +17,8 @@ public class Request
     public DateTime CreatedAt { get; set; }
 
     // Navigation
-    public Collection? Collection { get; set; }
-    public ICollection<RequestHeader> RequestHeaders { get; set; } = new List<RequestHeader>();
-    public ICollection<RequestParam> RequestParams { get; set; } = new List<RequestParam>();
-    public ICollection<RequestBody> RequestBodies { get; set; } = new List<RequestBody>();
+    public CollectionEntity? Collection { get; set; }
+    public ICollection<RequestHeaderEntity> RequestHeaders { get; set; } = new List<RequestHeaderEntity>();
+    public ICollection<RequestParamEntity> RequestParams { get; set; } = new List<RequestParamEntity>();
+    public ICollection<RequestBodyEntity> RequestBodies { get; set; } = new List<RequestBodyEntity>();
 }

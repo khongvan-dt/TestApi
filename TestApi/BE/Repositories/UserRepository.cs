@@ -9,7 +9,7 @@ using System.Text;
 
 namespace AutoApiTester.Repositories
 {
-    public class UserRepository : Repository<User>, IUserRepository
+    public class UserRepository : Repository<UserEntity>, IUserRepository
     {
         private readonly ApplicationDbContext _context;
         private readonly IJwtService _jwtService;
@@ -54,7 +54,7 @@ namespace AutoApiTester.Repositories
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 return (false, "Email already exists");
 
-            var user = new User
+            var user = new UserEntity
             {
                  Username = dto.Username,
                 Email = dto.Email,
@@ -69,13 +69,13 @@ namespace AutoApiTester.Repositories
             return (true, "Registration successful");
         }
 
-        public async Task<User?> GetUserByIdAsync(int userId)
+        public async Task<UserEntity?> GetUserByIdAsync(int userId)
         {
             return await _context.Users.FindAsync(userId);
         }
 
         // ✅ Thêm method này
-        public async Task<User?> GetUserByUsernameOrEmailAsync(string usernameOrEmail)
+        public async Task<UserEntity?> GetUserByUsernameOrEmailAsync(string usernameOrEmail)
         {
             return await _context.Users
                 .FirstOrDefaultAsync(u => u.Username == usernameOrEmail || u.Email == usernameOrEmail);

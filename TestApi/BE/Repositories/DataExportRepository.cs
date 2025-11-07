@@ -198,7 +198,7 @@ public class DataExportRepository : IDataExportRepository
                 var existingCollection = await _context.Collections
                     .FirstOrDefaultAsync(c => c.UserId == userId && c.Name == collectionDto.Name);
 
-                Collection collection;
+                CollectionEntity collection;
 
                 if (existingCollection != null)
                 {
@@ -208,7 +208,7 @@ public class DataExportRepository : IDataExportRepository
                 }
                 else
                 {
-                    collection = new Collection
+                    collection = new CollectionEntity
                     {
                         UserId = userId,
                         Name = collectionDto.Name,
@@ -232,7 +232,7 @@ public class DataExportRepository : IDataExportRepository
                                                 r.Name == requestDto.Name &&
                                                 r.Url == requestDto.Url);
 
-                    Request request;
+                    RequestEntity request;
 
                     if (existingRequest != null)
                     {
@@ -252,7 +252,7 @@ public class DataExportRepository : IDataExportRepository
                     }
                     else
                     {
-                        request = new Request
+                        request = new RequestEntity
                         {
                             CollectionId = collection.Id,
                             Name = requestDto.Name,
@@ -274,7 +274,7 @@ public class DataExportRepository : IDataExportRepository
                     {
                         foreach (var paramDto in requestDto.QueryParams)
                         {
-                            _context.RequestParams.Add(new RequestParam
+                            _context.RequestParams.Add(new RequestParamEntity
                             {
                                 RequestId = request.Id,
                                 Key = paramDto.Key,
@@ -288,7 +288,7 @@ public class DataExportRepository : IDataExportRepository
                     {
                         foreach (var headerDto in requestDto.Headers)
                         {
-                            _context.RequestHeaders.Add(new RequestHeader
+                            _context.RequestHeaders.Add(new RequestHeaderEntity
                             {
                                 RequestId = request.Id,
                                 Key = headerDto.Key,
@@ -305,7 +305,7 @@ public class DataExportRepository : IDataExportRepository
                             if (string.IsNullOrWhiteSpace(bodyDto.Value))
                                 continue;
 
-                            _context.RequestBodies.Add(new RequestBody
+                            _context.RequestBodies.Add(new RequestBodyEntity
                             {
                                 RequestId = request.Id,
                                 BodyType = bodyDto.BodyType,
@@ -357,7 +357,7 @@ public class DataExportRepository : IDataExportRepository
                     continue;
                 }
 
-                Request request;
+                RequestEntity request;
                 bool isNew = false;
 
                 // 2️⃣ Check if updating existing request or creating new
@@ -394,7 +394,7 @@ public class DataExportRepository : IDataExportRepository
                 {
                     // CREATE new request
                     isNew = true;
-                    request = new Request
+                    request = new RequestEntity
                     {
                         CollectionId = dto.CollectionId,
                         Name = dto.Name,
@@ -414,7 +414,7 @@ public class DataExportRepository : IDataExportRepository
                 {
                     foreach (var param in dto.QueryParams.Where(p => !string.IsNullOrEmpty(p.Key)))
                     {
-                        _context.RequestParams.Add(new RequestParam
+                        _context.RequestParams.Add(new RequestParamEntity
                         {
                             RequestId = request.Id,
                             Key = param.Key,
@@ -428,7 +428,7 @@ public class DataExportRepository : IDataExportRepository
                 {
                     foreach (var header in dto.Headers.Where(h => !string.IsNullOrEmpty(h.Key)))
                     {
-                        _context.RequestHeaders.Add(new RequestHeader
+                        _context.RequestHeaders.Add(new RequestHeaderEntity
                         {
                             RequestId = request.Id,
                             Key = header.Key,
@@ -454,7 +454,7 @@ public class DataExportRepository : IDataExportRepository
                         else
                         {
 
-                            _context.RequestBodies.Add(new RequestBody
+                            _context.RequestBodies.Add(new RequestBodyEntity
                             {
                                 RequestId = request.Id,
                                 BodyType = dto.Body.BodyType,
@@ -465,7 +465,7 @@ public class DataExportRepository : IDataExportRepository
                     else
                     {
                         // INSERT new body
-                        _context.RequestBodies.Add(new RequestBody
+                        _context.RequestBodies.Add(new RequestBodyEntity
                         {
                             RequestId = request.Id,
                             BodyType = dto.Body.BodyType,

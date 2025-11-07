@@ -23,7 +23,7 @@ namespace AutoApiTester.Controllers
 
         // ✅ POST: api/SQLConnectionDB/save
         [HttpPost("save")]
-        public async Task<IActionResult> Save([FromBody] SQLConnectionDB dto)
+        public async Task<IActionResult> Save([FromBody] SQLConnectionDBEntity dto)
         {
             try
             {

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AutoApiTester.Repositories
 {
-    public class RequestRepository : Repository<Request>, IRequestRepository
+    public class RequestRepository : Repository<RequestEntity>, IRequestRepository
     {
         private readonly ApplicationDbContext _db; 
 
@@ -70,7 +70,7 @@ namespace AutoApiTester.Repositories
 
         public async Task<RequestResponseDto> CreateAsync(CreateRequestDto dto)
         {
-            var request = new Request
+            var request = new RequestEntity
             {
                 CollectionId = dto.CollectionId,
                 Name = dto.Name,
@@ -87,7 +87,7 @@ namespace AutoApiTester.Repositories
             // add headers
             if (dto.Headers != null && dto.Headers.Any())
             {
-                var headers = dto.Headers.Select(h => new RequestHeader
+                var headers = dto.Headers.Select(h => new RequestHeaderEntity
                 {
                     RequestId = request.Id,
                     Key = h.Key,
@@ -99,7 +99,7 @@ namespace AutoApiTester.Repositories
             // add params
             if (dto.QueryParams != null && dto.QueryParams.Any())
             {
-                var queryParams = dto.QueryParams.Select(p => new RequestParam
+                var queryParams = dto.QueryParams.Select(p => new RequestParamEntity
                 {
                     RequestId = request.Id,
                     Key = p.Key,
@@ -111,7 +111,7 @@ namespace AutoApiTester.Repositories
             // add bodies
             if (dto.Bodies != null && dto.Bodies.Any())
             {
-                var bodies = dto.Bodies.Select(b => new RequestBody
+                var bodies = dto.Bodies.Select(b => new RequestBodyEntity
                 {
                     RequestId = request.Id,
                     BodyType = b.BodyType,
@@ -167,7 +167,7 @@ namespace AutoApiTester.Repositories
             // add new children
             if (dto.Headers != null && dto.Headers.Any())
             {
-                var headers = dto.Headers.Select(h => new RequestHeader
+                var headers = dto.Headers.Select(h => new RequestHeaderEntity
                 {
                     RequestId = request.Id,
                     Key = h.Key,
@@ -178,7 +178,7 @@ namespace AutoApiTester.Repositories
 
             if (dto.QueryParams != null && dto.QueryParams.Any())
             {
-                var queryParams = dto.QueryParams.Select(p => new RequestParam
+                var queryParams = dto.QueryParams.Select(p => new RequestParamEntity
                 {
                     RequestId = request.Id,
                     Key = p.Key,
@@ -189,7 +189,7 @@ namespace AutoApiTester.Repositories
 
             if (dto.Bodies != null && dto.Bodies.Any())
             {
-                var bodies = dto.Bodies.Select(b => new RequestBody
+                var bodies = dto.Bodies.Select(b => new RequestBodyEntity
                 {
                     RequestId = request.Id,
                     BodyType = b.BodyType,

@@ -13,7 +13,7 @@ namespace AutoApiTester.Services
         {
             _repository = repository;
         }
-        public async Task<List<JobApiTestSuite>> UpsertAsync(List<JobApiTestSuiteDto> dtoList, string userName)
+        public async Task<List<JobApiTestSuiteEntity>> UpsertAsync(List<JobApiTestSuiteDto> dtoList, string userName)
         {
             return await _repository.UpsertAsync(dtoList, userName);
 

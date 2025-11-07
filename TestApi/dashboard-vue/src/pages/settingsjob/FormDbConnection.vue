@@ -81,7 +81,7 @@ async function saveConnection() {
   savingConnection.value = true
   try {
     await saveSQLConnection(formData.value)
-    
+
     toast.add({
       severity: 'success',
       summary: 'Success',
@@ -120,7 +120,7 @@ async function handleTestConnection(connectionString?: string) {
   testingConnection.value = true
   try {
     const result = await testSQLConnection(testString)
-    
+
     toast.add({
       severity: result.success ? 'success' : 'error',
       summary: result.success ? 'Success' : 'Connection Failed',
@@ -147,7 +147,7 @@ async function handleDeleteConnection(id: number) {
   loading.value = true
   try {
     await deleteSQLConnection(id)
-    
+
     toast.add({
       severity: 'success',
       summary: 'Success',
@@ -172,7 +172,7 @@ async function handleToggleActive(connection: SQLConnection) {
   loading.value = true
   try {
     await toggleSQLConnectionStatus(connection)
-    
+
     toast.add({
       severity: 'success',
       summary: 'Success',
@@ -242,8 +242,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto p-6">
+  <div class="min-h-screen w-full bg-gray-50 dark:bg-gray-900">
+     <div class="max-w-7xl mx-auto p-6">
       <!-- ==================== HEADER ==================== -->
       <div class="flex items-center justify-between mb-6">
         <div>
@@ -251,10 +251,7 @@ onMounted(() => {
           <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage your SQL Server database connections</p>
         </div>
 
-        <UButton 
-          icon="i-heroicons-plus" 
-          size="lg"
-          @click="openCreateModal">
+        <UButton icon="i-heroicons-plus" size="lg" @click="openCreateModal">
           Add Connection
         </UButton>
       </div>
@@ -277,16 +274,13 @@ onMounted(() => {
           </div>
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No connections yet</h3>
           <p class="text-gray-600 dark:text-gray-400 mb-6">Get started by creating your first database connection</p>
-          
+
         </div>
       </UCard>
 
       <!-- ==================== CONNECTIONS LIST ==================== -->
       <div v-else class="space-y-4">
-        <UCard 
-          v-for="connection in connections" 
-          :key="connection.id"
-          class="hover:shadow-lg transition-shadow">
+        <UCard v-for="connection in connections" :key="connection.id" class="hover:shadow-lg transition-shadow">
 
           <div class="flex items-start justify-between">
             <!-- Left: Connection Info -->
@@ -297,8 +291,7 @@ onMounted(() => {
                 </div>
                 <div>
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ connection.name }}</h3>
-                  <UBadge 
-                    variant="subtle"
+                  <UBadge variant="subtle"
                     :class="connection.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'"
                     class="mt-1">
                     {{ connection.isActive ? 'Active' : 'Inactive' }}
@@ -310,8 +303,8 @@ onMounted(() => {
                 <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <UIcon name="i-heroicons-link" class="w-4 h-4 flex-shrink-0" />
                   <code class="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-md text-xs font-mono break-all">
-                    {{ connection.connectString.length > 80 
-                      ? connection.connectString.substring(0, 80) + '...' 
+                    {{ connection.connectString.length > 80
+                      ? connection.connectString.substring(0, 80) + '...'
                       : connection.connectString }}
                   </code>
                 </div>
@@ -332,37 +325,22 @@ onMounted(() => {
             <!-- Right: Actions -->
             <div class="flex items-center gap-2 ml-4 flex-shrink-0">
               <UTooltip text="Test Connection">
-                <UButton 
-                  icon="i-heroicons-bolt" 
-                  color="primary"
-                  variant="ghost" 
-                  size="sm" 
-                  :loading="testingConnection"
+                <UButton icon="i-heroicons-bolt" color="primary" variant="ghost" size="sm" :loading="testingConnection"
                   @click="handleTestConnection(connection.connectString)" />
               </UTooltip>
 
               <UTooltip text="Edit">
-                <UButton 
-                  icon="i-heroicons-pencil-square" 
-                  variant="ghost" 
-                  size="sm"
+                <UButton icon="i-heroicons-pencil-square" variant="ghost" size="sm"
                   @click="openEditModal(connection)" />
               </UTooltip>
 
               <UTooltip :text="connection.isActive ? 'Deactivate' : 'Activate'">
-                <UButton 
-                  :icon="connection.isActive ? 'i-heroicons-pause-circle' : 'i-heroicons-play-circle'"
-                  variant="ghost" 
-                  size="sm"
-                  @click="handleToggleActive(connection)" />
+                <UButton :icon="connection.isActive ? 'i-heroicons-pause-circle' : 'i-heroicons-play-circle'"
+                  variant="ghost" size="sm" @click="handleToggleActive(connection)" />
               </UTooltip>
 
               <UTooltip text="Delete">
-                <UButton 
-                  icon="i-heroicons-trash" 
-                  color="error"
-                  variant="ghost" 
-                  size="sm"
+                <UButton icon="i-heroicons-trash" color="error" variant="ghost" size="sm"
                   @click="handleDeleteConnection(connection.id!)" />
               </UTooltip>
             </div>
@@ -374,65 +352,51 @@ onMounted(() => {
     <!-- ==================== MODAL: CREATE/EDIT ==================== -->
     <!-- ✅ Sử dụng Teleport để render modal ở body -->
     <Teleport to="body">
-      <Transition
-        enter-active-class="transition-opacity duration-300"
-        leave-active-class="transition-opacity duration-300"
-        enter-from-class="opacity-0"
-        leave-to-class="opacity-0">
-        <div 
-          v-if="showModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      <Transition enter-active-class="transition-opacity duration-300"
+        leave-active-class="transition-opacity duration-300" enter-from-class="opacity-0" leave-to-class="opacity-0">
+        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           @click.self="closeModal">
-          
-          <div 
+
+          <div
             class="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-lg shadow-2xl max-h-[90vh] overflow-hidden"
             @click.stop>
-            
+
             <!-- Header -->
             <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
               <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
                 {{ isEditing ? 'Edit Connection' : 'Add New Connection' }}
               </h3>
-              <UButton 
-                icon="i-heroicons-x-mark" 
-                variant="ghost"
-                size="sm"
-                :disabled="savingConnection"
+              <UButton icon="i-heroicons-x-mark" variant="ghost" size="sm" :disabled="savingConnection"
                 @click="closeModal" />
             </div>
 
             <!-- Content -->
             <div class="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-              <!-- Connection Name -->
+
               <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-900 dark:text-white">
-                  Connection Name 
+                  Connection Name
                   <span class="text-red-500">*</span>
                 </label>
-                <UInput 
-                  v-model="formData.name" 
-                  placeholder="e.g. Production DB, Local Development" 
-                  icon="i-heroicons-identification"
-                  size="lg"
-                  :maxlength="200" />
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  Maximum 200 characters
-                </p>
-              </div>
 
+                <UInput v-model="formData.name" placeholder="e.g. Production DB, Local Development"
+                  icon="i-heroicons-identification" size="lg" :maxlength="200" class="w-full" />
+
+                <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                  <p>Maximum 200 characters</p>
+                </div>
+              </div>
               <!-- Connection String -->
               <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-900 dark:text-white">
-                  Connection String 
+                  Connection String
                   <span class="text-red-500">*</span>
                 </label>
-                <UTextarea 
-                  v-model="formData.connectString"
-                  placeholder="Server=localhost;Database=MyDB;User Id=sa;Password=****;TrustServerCertificate=True" 
-                  :rows="6"
-                  size="lg"
-                  class="font-mono text-sm"
-                  :maxlength="1000" />
+
+                <UTextarea v-model="formData.connectString" class="w-full font-mono text-sm"
+                  placeholder="Server=localhost;Database=MyDB;User Id=sa;Password=****;TrustServerCertificate=True"
+                  :rows="6" size="lg" :maxlength="1000" />
+
                 <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                   <p><strong>Example:</strong> Server=...;Database=...;Trusted_Connection=True;Trust...; </p>
                   <p>Maximum 1000 characters</p>
@@ -444,18 +408,17 @@ onMounted(() => {
                 <label class="block text-sm font-medium text-gray-900 dark:text-white">
                   Status
                 </label>
-                <div class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <input 
-                    type="checkbox"
-                    v-model="formData.isActive"
+                <div
+                  class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <input type="checkbox" v-model="formData.isActive"
                     class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer" />
                   <div>
                     <p class="text-sm font-medium text-gray-900 dark:text-white">
                       {{ formData.isActive ? 'Active' : 'Inactive' }}
                     </p>
                     <p class="text-xs text-gray-500 dark:text-gray-400">
-                      {{ formData.isActive 
-                        ? 'This connection is available for use' 
+                      {{ formData.isActive
+                        ? 'This connection is available for use'
                         : 'This connection is disabled' }}
                     </p>
                   </div>
@@ -463,34 +426,18 @@ onMounted(() => {
               </div>
 
               <!-- Test Connection Button -->
-              <UButton 
-                icon="i-heroicons-bolt" 
-                color="primary"
-                variant="outline" 
-                block
-                size="lg"
-                :loading="testingConnection"
-                :disabled="!formData.connectString"
-                @click="handleTestConnection()">
+              <UButton icon="i-heroicons-bolt" color="primary" variant="outline" block size="lg"
+                :loading="testingConnection" :disabled="!formData.connectString" @click="handleTestConnection()">
                 {{ testingConnection ? 'Testing Connection...' : 'Test Connection' }}
               </UButton>
             </div>
 
             <!-- Footer -->
             <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-800">
-              <UButton 
-                label="Cancel" 
-                variant="ghost"
-                size="lg"
-                :disabled="savingConnection"
-                @click="closeModal" />
+              <UButton label="Cancel" variant="ghost" size="lg" :disabled="savingConnection" @click="closeModal" />
 
-              <UButton 
-                :label="isEditing ? 'Update Connection' : 'Create Connection'" 
-                icon="i-heroicons-check"
-                size="lg"
-                :loading="savingConnection"
-                :disabled="!formData.name || !formData.connectString"
+              <UButton :label="isEditing ? 'Update Connection' : 'Create Connection'" icon="i-heroicons-check" size="lg"
+                :loading="savingConnection" :disabled="!formData.name || !formData.connectString"
                 @click="saveConnection" />
             </div>
           </div>

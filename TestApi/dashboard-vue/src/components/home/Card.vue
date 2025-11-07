@@ -688,16 +688,13 @@ defineExpose({
       </div>
 
       <div class="flex-1 overflow-auto" style="height: calc(100% - 100px);">
-        <!-- Params Tab -->
         <!-- <ParamsTab 
           v-show="activeTab === 'Params'"
           ref="paramsTabRef"
           :paramsData="paramsData" /> -->
 
-        <!-- Authorization Tab -->
         <AuthorizationTab v-show="activeTab === 'Authorization'" ref="authTabRef" />
 
-        <!-- Headers Tab -->
         <!-- <HeadersTab 
           v-show="activeTab === 'Headers'"
           ref="headersTabRef"

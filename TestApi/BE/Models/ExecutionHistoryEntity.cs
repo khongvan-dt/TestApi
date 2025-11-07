@@ -1,6 +1,6 @@
 ﻿namespace AutoApiTester.Models;
 
-public class ExecutionHistory
+public class ExecutionHistoryEntity
 {
     public int Id { get; set; }
     public int UserId { get; set; }
@@ -28,6 +28,6 @@ public class ExecutionHistory
     public DateTime CreatedAt { get; set; }
 
     // Navigation
-    public User? User { get; set; }
-    public Request? Request { get; set; }
+    public UserEntity? User { get; set; }
+    public RequestEntity? Request { get; set; }
 }

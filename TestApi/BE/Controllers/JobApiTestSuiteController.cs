@@ -15,41 +15,41 @@ namespace AutoApiTester.Controllers
     [Authorize]
     public class JobApiTestSuiteController : ControllerBase
     {
-        private readonly IJobApiTestSuiteRepository _repository;
+        private readonly IJobApiTestSuiteService _service;
         private readonly ILogger<JobApiTestSuiteController> _logger;
 
         public JobApiTestSuiteController(
-            IJobApiTestSuiteRepository repository,
+            IJobApiTestSuiteService service,
             ILogger<JobApiTestSuiteController> logger)
         {
-            _repository = repository;
+            _service = service;
             _logger = logger;
         }
 
-        ///// <summary>
-        ///// Lấy UserId hiện tại từ JWT Token
-        ///// </summary>
-        //private int? GetUserId()
-        //{
-        //    try
-        //    {
-        //        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        /// <summary>
+        /// Lấy UserId hiện tại từ JWT Token
+        /// </summary>
+        private int? GetUserId()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        //        if (string.IsNullOrEmpty(userIdClaim))
-        //            return null;
+                if (string.IsNullOrEmpty(userIdClaim))
+                    return null;
 
-        //        return int.TryParse(userIdClaim, out var userId) ? userId : null;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error getting user ID from token");
-        //        return null;
-        //    }
-        //}
+                return int.TryParse(userIdClaim, out var userId) ? userId : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user ID from token");
+                return null;
+            }
+        }
 
         [HttpPost("upsert")]
         [Authorize]
-        public async Task<ActionResult<List<JobApiTestSuite>>> UpsertAsync([FromBody] List<JobApiTestSuiteDto> dto)
+        public async Task<ActionResult<List<JobApiTestSuiteEntity>>> UpsertAsync([FromBody] List<JobApiTestSuiteDto> dto)
         {
             if (dto == null)
                 return BadRequest(new { message = "Dữ liệu không hợp lệ" });
@@ -58,7 +58,7 @@ namespace AutoApiTester.Controllers
 
             try
             {
-                var result = await _repository.UpsertAsync(dto, userName);
+                var result = await _service.UpsertAsync(dto, userName);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -68,40 +68,40 @@ namespace AutoApiTester.Controllers
             }
         }
 
-        ///// <summary>
-        ///// Lấy danh sách tất cả JobApiTestSuite
-        ///// </summary>
-        //[HttpGet]
-        //public async Task<ActionResult<IEnumerable<JobApiTestSuite>>> GetAll()
-        //{
-        //    var result = await _repository.GetAllAsync();
-        //    return Ok(result);
-        //}
+        /// <summary>
+        /// Lấy danh sách tất cả JobApiTestSuite
+        /// </summary>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<JobApiTestSuiteEntity>>> GetAll()
+        {
+            var result = await _service.GetAllAsync();
+            return Ok(result);
+        }
 
-        ///// <summary>
-        ///// Lấy chi tiết theo ID
-        ///// </summary>
-        //[HttpGet("{id}")]
-        //public async Task<ActionResult<JobApiTestSuite>> GetById(int id)
-        //{
-        //    var item = await _repository.GetByIdAsync(id);
-        //    if (item == null)
-        //        return NotFound(new { message = "Không tìm thấy JobApiTestSuite" });
+        /// <summary>
+        /// Lấy chi tiết theo ID
+        /// </summary>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<JobApiTestSuiteEntity>> GetById(int id)
+        {
+            var item = await _service.GetByIdAsync(id);
+            if (item == null)
+                return NotFound(new { message = "Không tìm thấy JobApiTestSuite" });
 
-        //    return Ok(item);
-        //}
+            return Ok(item);
+        }
 
-        ///// <summary>
-        ///// Xóa 1 JobApiTestSuite
-        ///// </summary>
-        //[HttpDelete("{id}")]
-        //public async Task<IActionResult> Delete(int id)
-        //{
-        //    var deleted = await _repository.DeleteAsync(id);
-        //    if (!deleted)
-        //        return NotFound(new { message = "Không tìm thấy để xóa" });
+        /// <summary>
+        /// Xóa 1 JobApiTestSuite
+        /// </summary>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var deleted = await _service.DeleteAsync(id);
+            if (!deleted)
+                return NotFound(new { message = "Không tìm thấy để xóa" });
 
-        //    return Ok(new { message = "Đã xóa thành công" });
-        //}
+            return Ok(new { message = "Đã xóa thành công" });
+        }
     }
 }

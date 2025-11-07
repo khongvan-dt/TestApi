@@ -3,7 +3,7 @@ using AutoApiTester.Models.DTOs;
 
 namespace AutoApiTester.App.Repositories;
 
-public interface ICollectionRepository : IRepository<Collection>
+public interface ICollectionRepository : IRepository<CollectionEntity>
 {
     // ✅ Lấy collections theo UserId
     Task<List<CollectionResponseDto>> GetByUserIdAsync(int userId);
