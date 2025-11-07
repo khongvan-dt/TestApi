@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, watch,onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import RawEditor from './bodyTabs/RawEditor.vue'
 import FormDataEditor from './bodyTabs/FormDataEditor.vue'
 import DataBaseTest from './bodyTabs/DataBaseTest.vue'
-import ParamsTab from './ParamsTab.vue'
  interface Props {
   modelValue?: string
   dataBaseTest?: string | null
@@ -27,13 +26,11 @@ const currentBodyId = ref(0)
 const bodyType = ref<'base-data' | 'raw' | 'form-data' | 'none' | 'binary'>('raw')
 
 const rawContent = ref('')
- const formUrlEncoded = ref<any[]>([])
 const binaryFile = ref<File | null>(null)
 
 // Refs
 const rawEditorRef = ref<any>(null)
 const formRef = ref<any>(null)
-const paramsRef = ref<any>(null)
 
 watch(() => props.bodyId, (val) => {
   currentBodyId.value = val || 0

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from 'vue'
-import ParamsTab from './tabs/ParamsTab.vue'
 import AuthorizationTab from './tabs/AuthorizationTab.vue'
-import HeadersTab from './tabs/HeadersTab.vue'
 import BodyTab from './tabs/BodyTab.vue'
 import SaveRequestModal from '../home/popup/SaveRequestModal.vue'
 import { useApiClient } from '../../composables/useApiClient'
