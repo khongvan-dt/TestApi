@@ -99,13 +99,11 @@ async function handleCreateCollection() {
   }
 }
 function getCardData() {
-  console.log('🟧 [SaveRequestModal] ========== getCardData START ==========')
-  console.log('🟧 [SaveRequestModal] props.cardRef:', props.cardRef)
-  console.log('🟧 [SaveRequestModal] cardRef type:', typeof props.cardRef)
+ 
   
-  // ✅ CHECK: cardRef có tồn tại không
+  //  CHECK: cardRef có tồn tại không
   if (!props.cardRef) {
-    console.error('❌ [SaveRequestModal] cardRef is null/undefined!')
+    console.error(' [SaveRequestModal] cardRef is null/undefined!')
     return {
       formDataItems: [],
       authData: null,
@@ -116,13 +114,7 @@ function getCardData() {
       dataBaseTest: null
     }
   }
-  
-  // ✅ CHECK: Có những method nào
-  console.log('🟧 [SaveRequestModal] Available methods:', Object.keys(props.cardRef))
-  console.log('🟧 [SaveRequestModal] Has getCurrentData?:', !!props.cardRef.getCurrentData)
-  console.log('🟧 [SaveRequestModal] Has getRequestData?:', !!props.cardRef.getRequestData)
-  
-  // ✅ CHECK: getCurrentData có tồn tại không
+   
   if (!props.cardRef.getCurrentData) {
     console.error('❌ [SaveRequestModal] getCurrentData method NOT FOUND!')
     return {
@@ -136,11 +128,9 @@ function getCardData() {
     }
   }
 
-  // ✅ GỌI getCurrentData
-  console.log('🟧 [SaveRequestModal] ✅ Calling getCurrentData...')
-  const currentData = props.cardRef.getCurrentData()
-  console.log('🟧 [SaveRequestModal] getCurrentData raw result:', currentData)
-
+  //  GỌI getCurrentData
+   const currentData = props.cardRef.getCurrentData()
+ 
   // Lấy dữ liệu từ Card.vue/getCurrentData()
   const formDataItems = currentData.formDataItems || []
   const authData = currentData.authData || null
@@ -158,8 +148,7 @@ function getCardData() {
 
 
 async function handleSave() {
-  console.log('🟧 [SaveRequestModal] ========== handleSave START ==========')
-  
+   
   const validationError = validateSaveRequest()
   if (validationError) {
     error.value = validationError
@@ -170,8 +159,7 @@ async function handleSave() {
 
   // ✅ LẤY TẤT CẢ DỮ LIỆU HIỆN TẠI TỪ CARD
   const cardData = getCardData()
-  console.log('🟧 [SaveRequestModal] Card data returned:', cardData)
-  
+   
   const { formDataItems, authData, queryParams, headers, currentBodyType, currentBodyContent, dataBaseTest } = cardData
 
   // BASE REQUEST
@@ -188,13 +176,11 @@ async function handleSave() {
   let bodyForSave: any = null
   let dataBaseTestForSave: string | null = null
 
-  console.log('🟧 [SaveRequestModal] Processing body type:', currentBodyType)
-  console.log('🟧 [SaveRequestModal] formDataItems.length:', formDataItems.length)
+ 
 
   // 1. XỬ LÝ FORM-DATA
   if (currentBodyType === 'form-data' && formDataItems.length > 0) {
-    console.log('🟧 [SaveRequestModal] ✅ Processing FORM-DATA')
-    
+     
     const filtered = formDataItems
       .filter((item: any) => item.enabled && item.key)
       .map((item: any) => ({
@@ -206,8 +192,7 @@ async function handleSave() {
         enabled: item.enabled !== false
       }))
 
-    console.log('🟧 [SaveRequestModal] Filtered items:', filtered)
-
+ 
     if (filtered.length > 0) {
       const bodyTypeValue = filtered[0]?.type || 'text'
 
@@ -218,26 +203,23 @@ async function handleSave() {
         type: bodyTypeValue
       }
       
-      console.log('🟧 [SaveRequestModal] ✅ Body for save:', bodyForSave)
-    }
+     }
   }
   // 2. XỬ LÝ BASE-DATA
   else if (currentBodyType === 'base-data' && dataBaseTest?.trim()) {
-    console.log('🟧 [SaveRequestModal] ✅ Processing BASE-DATA')
-    dataBaseTestForSave = dataBaseTest
+     dataBaseTestForSave = dataBaseTest
     bodyForSave = null
   }
   // 3. XỬ LÝ RAW
   else if (currentBodyType === 'raw' && currentBodyContent?.trim() && currentBodyContent.trim() !== '{}') {
-    console.log('🟧 [SaveRequestModal] ✅ Processing RAW')
-    bodyForSave = {
+     bodyForSave = {
       id: 0,
       bodyType: 'raw',
       value: currentBodyContent,
       type: 'raw'
     }
   } else {
-    console.log('🟧 [SaveRequestModal] ⚠️ No body to save (type:', currentBodyType, ')')
+    console.log(' [SaveRequestModal]  No body to save (type:', currentBodyType, ')')
   }
 
   const requestData = {
@@ -249,10 +231,7 @@ async function handleSave() {
   }
 
   const payload = [requestData]
-
-  console.log('🟧 [SaveRequestModal] ========== FINAL PAYLOAD ==========')
-  console.log('🟧 [SaveRequestModal] FINAL PAYLOAD:', JSON.stringify(payload, null, 2))
-
+ 
   try {
     const result = await saveRequest(payload)
 
@@ -267,7 +246,7 @@ async function handleSave() {
       error.value = result?.[0]?.message || 'Save failed'
     }
   } catch (err: any) {
-    console.error('❌ [SaveRequestModal] Error:', err)
+    console.error(' [SaveRequestModal] Error:', err)
     error.value = err.message || 'Error'
   }
 }
