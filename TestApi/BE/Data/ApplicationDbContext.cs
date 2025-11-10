@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using AutoApiTester.Models;
+﻿using AutoApiTester.Models;
+using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace AutoApiTester.Data;
 
@@ -20,7 +21,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<JobApiTestSuiteEntity> JobApiTestSuites { get; set; }
     public DbSet<JobApiTestCaseEntity> JobApiTestCases { get; set; }
     public DbSet<JobApiTestHistoryEntity> JobApiTestHistories { get; set; }
-    public DbSet<JobScheduleApiTest> JobScheduleApiTests => Set<JobScheduleApiTest>();
+    public DbSet<JobScheduleApiTestEntity> JobScheduleApiTests => Set<JobScheduleApiTestEntity>();
     public DbSet<SQLConnectionDBEntity> SQLConnectionDBs => Set<SQLConnectionDBEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -150,12 +151,37 @@ public class ApplicationDbContext : DbContext
         });
 
         // JobApiTestSuite
-        modelBuilder.Entity<JobApiTestSuiteEntity>()
-            .HasMany(s => s.TestCases)
-            .WithOne(c => c.ApiTestSuite)
-            .HasForeignKey(c => c.ApiTestSuiteId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<JobApiTestSuiteEntity>(entity =>
+        {
+            entity.ToTable("JobApiTestSuite");
+            entity.HasKey(e => e.Id);
 
+            entity.Property(e => e.Endpoint).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Method).HasMaxLength(10).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.CaseTest).IsRequired();
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+
+            // FK bắt buộc
+            entity.Property(e => e.JobScheduleApiTestId).IsRequired();
+
+            // Relationship với JobScheduleApiTest
+            entity.HasOne(e => e.JobScheduleApiTest)
+                .WithMany(j => j.JobApiTestSuites)
+                .HasForeignKey(e => e.JobScheduleApiTestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relationship với TestCases
+            entity.HasMany(s => s.TestCases)
+                .WithOne(c => c.ApiTestSuite)
+                .HasForeignKey(c => c.ApiTestSuiteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.JobScheduleApiTestId);
+        });
         // JobApiTestCase
         modelBuilder.Entity<JobApiTestCaseEntity>()
             .HasMany(c => c.Histories)
@@ -163,12 +189,35 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(h => h.ApiTestCaseId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // JobScheduleApiTest
-        modelBuilder.Entity<JobScheduleApiTest>()
-            .HasOne(j => j.User)
-            .WithMany()
-            .HasForeignKey(j => j.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // JobScheduleApiTest - Cấu hình đơn giản hơn, khớp với DB hiện tại
+        modelBuilder.Entity<JobScheduleApiTestEntity>(entity =>
+        {
+            entity.ToTable("JobScheduleApiTest");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.UserId).IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.ScheduleType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            // ✅ Cấu hình FK - BỎ HasConstraintName vì DB đã có FK rồi
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.JobScheduleApiTests)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Cấu hình relationship với JobApiTestSuites
+            entity.HasMany(e => e.JobApiTestSuites)
+                .WithOne(s => s.JobScheduleApiTest)
+                .HasForeignKey(s => s.JobScheduleApiTestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.UserId);
+        });
+
+
 
         modelBuilder.Entity<SQLConnectionDBEntity>(entity =>
        {

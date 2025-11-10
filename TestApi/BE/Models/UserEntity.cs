@@ -34,7 +34,7 @@ public class UserEntity
 
     // Navigation Properties
      public virtual ICollection<ExecutionHistoryEntity> ExecutionHistories { get; set; } = new List<ExecutionHistoryEntity>();
-    public virtual ICollection<JobScheduleApiTest> JobScheduleApiTests { get; set; } = new List<JobScheduleApiTest>();
+    public virtual ICollection<JobScheduleApiTestEntity> JobScheduleApiTests { get; set; } = new List<JobScheduleApiTestEntity>();
     public virtual ICollection<SQLConnectionDBEntity> SQLConnectionDBs { get; set; } = new List<SQLConnectionDBEntity>();
 
 }

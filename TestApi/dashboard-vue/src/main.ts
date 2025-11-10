@@ -5,6 +5,8 @@ import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
 import ui from '@nuxt/ui/vue-plugin'
 import App from './App.vue'
+ 
+import 'primeicons/primeicons.css'; 
 
 const router = createRouter({
   history: createWebHistory(),
@@ -24,6 +26,6 @@ const router = createRouter({
 const app = createApp(App)
 app.use(router)
 app.use(ui)
-app.use(PrimeVue)   
+app.use(PrimeVue) 
 app.use(ToastService)
 app.mount('#app')

@@ -143,8 +143,7 @@ defineExpose({
         <div class="col-span-3">Key</div>
         <div class="col-span-1">Type</div>
         <div class="col-span-4">Value</div>
-        <div class="col-span-2">Description</div>
-        <div class="col-span-1"></div>
+         <div class="col-span-1"></div>
       </div>
 
       <!-- Body -->
@@ -173,7 +172,7 @@ defineExpose({
           </div>
 
           <!-- Value -->
-          <div class="col-span-4 flex gap-1">
+          <div class="col-span-6 flex gap-1">
             <template v-if="item.type === 'sql'">
               <select v-model="item.sqlConnectionId"
                 class="w-1/2 px-2 py-1.5 text-sm border border-gray-300 rounded bg-white">
@@ -189,11 +188,7 @@ defineExpose({
               class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 placeholder-gray-400" />
           </div>
 
-          <!-- Description -->
-          <div class="col-span-2">
-            <input v-model="item.description" type="text" placeholder="Description"
-              class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 placeholder-gray-400" />
-          </div>
+        
 
           <!-- Remove -->
           <div class="col-span-1 flex items-center justify-center">

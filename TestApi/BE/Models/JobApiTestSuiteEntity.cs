@@ -7,10 +7,13 @@ namespace AutoApiTester.Models
     public class JobApiTestSuiteEntity
     {
         [Key]
-         public int Id { get; set; }
+        public int Id { get; set; }
 
-        [MaxLength(200)]
-        public string Name { get; set; }
+        // FK bắt buộc
+        [Required]
+        public int JobScheduleApiTestId { get; set; }
+
+         public JobScheduleApiTestEntity JobScheduleApiTest { get; set; }
 
         [MaxLength(500)]
         public string Endpoint { get; set; }
@@ -18,9 +21,9 @@ namespace AutoApiTester.Models
         [MaxLength(10)]
         public string Method { get; set; }
 
-        public string Headers { get; set; }  
-
-        public string DataBase { get; set; }  
+        public string Headers { get; set; }
+        public string DataBaseTest { get; set; }
+        public string CaseTest { get; set; }
 
         [MaxLength(500)]
         public string Description { get; set; }

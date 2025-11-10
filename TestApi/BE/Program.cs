@@ -163,6 +163,7 @@ builder.Services.AddScoped<IExecutionHistoryRepository, ExecutionHistoryReposito
 builder.Services.AddScoped<ISQLConnectionDBRepository, SQLConnectionDBRepository>();
 
 builder.Services.AddScoped<IJobApiTestSuiteRepository, JobApiTestSuiteRepository>();
+builder.Services.AddScoped<IRequestBodyRepository, RequestBodyRepository>();
 
 builder.Services.AddScoped<IDataExportService, DataExportService>();
 builder.Services.AddScoped<ISQLConnectionDBService, SQLConnectionDBService>();
@@ -175,7 +176,7 @@ builder.Services.AddScoped<ICollectionService, CollectionService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IExecutionHistoryService, ExecutionHistoryService>();
 builder.Services.AddScoped<IJobApiTestSuiteService, JobApiTestSuiteService>();
-
+ 
 
 var app = builder.Build();
 

@@ -1,10 +1,7 @@
-﻿
-
-using AutoApiTester.App.Repositories;
+﻿using AutoApiTester.App.Repositories;
 using AutoApiTester.Data;
 using AutoApiTester.DTOs.SettingJob;
 using AutoApiTester.Models;
-using AutoApiTester.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -18,111 +15,225 @@ namespace AutoApiTester.Repositories
         {
             _context = context;
         }
-        public async Task<List<CollectionResponseDto>> GetByUserIdAsync(int userId)
+
+        // --- HÀM NGHIỆP VỤ CHÍNH ---
+
+        public async Task<JobScheduleApiTestEntity> UpsertJobScheduleAsync(
+           JobScheduleDto jobDto,
+           int userId,
+           string userName)
         {
-            var collections = await _context.Collections
-                .Include(c => c.Requests)
-                .Where(c => c.UserId == userId)
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
+            // Tìm Job hiện tại, bao gồm các Test Suite và Test Case con
+            var job = await _context.JobScheduleApiTests
+                .Include(j => j.JobApiTestSuites).ThenInclude(s => s.TestCases)
+                .FirstOrDefaultAsync(j => j.Id == jobDto.Id);
 
-            var result = collections.Select(c => new CollectionResponseDto
+            bool isNewJob = job == null;
+
+            if (isNewJob)
             {
-                Id = c.Id,
-                UserId = c.UserId,
-                Name = c.Name,
-                Description = c.Description,
-                CreatedAt = c.CreatedAt,
-                RequestsCount = c.Requests?.Count ?? 0
-            }).ToList();
+                // 1. TẠO MỚI Job Schedule
+                job = new JobScheduleApiTestEntity
+                {
+                    UserId = userId,
+                    Name = jobDto.Name,
+                    Description = jobDto.Description,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true,
+                    JobApiTestSuites = new List<JobApiTestSuiteEntity>()
+                };
+                _context.JobScheduleApiTests.Add(job);
+            }
 
-            return result;
+            // 2. CẬP NHẬT thông tin Job Schedule
+            job.Name = jobDto.Name;
+            job.Description = jobDto.Description;
+            job.UpdatedAt = isNewJob ? null : DateTime.UtcNow;
+
+            // Cấu hình Lịch chạy (Schedule)
+            job.ScheduleType = jobDto.ScheduleType;
+            job.RunAtTime = jobDto.ScheduleType == "daily" ?
+                            ParseDailyTime(jobDto.DailyTime) : null;
+            job.IntervalMinutes = jobDto.ScheduleType == "interval" ?
+                                  CalculateIntervalMinutes(jobDto.IntervalValue, jobDto.IntervalUnit!) : null;
+
+            // Xử lý các Test Suites (Insert/Update/Delete)
+            HandleTestSuites(job, jobDto.TestSuites, userName);
+
+            // 3. LƯU TẤT CẢ thay đổi (bao gồm Job mẹ và các Job con)
+            await _context.SaveChangesAsync();
+            return job;
         }
 
-        public async Task<List<JobApiTestSuiteEntity>> UpsertAsync(List<JobApiTestSuiteDto> dtoList, string userName)
+        // --- HÀM HỖ TRỢ NỘI BỘ ---
+
+        private void HandleTestSuites(
+            JobScheduleApiTestEntity job,
+            List<JobApiTestSuiteDto> dtos,
+            string userName)
         {
-            var result = new List<JobApiTestSuiteEntity>();
+            // Lấy ID của các Suite cần giữ lại
+            var suiteIdsToKeep = dtos.Where(s => s.Id > 0).Select(s => s.Id).Cast<int>().ToList();
 
-            foreach (var dto in dtoList)
+            // Xóa các Suite bị loại bỏ (orphans)
+            var suitesToRemove = job.JobApiTestSuites.Where(s => !suiteIdsToKeep.Contains(s.Id)).ToList();
+            foreach (var suite in suitesToRemove)
             {
-                JobApiTestSuiteEntity entity;
+                _context.JobApiTestSuites.Remove(suite); // EF Core sẽ xóa Test Cases liên quan
+            }
 
-                if (dto.Id == null || dto.Id == 0)
+            // Upsert (Insert/Update) các Test Suites còn lại
+            foreach (var suiteDto in dtos)
+            {
+                var suiteEntity = job.JobApiTestSuites.FirstOrDefault(s => s.Id == suiteDto.Id);
+
+                if (suiteEntity == null) // INSERT
                 {
-                    // INSERT mới
-                    entity = new JobApiTestSuiteEntity
+                    suiteEntity = new JobApiTestSuiteEntity
                     {
-                        Name = dto.Name ?? "Unnamed Suite",
-                        Endpoint = dto.Endpoint,
-                        Method = dto.Method,
-                        Headers = JsonSerializer.Serialize(dto.Headers),
-                        DataBase = JsonSerializer.Serialize(dto.DataBase),
-                        Description = dto.Description,
+                        Endpoint = suiteDto.Endpoint,
+                        Method = suiteDto.Method,
+                        Headers = Serialize(suiteDto.Headers),
+                        DataBaseTest = Serialize(suiteDto.DataBase),
+                        CaseTest = suiteDto.Description ?? "Test Setup",
+                        Description = suiteDto.Description,
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = userName,
                         IsActive = true
                     };
-
-                    entity.TestCases = dto.TestCases?.Select(tc => new JobApiTestCaseEntity
+                    // Thêm Test Case con (Chỉ Insert)
+                    suiteEntity.TestCases = suiteDto.TestCases?.Select(tcDto => new JobApiTestCaseEntity
                     {
-                        CaseName = tc.CaseName ?? "Untitled Case",
-                        TestData = JsonSerializer.Serialize(tc.TestData),
-                        ExpectedStatus = tc.ExpectedStatus
+                        CaseName = tcDto.CaseName ?? "Untitled Case",
+                        TestData = Serialize(tcDto.TestData),
+                        ExpectedStatus = tcDto.ExpectedStatus
                     }).ToList() ?? new List<JobApiTestCaseEntity>();
 
-                    _context.JobApiTestSuites.Add(entity);
+                    job.JobApiTestSuites.Add(suiteEntity);
                 }
-                else
+                else // UPDATE
                 {
-                    // UPDATE
-                    entity = await _context.JobApiTestSuites
-                        .Include(s => s.TestCases)
-                        .FirstOrDefaultAsync(s => s.Id == dto.Id);
+                    suiteEntity.Endpoint = suiteDto.Endpoint;
+                    suiteEntity.Method = suiteDto.Method;
+                    suiteEntity.Headers = Serialize(suiteDto.Headers);
+                    suiteEntity.DataBaseTest = Serialize(suiteDto.DataBase);
+                    suiteEntity.CaseTest = suiteDto.Description ?? suiteEntity.CaseTest;
+                    suiteEntity.Description = suiteDto.Description;
+                    suiteEntity.UpdatedAt = DateTime.UtcNow;
+                    suiteEntity.UpdatedBy = userName;
 
-                    if (entity == null)
-                        throw new Exception($"JobApiTestSuite with Id={dto.Id} not found.");
-
-                    entity.Name = dto.Name ?? entity.Name;
-                    entity.Endpoint = dto.Endpoint;
-                    entity.Method = dto.Method;
-                    entity.Headers = JsonSerializer.Serialize(dto.Headers);
-                    entity.DataBase = JsonSerializer.Serialize(dto.DataBase);
-                    entity.Description = dto.Description;
-                    entity.UpdatedAt = DateTime.UtcNow;
-                    entity.UpdatedBy = userName;
-
-                    foreach (var tcDto in dto.TestCases ?? new List<JobApiTestCaseDto>())
-                    {
-                        if (tcDto.Id == null || tcDto.Id == 0)
-                        {
-                            entity.TestCases.Add(new JobApiTestCaseEntity
-                            {
-                                CaseName = tcDto.CaseName ?? "Untitled Case",
-                                TestData = JsonSerializer.Serialize(tcDto.TestData),
-                                ExpectedStatus = tcDto.ExpectedStatus
-                            });
-                        }
-                        else
-                        {
-                            var existing = entity.TestCases.FirstOrDefault(t => t.Id == tcDto.Id);
-                            if (existing != null)
-                            {
-                                existing.CaseName = tcDto.CaseName ?? existing.CaseName;
-                                existing.TestData = JsonSerializer.Serialize(tcDto.TestData);
-                                existing.ExpectedStatus = tcDto.ExpectedStatus;
-                            }
-                        }
-                    }
+                    UpdateTestCases(suiteEntity, suiteDto.TestCases);
                 }
-
-                result.Add(entity);
             }
-
-            await _context.SaveChangesAsync();
-            return result;
         }
 
-   
-    
+        private void UpdateTestCases(JobApiTestSuiteEntity suiteEntity, List<JobApiTestCaseDto> testCaseDtos)
+        {
+            var tcIdsToKeep = testCaseDtos.Where(tc => tc.Id > 0).Select(tc => tc.Id).Cast<int>().ToList();
+
+            // Xóa Test Cases bị loại bỏ
+            var tcsToRemove = suiteEntity.TestCases.Where(tc => !tcIdsToKeep.Contains(tc.Id)).ToList();
+            foreach (var tc in tcsToRemove)
+            {
+                suiteEntity.TestCases.Remove(tc);
+            }
+
+            // Upsert Test Cases còn lại
+            foreach (var tcDto in testCaseDtos)
+            {
+                var existing = suiteEntity.TestCases.FirstOrDefault(t => t.Id == tcDto.Id);
+                if (existing == null) // INSERT
+                {
+                    suiteEntity.TestCases.Add(new JobApiTestCaseEntity
+                    {
+                        CaseName = tcDto.CaseName ?? "Untitled Case",
+                        TestData = Serialize(tcDto.TestData),
+                        ExpectedStatus = tcDto.ExpectedStatus
+                    });
+                }
+                else // UPDATE
+                {
+                    existing.CaseName = tcDto.CaseName ?? existing.CaseName;
+                    existing.TestData = Serialize(tcDto.TestData);
+                    existing.ExpectedStatus = tcDto.ExpectedStatus;
+                }
+            }
+        }
+
+        private string? Serialize(object? data)
+        {
+            if (data == null) return null;
+            try
+            {
+                return JsonSerializer.Serialize(data);
+            }
+            catch { return null; }
+        }
+
+        private TimeSpan? ParseDailyTime(string? dailyTime)
+        {
+            if (string.IsNullOrEmpty(dailyTime)) return null;
+
+            if (TimeSpan.TryParse(dailyTime, out var result))
+            {
+                return result;
+            }
+            return null;
+        }
+
+        private int? CalculateIntervalMinutes(int? value, string unit)
+        {
+            if (value.HasValue && value.Value > 0 && unit == "hours")
+            {
+                return value.Value * 60;
+            }
+            return value;
+        }
+
+
+        /// <summary>
+        /// Lấy danh sách tất cả Job Schedule của User (không include con)
+        /// </summary>
+        public async Task<List<JobScheduleApiTestEntity>> GetJobSchedulesByUserIdAsync(int userId)
+        {
+            return await _context.JobScheduleApiTests
+                .Where(j => j.UserId == userId)
+                .OrderByDescending(j => j.CreatedAt)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Lấy chi tiết đầy đủ 1 Job Schedule (bao gồm TestSuite và TestCase con)
+        /// </summary>
+        public async Task<JobScheduleApiTestEntity?> GetJobScheduleDetailAsync(int jobScheduleId, int userId)
+        {
+            return await _context.JobScheduleApiTests
+                .Include(j => j.JobApiTestSuites)           // Load TestSuites
+                    .ThenInclude(s => s.TestCases)          // Load TestCases của mỗi Suite
+                .Where(j => j.Id == jobScheduleId && j.UserId == userId)  // Bảo mật: chỉ lấy Job của User
+                .FirstOrDefaultAsync();
+        }
+        /// <summary>
+        /// Bật/Tắt trạng thái Job Schedule
+        /// </summary>
+        public async Task<JobScheduleApiTestEntity?> ToggleJobScheduleStatusAsync(int jobScheduleId, int userId)
+        {
+            // Tìm Job Schedule thuộc về User
+            var jobSchedule = await _context.JobScheduleApiTests
+                .Where(j => j.Id == jobScheduleId && j.UserId == userId)
+                .FirstOrDefaultAsync();
+
+            if (jobSchedule == null)
+                return null;
+
+            // Toggle trạng thái
+            jobSchedule.IsActive = !jobSchedule.IsActive;
+            jobSchedule.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return jobSchedule;
+        }
+
     }
 }
